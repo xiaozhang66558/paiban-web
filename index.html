@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <title>HR System - Team Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   <style>
     *{box-sizing:border-box;font-family:Segoe UI,Arial;}
     body{margin:0;background:#f4f6f9;color:#111;}
@@ -18,37 +20,50 @@
     @media(min-width:980px){.grid{grid-template-columns:1.2fr .8fr;}}
     .card{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:16px;}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .row> *{flex:0 0 auto}
     input,select{padding:10px 12px;border:1px solid #d1d5db;border-radius:12px;outline:none;background:#fff}
+    input:focus,select:focus{border-color:#2563eb}
     table{width:100%;border-collapse:collapse;background:#fff}
     th,td{border-bottom:1px solid #eee;padding:10px 8px;text-align:left;font-size:14px}
-    th{background:#111827;color:#fff}
+    th{background:#111827;color:#fff;position:sticky;top:58px}
+    .muted{color:#6b7280;font-size:13px}
+    .pill{display:inline-block;padding:3px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px}
+    .pill.red{background:#fee2e2;color:#991b1b}
+    .pill.gray{background:#f3f4f6;color:#374151}
+    .actions button{padding:7px 10px;border-radius:10px;border:0;cursor:pointer}
+    .actions .edit{background:#f59e0b;color:#111}
+    .actions .del{background:#ef4444;color:#fff}
+    .actions .save{background:#10b981;color:#fff}
+    .actions .cancel{background:#6b7280;color:#fff}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border-radius:999px;background:#e5e7eb;cursor:pointer}
+    .tab.active{background:#111827;color:#fff}
     .hidden{display:none !important}
+    .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(min-width:900px){.kpi{grid-template-columns:repeat(4,1fr)}}
+    .kpi .box{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:12px}
+    .kpi .num{font-size:22px;font-weight:800}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:18px;}
+    .modal.show{display:flex}
+    .modal .panel{width:min(720px,100%);background:#fff;border-radius:16px;padding:16px;box-shadow:0 15px 45px rgba(0,0,0,.2)}
+    .modal h3{margin:0 0 10px}
+    .modal .form{display:grid;grid-template-columns:1fr;gap:10px}
+    @media(min-width:720px){.modal .form{grid-template-columns:1fr 1fr}}
+    .modal .form .full{grid-column:1/-1}
+    .danger{color:#b91c1c}
   </style>
 </head>
 
 <body>
-
-<header>
-  <div class="left">
-    <strong>HR System</strong>
-    <span id="roleBadge" class="badge">Not logged in</span>
-  </div>
-  <div>
-    <button id="btnLogin">Login</button>
-    <button id="btnLogout" class="hidden">Logout</button>
-  </div>
-</header>
-
-<div style="padding:30px">
-  <h2>Dashboard</h2>
-</div>
+<!-- UI của bạn giữ nguyên -->
+<!-- ... toàn bộ HTML phía trên của bạn giữ nguyên ... -->
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-/* ====================== */
-/* 🔥 CHỈ THÊM PHẦN NÀY */
-/* ====================== */
+/* ========================= */
+/* 🔥 CHỈ THÊM ĐOẠN NÀY */
+/* ========================= */
 
 const SUPABASE_URL = "https://mxeqccecqkyllwvbylej.supabase.co";
 const SUPABASE_KEY = "sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
@@ -62,50 +77,9 @@ const supa = createClient(SUPABASE_URL, SUPABASE_KEY, {
   }
 });
 
-/* ====================== */
-/* 🔥 PHẦN CỦA BẠN GIỮ NGUYÊN */
-/* ====================== */
-
-const roleBadge = document.getElementById("roleBadge");
-const btnLogin = document.getElementById("btnLogin");
-const btnLogout = document.getElementById("btnLogout");
-
-function setUI(user){
-  if(!user){
-    roleBadge.textContent = "Not logged in";
-    btnLogin.classList.remove("hidden");
-    btnLogout.classList.add("hidden");
-  }else{
-    roleBadge.textContent = "Logged in";
-    btnLogin.classList.add("hidden");
-    btnLogout.classList.remove("hidden");
-  }
-}
-
-btnLogin.onclick = async ()=>{
-  const email = prompt("Email");
-  const password = prompt("Password");
-  const { error } = await supa.auth.signInWithPassword({ email, password });
-  if(error){
-    alert(error.message);
-    return;
-  }
-  const { data:{ user }} = await supa.auth.getUser();
-  setUI(user);
-};
-
-btnLogout.onclick = async ()=>{
-  await supa.auth.signOut();
-  setUI(null);
-};
-
-supa.auth.onAuthStateChange(async ()=>{
-  const { data:{ user }} = await supa.auth.getUser();
-  setUI(user);
-});
-
-const { data:{ user }} = await supa.auth.getUser();
-setUI(user);
+/* ========================= */
+/* 🔥 TỪ ĐÂY XUỐNG GIỮ NGUYÊN CODE BẠN */
+/* ========================= */
 
 </script>
 
