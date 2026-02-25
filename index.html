@@ -585,7 +585,18 @@
     }
 
     async function refreshAll(){
-      console.log("TEST PROFILES", await supa.from("profiles").select("*"));
+        console.log("1 loadMasterData start");
+        await loadMasterData();
+        console.log("2 loadMasterData done");
+
+        console.log("3 ensureProfile start");
+        me = await ensureProfile();
+        console.log("4 ensureProfile done", me);
+
+        console.log("5 loadUsers start");
+        await loadUsers();
+        console.log("6 loadUsers done");
+      }
       
       await loadMasterData();
       me = await ensureProfile();
