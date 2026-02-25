@@ -585,6 +585,8 @@
     }
 
     async function refreshAll(){
+      console.log("TEST PROFILES", await supa.from("profiles").select("*"));
+      
       await loadMasterData();
       me = await ensureProfile();
       fillSelectOptions();
