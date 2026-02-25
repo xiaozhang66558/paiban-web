@@ -1,1 +1,822 @@
-<!DOCTYPE html> <html> <head> <meta charset="UTF-8" /> <title>HR System - Team Dashboard</title> <meta name="viewport" content="width=device-width, initial-scale=1" /> <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script> <style> *{box-sizing:border-box;font-family:Segoe UI,Arial;} body{margin:0;background:#f4f6f9;color:#111;} header{position:sticky;top:0;background:#111827;color:#fff;padding:14px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;} header .left{display:flex;gap:10px;align-items:center;} header .badge{background:#374151;padding:4px 10px;border-radius:999px;font-size:12px} header button{background:#2563eb;color:#fff;border:0;padding:8px 12px;border-radius:10px;cursor:pointer} header button.secondary{background:#374151} .wrap{max-width:1200px;margin:18px auto;padding:0 18px;} .grid{display:grid;grid-template-columns:1fr;gap:14px} @media(min-width:980px){.grid{grid-template-columns:1.2fr .8fr;}} .card{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:16px;} .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center} .row> *{flex:0 0 auto} input,select{padding:10px 12px;border:1px solid #d1d5db;border-radius:12px;outline:none;background:#fff} input:focus,select:focus{border-color:#2563eb} table{width:100%;border-collapse:collapse;background:#fff} th,td{border-bottom:1px solid #eee;padding:10px 8px;text-align:left;font-size:14px} th{background:#111827;color:#fff;position:sticky;top:58px} .muted{color:#6b7280;font-size:13px} .pill{display:inline-block;padding:3px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px} .pill.red{background:#fee2e2;color:#991b1b} .pill.gray{background:#f3f4f6;color:#374151} .actions button{padding:7px 10px;border-radius:10px;border:0;cursor:pointer} .actions .edit{background:#f59e0b;color:#111} .actions .del{background:#ef4444;color:#fff} .actions .save{background:#10b981;color:#fff} .actions .cancel{background:#6b7280;color:#fff} .tabs{display:flex;gap:8px;flex-wrap:wrap} .tab{padding:8px 12px;border-radius:999px;background:#e5e7eb;cursor:pointer} .tab.active{background:#111827;color:#fff} .hidden{display:none !important} .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px} @media(min-width:900px){.kpi{grid-template-columns:repeat(4,1fr)}} .kpi .box{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:12px} .kpi .num{font-size:22px;font-weight:800} .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:18px;} .modal.show{display:flex} .modal .panel{width:min(720px,100%);background:#fff;border-radius:16px;padding:16px;box-shadow:0 15px 45px rgba(0,0,0,.2)} .modal h3{margin:0 0 10px} .modal .form{display:grid;grid-template-columns:1fr;gap:10px} @media(min-width:720px){.modal .form{grid-template-columns:1fr 1fr}} .modal .form .full{grid-column:1/-1} .danger{color:#b91c1c} </style> </head> <body> <header> <div class="left"> <strong>HR System</strong> <span id="roleBadge" class="badge">Not logged in</span> <span id="teamBadge" class="badge hidden"></span> </div> <div class="row"> <button id="btnLogin" class="secondary">Login</button> <button id="btnLogout" class="hidden">Logout</button> </div> </header> <div class="wrap"> <div class="tabs card"> <div class="tab active" data-tab="dashboard">Dashboard</div> <div class="tab" data-tab="employees">Employees</div> <div class="tab" data-tab="master">Teams/Positions</div> </div> <div id="viewDashboard" class="grid"> <div class="card"> <div class="row" style="justify-content:space-between"> <div> <h2 style="margin:0">统计总览</h2> <div class="muted">按团队/岗位统计（管理员全局，Leader 仅自己团队）</div> </div> <div class="row"> <select id="filterStatus"> <option value="在职">在职</option> <option value="离职">离职</option> <option value="ALL">全部</option> </select> <select id="filterTeam"></select> <select id="filterCountry"></select> </div> </div> </div> <div class="kpi"> <div class="box"><div class="muted">总人数</div><div id="kpiTotal" class="num">0</div></div> <div class="box"><div class="muted">客服</div><div id="kpiCS" class="num">0</div></div> <div class="box"><div class="muted">出款</div><div id="kpiWD" class="num">0</div></div> <div class="box"><div class="muted">查单</div><div id="kpiDP" class="num">0</div></div> </div> <div class="card"> <h3 style="margin:0 0 10px">岗位分布（饼图）</h3> <canvas id="chartPosition"></canvas> </div> <div class="card"> <h3 style="margin:0 0 10px">团队人数（柱状图）</h3> <canvas id="chartTeam"></canvas> </div> <div class="card" style="grid-column:1/-1"> <h3 style="margin:0 0 10px">详细统计表</h3> <div style="overflow:auto;border-radius:12px"> <table> <thead> <tr> <th>团队</th> <th>客服</th> <th>出款</th> <th>查单</th> <th>财务</th> <th>质检</th> <th>彩金</th> <th>总人数</th> <th>占比%</th> </tr> </thead> <tbody id="tbodyStats"></tbody> </table> </div> </div> </div> <div id="viewEmployees" class="card hidden"> <div class="row" style="justify-content:space-between"> <div> <h2 style="margin:0">Employees</h2> <div class="muted">新增/编辑/删除（admin 全部，leader 仅自己团队）</div> </div> <div class="row"> <input id="searchEmp" placeholder="搜索姓名/国家..." /> <button id="btnAddEmp">+ Add employee</button> </div> </div> <div style="overflow:auto;border-radius:12px;margin-top:12px"> <table> <thead> <tr> <th>姓名</th> <th>团队</th> <th>岗位</th> <th>国家</th> <th>状态</th> <th>更新时间</th> <th>操作</th> </tr> </thead> <tbody id="tbodyEmp"></tbody> </table> </div> </div> <div id="viewMaster" class="grid hidden"> <div class="card"> <h2 style="margin:0 0 10px">Teams</h2> <div class="muted">仅 Admin 可新增/删除</div> <div class="row" style="margin-top:10px"> <input id="newTeamName" placeholder="team name..." /> <button id="btnAddTeam">Add Team</button> </div> <div id="teamsList" style="margin-top:12px"></div> </div> <div class="card"> <h2 style="margin:0 0 10px">Positions</h2> <div class="muted">仅 Admin 可新增/删除</div> <div class="row" style="margin-top:10px"> <input id="newPosName" placeholder="position name..." /> <button id="btnAddPos">Add Position</button> </div> <div id="posList" style="margin-top:12px"></div> </div> </div> </div> <!-- Login modal --> <div id="modalLogin" class="modal"> <div class="panel"> <div class="row" style="justify-content:space-between;align-items:flex-start"> <div> <h3>Login</h3> <div class="muted">使用 Supabase Auth 用户登录</div> </div> <button id="btnCloseLogin" class="secondary">Close</button> </div> <div class="form" style="margin-top:10px"> <div class="full"> <input id="loginEmail" placeholder="email" style="width:100%" /> </div> <div class="full"> <input id="loginPass" placeholder="password" type="password" style="width:100%" /> </div> <div class="full row"> <button id="btnDoLogin">Login</button> <span class="muted">首次登录会自动生成 profiles</span> </div> <div id="loginMsg" class="full muted"></div> </div> </div> </div> <!-- Employee modal --> <div id="modalEmp" class="modal"> <div class="panel"> <div class="row" style="justify-content:space-between;align-items:flex-start"> <div> <h3 id="empTitle">Add employee</h3> <div class="muted">填完保存即可（权限：admin/leader）</div> </div> <button id="btnCloseEmp" class="secondary">Close</button> </div> <div class="form" style="margin-top:10px"> <div class="full"> <input id="empName" placeholder="姓名" style="width:100%" /> </div> <div> <select id="empTeam" style="width:100%"></select> </div> <div> <select id="empPos" style="width:100%"></select> </div> <div> <input id="empCountry" placeholder="国家 (越南/菲律宾...)" style="width:100%" /> </div> <div> <select id="empStatus" style="width:100%"> <option value="在职">在职</option> <option value="离职">离职</option> </select> </div> <div class="full row"> <button id="btnSaveEmp" class="save">Save</button> <button id="btnCancelEmp" class="cancel">Cancel</button> <span id="empMsg" class="muted"></span> </div> </div> </div> </div> <script type="module"> import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"; // === CONFIG (của bạn) === const SUPABASE_URL = "https://mxeqccecqkyllwvbylej.supabase.co"; const SUPABASE_KEY = "sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR"; const supa = createClient(SUPABASE_URL, SUPABASE_KEY); // === UI refs === const roleBadge = document.getElementById("roleBadge"); const teamBadge = document.getElementById("teamBadge"); const tabs = [...document.querySelectorAll(".tab")]; const viewDashboard = document.getElementById("viewDashboard"); const viewEmployees = document.getElementById("viewEmployees"); const viewMaster = document.getElementById("viewMaster"); const btnLogin = document.getElementById("btnLogin"); const btnLogout = document.getElementById("btnLogout"); const modalLogin = document.getElementById("modalLogin"); const btnCloseLogin = document.getElementById("btnCloseLogin"); const btnDoLogin = document.getElementById("btnDoLogin"); const loginEmail = document.getElementById("loginEmail"); const loginPass = document.getElementById("loginPass"); const loginMsg = document.getElementById("loginMsg"); const filterStatus = document.getElementById("filterStatus"); const filterTeam = document.getElementById("filterTeam"); const filterCountry = document.getElementById("filterCountry"); const kpiTotal = document.getElementById("kpiTotal"); const kpiCS = document.getElementById("kpiCS"); const kpiWD = document.getElementById("kpiWD"); const kpiDP = document.getElementById("kpiDP"); const tbodyStats = document.getElementById("tbodyStats"); const tbodyEmp = document.getElementById("tbodyEmp"); const searchEmp = document.getElementById("searchEmp"); const btnAddEmp = document.getElementById("btnAddEmp"); const modalEmp = document.getElementById("modalEmp"); const empTitle = document.getElementById("empTitle"); const btnCloseEmp = document.getElementById("btnCloseEmp"); const btnCancelEmp = document.getElementById("btnCancelEmp"); const btnSaveEmp = document.getElementById("btnSaveEmp"); const empMsg = document.getElementById("empMsg"); const empName = document.getElementById("empName"); const empTeam = document.getElementById("empTeam"); const empPos = document.getElementById("empPos"); const empCountry = document.getElementById("empCountry"); const empStatus = document.getElementById("empStatus"); const newTeamName = document.getElementById("newTeamName"); const btnAddTeam = document.getElementById("btnAddTeam"); const teamsList = document.getElementById("teamsList"); const newPosName = document.getElementById("newPosName"); const btnAddPos = document.getElementById("btnAddPos"); const posList = document.getElementById("posList"); // === state === let me = null; // {id, role, team_id} let TEAMS = []; let POSITIONS = []; let USERS = []; let editId = null; let chartPos = null; let chartTeam = null; // === helpers === const posKeys = ["客服","出款","查单","财务","质检","彩金"]; const safeText = (x) => (x ?? "").toString(); const fmtTime = (iso) => iso ? new Date(iso).toLocaleString() : "-"; function showTab(name){ tabs.forEach(t=>t.classList.toggle("active", t.dataset.tab===name)); viewDashboard.classList.toggle("hidden", name!=="dashboard"); viewEmployees.classList.toggle("hidden", name!=="employees"); viewMaster.classList.toggle("hidden", name!=="master"); } function openModal(el){ el.classList.add("show"); } function closeModal(el){ el.classList.remove("show"); } function setRoleUI(){ if(!me){ roleBadge.textContent = "Not logged in"; teamBadge.classList.add("hidden"); btnLogin.classList.remove("hidden"); btnLogout.classList.add("hidden"); return; } roleBadge.textContent = Role: ${me.role}; btnLogin.classList.add("hidden"); btnLogout.classList.remove("hidden"); if(me.role === "leader" && me.team_id){ const t = TEAMS.find(x=>x.id===me.team_id); teamBadge.textContent = Team: ${t?.team_name ?? me.team_id}; teamBadge.classList.remove("hidden"); } else { teamBadge.classList.add("hidden"); } // master tab chỉ admin const masterTab = tabs.find(t=>t.dataset.tab==="master"); if(me.role === "admin") masterTab.classList.remove("hidden"); else masterTab.classList.add("hidden"); if(me.role !== "admin" && me.role !== "leader"){ btnAddEmp.disabled = true; btnAddEmp.title = "No permission"; } else { btnAddEmp.disabled = false; btnAddEmp.title = ""; } } async function ensureProfile(){ const { data: { user } } = await supa.auth.getUser(); if(!user) return null; // read profile let { data: prof } = await supa.from("profiles").select("*").eq("id", user.id).maybeSingle(); // if not exists, insert if(!prof){ const ins = await supa.from("profiles").insert({ id: user.id, role: "staff" }).select("*").single(); prof = ins.data; } return prof; } async function loadMasterData(){ const { data: teams } = await supa.from("teams").select("*").order("team_name"); const { data: pos } = await supa.from("positions").select("*").order("position_name"); TEAMS = teams ?? []; POSITIONS = pos ?? []; } function fillSelectOptions(){ // dashboard filters filterTeam.innerHTML = <option value="ALL">全部团队</option> + TEAMS.map(t=><option value="${t.id}">${t.team_name}</option>).join(""); filterCountry.innerHTML = <option value="ALL">全部国家</option>; // employee modal empTeam.innerHTML = TEAMS.map(t=><option value="${t.id}">${t.team_name}</option>).join(""); empPos.innerHTML = POSITIONS.map(p=><option value="${p.id}">${p.position_name}</option>).join(""); // nếu leader, lock filterTeam là team mình if(me?.role === "leader" && me.team_id){ filterTeam.value = me.team_id; filterTeam.disabled = true; } else { filterTeam.disabled = false; } } async function loadUsers(){ // RLS sẽ tự giới hạn data theo role (admin/leader) const status = filterStatus.value; let q = supa.from("users").select("*").order("updated_at", { ascending:false }); if(status !== "ALL") q = q.eq("status", status); // leader: filter team locked (UI) + RLS const team = filterTeam.value; if(team !== "ALL") q = q.eq("team_id", team); const { data, error } = await q; if(error){ console.error(error); return; } USERS = data ?? []; } function computeCountries(){ const set = new Set(USERS.map(u=>u.country).filter(Boolean)); const current = filterCountry.value || "ALL"; filterCountry.innerHTML = <option value="ALL">全部国家</option> + [...set].sort().map(c=><option value="${c}">${c}</option>).join(""); if([...set].includes(current)) filterCountry.value = current; else filterCountry.value = "ALL"; } function renderDashboard(){ // apply country filter locally const country = filterCountry.value; const data = (country==="ALL") ? USERS : USERS.filter(u=>u.country===country); const total = data.length; const posCount = Object.fromEntries(posKeys.map(k=>[k,0])); const teamMap = {}; // team_name => counts data.forEach(u=>{ const t = TEAMS.find(x=>x.id===u.team_id)?.team_name ?? "未分组"; const p = POSITIONS.find(x=>x.id===u.position_id)?.position_name ?? "其他"; if(teamMap[t] == null){ teamMap[t] = { total:0, ...Object.fromEntries(posKeys.map(k=>[k,0])) }; } teamMap[t].total++; if(posCount[p] != null) posCount[p]++; if(teamMap[t][p] != null) teamMap[t][p]++; }); kpiTotal.textContent = total; kpiCS.textContent = posCount["客服"] ?? 0; kpiWD.textContent = posCount["出款"] ?? 0; kpiDP.textContent = posCount["查单"] ?? 0; // table stats tbodyStats.innerHTML = ""; const entries = Object.entries(teamMap).sort((a,b)=>b[1].total-a[1].total); for(const [teamName, obj] of entries){ const percent = total>0 ? ((obj.total/total)*100).toFixed(1) : "0.0"; tbodyStats.innerHTML += <tr> <td>${teamName}</td> <td>${obj["客服"]||0}</td> <td>${obj["出款"]||0}</td> <td>${obj["查单"]||0}</td> <td>${obj["财务"]||0}</td> <td>${obj["质检"]||0}</td> <td>${obj["彩金"]||0}</td> <td><span class="pill">${obj.total}</span></td> <td>${percent}%</td> </tr> ; } // charts const posLabels = posKeys; const posValues = posLabels.map(l=>posCount[l]||0); const teamLabels = entries.map(([name])=>name); const teamValues = entries.map(([,obj])=>obj.total); if(chartPos) chartPos.destroy(); chartPos = new Chart(document.getElementById("chartPosition"), { type: "doughnut", data: { labels: posLabels, datasets: [{ data: posValues }] }, options: { responsive:true, plugins:{ legend:{ position:"bottom" } } } }); if(chartTeam) chartTeam.destroy(); chartTeam = new Chart(document.getElementById("chartTeam"), { type: "bar", data: { labels: teamLabels, datasets: [{ data: teamValues }] }, options: { responsive:true, plugins:{ legend:{ display:false } } } }); } function renderEmployees(){ const q = safeText(searchEmp.value).trim().toLowerCase(); const data = q ? USERS.filter(u => safeText(u.name).toLowerCase().includes(q) || safeText(u.country).toLowerCase().includes(q)) : USERS; tbodyEmp.innerHTML = data.map(u=>{ const teamName = TEAMS.find(x=>x.id===u.team_id)?.team_name ?? "未分组"; const posName = POSITIONS.find(x=>x.id===u.position_id)?.position_name ?? "其他"; const statusPill = u.status==="在职" ? <span class="pill">${u.status}</span> : <span class="pill red">${u.status}</span>; return <tr> <td><strong>${safeText(u.name)}</strong></td> <td>${teamName}</td> <td>${posName}</td> <td>${safeText(u.country) || "-"}</td> <td>${statusPill}</td> <td class="muted">${fmtTime(u.updated_at)}</td> <td class="actions"> <button class="edit" data-id="${u.id}">Edit</button> <button class="del" data-id="${u.id}">Delete</button> </td> </tr> ; }).join(""); } function renderMaster(){ teamsList.innerHTML = TEAMS.map(t=> <div class="row" style="justify-content:space-between;border:1px solid #eee;padding:10px;border-radius:12px;margin-bottom:8px"> <div><strong>${t.team_name}</strong> <span class="muted">${t.id}</span></div> <button class="actions del" data-team="${t.id}">Delete</button> </div> ).join(""); posList.innerHTML = POSITIONS.map(p=> <div class="row" style="justify-content:space-between;border:1px solid #eee;padding:10px;border-radius:12px;margin-bottom:8px"> <div><strong>${p.position_name}</strong> <span class="muted">${p.id}</span></div> <button class="actions del" data-pos="${p.id}">Delete</button> </div> ).join(""); // lock write if not admin const isAdmin = me?.role === "admin"; btnAddTeam.disabled = !isAdmin; btnAddPos.disabled = !isAdmin; newTeamName.disabled = !isAdmin; newPosName.disabled = !isAdmin; } async function refreshAll(){ await loadMasterData(); me = await ensureProfile(); fillSelectOptions(); setRoleUI(); await loadUsers(); computeCountries(); renderDashboard(); renderEmployees(); renderMaster(); } // === Auth actions === btnLogin.onclick = ()=> openModal(modalLogin); btnCloseLogin.onclick = ()=> closeModal(modalLogin); /* ===================== ✅ FIX LOGIN (CHỈ THÊM, KHÔNG ĐỔI LOGIC) ===================== */ btnDoLogin.onclick = async ()=>{ loginMsg.textContent = "Logging in..."; // ✅ thêm: chống bấm nhiều lần btnDoLogin.disabled = true; // ✅ thêm: nếu refreshAll bị treo/đứng vì lỗi RLS/permission, tự reload để không đứng mãi const fallbackReload = setTimeout(()=>{ try{ loginMsg.textContent = "Stuck... reloading..."; window.location.reload(); }catch(e){} }, 2500); try{ const email = loginEmail.value.trim(); const password = loginPass.value; const { error } = await supa.auth.signInWithPassword({ email, password }); if(error){ clearTimeout(fallbackReload); loginMsg.textContent = ❌ ${error.message}; return; } loginMsg.textContent = "✅ Logged in"; closeModal(modalLogin); // ✅ giữ nguyên logic cũ await refreshAll(); // ✅ nếu refreshAll chạy xong thì huỷ fallback clearTimeout(fallbackReload); } catch (e){ console.error(e); clearTimeout(fallbackReload); loginMsg.textContent = "❌ Error, check console"; } finally{ btnDoLogin.disabled = false; } }; /* ================================================================================ */ btnLogout.onclick = async ()=>{ await supa.auth.signOut(); me = null; USERS = []; setRoleUI(); // clear views tbodyStats.innerHTML = ""; tbodyEmp.innerHTML = ""; kpiTotal.textContent = "0"; kpiCS.textContent="0"; kpiWD.textContent="0"; kpiDP.textContent="0"; alert("Logged out"); }; supa.auth.onAuthStateChange(async ()=>{ const { data: { user } } = await supa.auth.getUser(); if(user) await refreshAll(); else setRoleUI(); }); // === Tabs === tabs.forEach(t=>{ t.onclick = ()=>{ if(t.classList.contains("hidden")) return; showTab(t.dataset.tab); }; }); // === Filters === filterStatus.onchange = async ()=>{ await loadUsers(); computeCountries(); renderDashboard(); renderEmployees(); }; filterTeam.onchange = async ()=>{ await loadUsers(); computeCountries(); renderDashboard(); renderEmployees(); }; filterCountry.onchange= ()=>{ renderDashboard(); }; searchEmp.oninput = ()=> renderEmployees(); // === Employee modal CRUD === function openEmpModal(mode, u=null){ empMsg.textContent = ""; editId = u?.id ?? null; empTitle.textContent = mode==="edit" ? "Edit employee" : "Add employee"; empName.value = u?.name ?? ""; empCountry.value = u?.country ?? ""; empStatus.value = u?.status ?? "在职"; // set selects empTeam.innerHTML = TEAMS.map(t=><option value="${t.id}">${t.team_name}</option>).join(""); empPos.innerHTML = POSITIONS.map(p=><option value="${p.id}">${p.position_name}</option>).join(""); if(me?.role==="leader" && me.team_id){ empTeam.value = me.team_id; empTeam.disabled = true; }else{ empTeam.value = u?.team_id ?? (TEAMS[0]?.id ?? ""); empTeam.disabled = false; } empPos.value = u?.position_id ?? (POSITIONS[0]?.id ?? ""); openModal(modalEmp); } btnAddEmp.onclick = ()=>{ if(!me || (me.role!=="admin" && me.role!=="leader")){ alert("No permission"); return; } openEmpModal("add"); }; btnCloseEmp.onclick = ()=> closeModal(modalEmp); btnCancelEmp.onclick = ()=> closeModal(modalEmp); btnSaveEmp.onclick = async ()=>{ if(!me || (me.role!=="admin" && me.role!=="leader")){ alert("No permission"); return; } const payload = { name: empName.value.trim(), team_id: empTeam.value, position_id: empPos.value, country: empCountry.value.trim(), status: empStatus.value }; if(!payload.name){ empMsg.textContent = "❌ 姓名不能为空"; return; } empMsg.textContent = "Saving..."; let res; if(editId){ res = await supa.from("users").update(payload).eq("id", editId); }else{ res = await supa.from("users").insert(payload); } if(res.error){ console.error(res.error); empMsg.innerHTML = <span class="danger">❌ ${res.error.message}</span>; return; } closeModal(modalEmp); await loadUsers(); computeCountries(); renderDashboard(); renderEmployees(); }; tbodyEmp.onclick = async (e)=>{ const btn = e.target.closest("button"); if(!btn) return; const id = btn.dataset.id; if(!id) return; const u = USERS.find(x=>x.id===id); if(btn.classList.contains("edit")){ openEmpModal("edit", u); } if(btn.classList.contains("del")){ if(!confirm("Delete this employee?")) return; const res = await supa.from("users").delete().eq("id", id); if(res.error){ alert(res.error.message); return; } await loadUsers(); computeCountries(); renderDashboard(); renderEmployees(); } }; // === Master CRUD (admin) === btnAddTeam.onclick = async ()=>{ if(me?.role!=="admin") return alert("Admin only"); const name = newTeamName.value.trim(); if(!name) return; const res = await supa.from("teams").insert({ team_name: name }); if(res.error) return alert(res.error.message); newTeamName.value=""; await refreshAll(); }; btnAddPos.onclick = async ()=>{ if(me?.role!=="admin") return alert("Admin only"); const name = newPosName.value.trim(); if(!name) return; const res = await supa.from("positions").insert({ position_name: name }); if(res.error) return alert(res.error.message); newPosName.value=""; await refreshAll(); }; teamsList.onclick = async (e)=>{ const btn = e.target.closest("button"); if(!btn) return; const id = btn.dataset.team; if(!id) return; if(me?.role!=="admin") return alert("Admin only"); if(!confirm("Delete team? (employees using this team will break)")) return; const res = await supa.from("teams").delete().eq("id", id); if(res.error) return alert(res.error.message); await refreshAll(); }; posList.onclick = async (e)=>{ const btn = e.target.closest("button"); if(!btn) return; const id = btn.dataset.pos; if(!id) return; if(me?.role!=="admin") return alert("Admin only"); if(!confirm("Delete position? (employees using this position will break)")) return; const res = await supa.from("positions").delete().eq("id", id); if(res.error) return alert(res.error.message); await refreshAll(); }; // === init === // load basic data even if not logged in (RLS requires auth, so it will be empty until login) setRoleUI(); showTab("dashboard"); </script> </body> </html>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>HR System - Team Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    *{box-sizing:border-box;font-family:Segoe UI,Arial;}
+    body{margin:0;background:#f4f6f9;color:#111;}
+    header{position:sticky;top:0;background:#111827;color:#fff;padding:14px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;}
+    header .left{display:flex;gap:10px;align-items:center;}
+    header .badge{background:#374151;padding:4px 10px;border-radius:999px;font-size:12px}
+    header button{background:#2563eb;color:#fff;border:0;padding:8px 12px;border-radius:10px;cursor:pointer}
+    header button.secondary{background:#374151}
+    .wrap{max-width:1200px;margin:18px auto;padding:0 18px;}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:980px){.grid{grid-template-columns:1.2fr .8fr;}}
+    .card{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:16px;}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .row> *{flex:0 0 auto}
+    input,select{padding:10px 12px;border:1px solid #d1d5db;border-radius:12px;outline:none;background:#fff}
+    input:focus,select:focus{border-color:#2563eb}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    th,td{border-bottom:1px solid #eee;padding:10px 8px;text-align:left;font-size:14px}
+    th{background:#111827;color:#fff;position:sticky;top:58px}
+    .muted{color:#6b7280;font-size:13px}
+    .pill{display:inline-block;padding:3px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px}
+    .pill.red{background:#fee2e2;color:#991b1b}
+    .pill.gray{background:#f3f4f6;color:#374151}
+    .actions button{padding:7px 10px;border-radius:10px;border:0;cursor:pointer}
+    .actions .edit{background:#f59e0b;color:#111}
+    .actions .del{background:#ef4444;color:#fff}
+    .actions .save{background:#10b981;color:#fff}
+    .actions .cancel{background:#6b7280;color:#fff}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border-radius:999px;background:#e5e7eb;cursor:pointer}
+    .tab.active{background:#111827;color:#fff}
+    .hidden{display:none !important}
+    .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(min-width:900px){.kpi{grid-template-columns:repeat(4,1fr)}}
+    .kpi .box{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:12px}
+    .kpi .num{font-size:22px;font-weight:800}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:18px;}
+    .modal.show{display:flex}
+    .modal .panel{width:min(720px,100%);background:#fff;border-radius:16px;padding:16px;box-shadow:0 15px 45px rgba(0,0,0,.2)}
+    .modal h3{margin:0 0 10px}
+    .modal .form{display:grid;grid-template-columns:1fr;gap:10px}
+    @media(min-width:720px){.modal .form{grid-template-columns:1fr 1fr}}
+    .modal .form .full{grid-column:1/-1}
+    .danger{color:#b91c1c}
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="left">
+      <strong>HR System</strong>
+      <span id="roleBadge" class="badge">Not logged in</span>
+      <span id="teamBadge" class="badge hidden"></span>
+    </div>
+    <div class="row">
+      <button id="btnLogin" class="secondary">Login</button>
+      <button id="btnLogout" class="hidden">Logout</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="tabs card">
+      <div class="tab active" data-tab="dashboard">Dashboard</div>
+      <div class="tab" data-tab="employees">Employees</div>
+      <div class="tab" data-tab="master">Teams/Positions</div>
+    </div>
+
+    <div id="viewDashboard" class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <h2 style="margin:0">统计总览</h2>
+            <div class="muted">按团队/岗位统计（管理员全局，Leader 仅自己团队）</div>
+          </div>
+          <div class="row">
+            <select id="filterStatus">
+              <option value="在职">在职</option>
+              <option value="离职">离职</option>
+              <option value="ALL">全部</option>
+            </select>
+            <select id="filterTeam"></select>
+            <select id="filterCountry"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="box"><div class="muted">总人数</div><div id="kpiTotal" class="num">0</div></div>
+        <div class="box"><div class="muted">客服</div><div id="kpiCS" class="num">0</div></div>
+        <div class="box"><div class="muted">出款</div><div id="kpiWD" class="num">0</div></div>
+        <div class="box"><div class="muted">查单</div><div id="kpiDP" class="num">0</div></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 10px">岗位分布（饼图）</h3>
+        <canvas id="chartPosition"></canvas>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 10px">团队人数（柱状图）</h3>
+        <canvas id="chartTeam"></canvas>
+      </div>
+
+      <div class="card" style="grid-column:1/-1">
+        <h3 style="margin:0 0 10px">详细统计表</h3>
+        <div style="overflow:auto;border-radius:12px">
+          <table>
+            <thead>
+              <tr>
+                <th>团队</th>
+                <th>客服</th>
+                <th>出款</th>
+                <th>查单</th>
+                <th>财务</th>
+                <th>质检</th>
+                <th>彩金</th>
+                <th>总人数</th>
+                <th>占比%</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyStats"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="viewEmployees" class="card hidden">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h2 style="margin:0">Employees</h2>
+          <div class="muted">新增/编辑/删除（admin 全部，leader 仅自己团队）</div>
+        </div>
+        <div class="row">
+          <input id="searchEmp" placeholder="搜索姓名/国家..." />
+          <button id="btnAddEmp">+ Add employee</button>
+        </div>
+      </div>
+
+      <div style="overflow:auto;border-radius:12px;margin-top:12px">
+        <table>
+          <thead>
+            <tr>
+              <th>姓名</th>
+              <th>团队</th>
+              <th>岗位</th>
+              <th>国家</th>
+              <th>状态</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyEmp"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="viewMaster" class="grid hidden">
+      <div class="card">
+        <h2 style="margin:0 0 10px">Teams</h2>
+        <div class="muted">仅 Admin 可新增/删除</div>
+        <div class="row" style="margin-top:10px">
+          <input id="newTeamName" placeholder="team name..." />
+          <button id="btnAddTeam">Add Team</button>
+        </div>
+        <div id="teamsList" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 10px">Positions</h2>
+        <div class="muted">仅 Admin 可新增/删除</div>
+        <div class="row" style="margin-top:10px">
+          <input id="newPosName" placeholder="position name..." />
+          <button id="btnAddPos">Add Position</button>
+        </div>
+        <div id="posList" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login modal -->
+  <div id="modalLogin" class="modal">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <h3>Login</h3>
+          <div class="muted">使用 Supabase Auth 用户登录</div>
+        </div>
+        <button id="btnCloseLogin" class="secondary">Close</button>
+      </div>
+      <div class="form" style="margin-top:10px">
+        <div class="full">
+          <input id="loginEmail" placeholder="email" style="width:100%" />
+        </div>
+        <div class="full">
+          <input id="loginPass" placeholder="password" type="password" style="width:100%" />
+        </div>
+        <div class="full row">
+          <button id="btnDoLogin">Login</button>
+          <span class="muted">首次登录会自动生成 profiles</span>
+        </div>
+        <div id="loginMsg" class="full muted"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee modal -->
+  <div id="modalEmp" class="modal">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <h3 id="empTitle">Add employee</h3>
+          <div class="muted">填完保存即可（权限：admin/leader）</div>
+        </div>
+        <button id="btnCloseEmp" class="secondary">Close</button>
+      </div>
+
+      <div class="form" style="margin-top:10px">
+        <div class="full">
+          <input id="empName" placeholder="姓名" style="width:100%" />
+        </div>
+
+        <div>
+          <select id="empTeam" style="width:100%"></select>
+        </div>
+        <div>
+          <select id="empPos" style="width:100%"></select>
+        </div>
+
+        <div>
+          <input id="empCountry" placeholder="国家 (越南/菲律宾...)" style="width:100%" />
+        </div>
+
+        <div>
+          <select id="empStatus" style="width:100%">
+            <option value="在职">在职</option>
+            <option value="离职">离职</option>
+          </select>
+        </div>
+
+        <div class="full row">
+          <button id="btnSaveEmp" class="save">Save</button>
+          <button id="btnCancelEmp" class="cancel">Cancel</button>
+          <span id="empMsg" class="muted"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    // === CONFIG (của bạn) ===
+    const SUPABASE_URL = "https://mxeqccecqkyllwvbylej.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
+
+    // ✅ SESSION FIX: explicit auth options (chỉ thêm)
+    const supa = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+        storage: window.localStorage,
+        flowType: 'implicit'
+      }
+    });
+
+    // === UI refs ===
+    const roleBadge = document.getElementById("roleBadge");
+    const teamBadge = document.getElementById("teamBadge");
+
+    const tabs = [...document.querySelectorAll(".tab")];
+    const viewDashboard = document.getElementById("viewDashboard");
+    const viewEmployees  = document.getElementById("viewEmployees");
+    const viewMaster     = document.getElementById("viewMaster");
+
+    const btnLogin = document.getElementById("btnLogin");
+    const btnLogout = document.getElementById("btnLogout");
+
+    const modalLogin = document.getElementById("modalLogin");
+    const btnCloseLogin = document.getElementById("btnCloseLogin");
+    const btnDoLogin = document.getElementById("btnDoLogin");
+    const loginEmail = document.getElementById("loginEmail");
+    const loginPass  = document.getElementById("loginPass");
+    const loginMsg   = document.getElementById("loginMsg");
+
+    const filterStatus = document.getElementById("filterStatus");
+    const filterTeam = document.getElementById("filterTeam");
+    const filterCountry = document.getElementById("filterCountry");
+
+    const kpiTotal = document.getElementById("kpiTotal");
+    const kpiCS = document.getElementById("kpiCS");
+    const kpiWD = document.getElementById("kpiWD");
+    const kpiDP = document.getElementById("kpiDP");
+    const tbodyStats = document.getElementById("tbodyStats");
+
+    const tbodyEmp = document.getElementById("tbodyEmp");
+    const searchEmp = document.getElementById("searchEmp");
+    const btnAddEmp = document.getElementById("btnAddEmp");
+
+    const modalEmp = document.getElementById("modalEmp");
+    const empTitle = document.getElementById("empTitle");
+    const btnCloseEmp = document.getElementById("btnCloseEmp");
+    const btnCancelEmp = document.getElementById("btnCancelEmp");
+    const btnSaveEmp = document.getElementById("btnSaveEmp");
+    const empMsg = document.getElementById("empMsg");
+
+    const empName = document.getElementById("empName");
+    const empTeam = document.getElementById("empTeam");
+    const empPos  = document.getElementById("empPos");
+    const empCountry = document.getElementById("empCountry");
+    const empStatus  = document.getElementById("empStatus");
+
+    const newTeamName = document.getElementById("newTeamName");
+    const btnAddTeam = document.getElementById("btnAddTeam");
+    const teamsList = document.getElementById("teamsList");
+
+    const newPosName = document.getElementById("newPosName");
+    const btnAddPos = document.getElementById("btnAddPos");
+    const posList = document.getElementById("posList");
+
+    // === state ===
+    let me = null; // {id, role, team_id}
+    let TEAMS = [];
+    let POSITIONS = [];
+    let USERS = [];
+    let editId = null;
+
+    let chartPos = null;
+    let chartTeam = null;
+
+    // === helpers ===
+    const posKeys = ["客服","出款","查单","财务","质检","彩金"];
+    const safeText = (x) => (x ?? "").toString();
+    const fmtTime = (iso) => iso ? new Date(iso).toLocaleString() : "-";
+
+    function showTab(name){
+      tabs.forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
+      viewDashboard.classList.toggle("hidden", name!=="dashboard");
+      viewEmployees.classList.toggle("hidden",  name!=="employees");
+      viewMaster.classList.toggle("hidden",     name!=="master");
+    }
+
+    function openModal(el){ el.classList.add("show"); }
+    function closeModal(el){ el.classList.remove("show"); }
+
+    function setRoleUI(){
+      if(!me){
+        roleBadge.textContent = "Not logged in";
+        teamBadge.classList.add("hidden");
+        btnLogin.classList.remove("hidden");
+        btnLogout.classList.add("hidden");
+        return;
+      }
+      roleBadge.textContent = `Role: ${me.role}`;
+      btnLogin.classList.add("hidden");
+      btnLogout.classList.remove("hidden");
+
+      if(me.role === "leader" && me.team_id){
+        const t = TEAMS.find(x=>x.id===me.team_id);
+        teamBadge.textContent = `Team: ${t?.team_name ?? me.team_id}`;
+        teamBadge.classList.remove("hidden");
+      } else {
+        teamBadge.classList.add("hidden");
+      }
+
+      // master tab chỉ admin
+      const masterTab = tabs.find(t=>t.dataset.tab==="master");
+      if(me.role === "admin") masterTab.classList.remove("hidden");
+      else masterTab.classList.add("hidden");
+
+      if(me.role !== "admin" && me.role !== "leader"){
+        btnAddEmp.disabled = true;
+        btnAddEmp.title = "No permission";
+      } else {
+        btnAddEmp.disabled = false;
+        btnAddEmp.title = "";
+      }
+    }
+
+    // ✅ SESSION FIX: ưu tiên getSession() để tránh getUser() trả null
+    async function ensureProfile(){
+      const { data: sess } = await supa.auth.getSession();
+      const user = sess?.session?.user;
+
+      if(!user) return null;
+
+      // read profile
+      let { data: prof, error: selErr } = await supa
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if(selErr){
+        console.error("profiles select error:", selErr);
+      }
+
+      // if not exists, insert
+      if(!prof){
+        const ins = await supa.from("profiles").insert({ id: user.id, role: "staff" }).select("*").single();
+        if(ins.error){
+          console.error("profiles insert error:", ins.error);
+          return null;
+        }
+        prof = ins.data;
+      }
+      return prof;
+    }
+
+    async function loadMasterData(){
+      const { data: teams, error: e1 } = await supa.from("teams").select("*").order("team_name");
+      const { data: pos, error: e2 }   = await supa.from("positions").select("*").order("position_name");
+      if(e1) console.error("teams error:", e1);
+      if(e2) console.error("positions error:", e2);
+      TEAMS = teams ?? [];
+      POSITIONS = pos ?? [];
+    }
+
+    function fillSelectOptions(){
+      // dashboard filters
+      filterTeam.innerHTML = `<option value="ALL">全部团队</option>` + TEAMS.map(t=>`<option value="${t.id}">${t.team_name}</option>`).join("");
+      filterCountry.innerHTML = `<option value="ALL">全部国家</option>`;
+      // employee modal
+      empTeam.innerHTML = TEAMS.map(t=>`<option value="${t.id}">${t.team_name}</option>`).join("");
+      empPos.innerHTML  = POSITIONS.map(p=>`<option value="${p.id}">${p.position_name}</option>`).join("");
+
+      // nếu leader, lock filterTeam là team mình
+      if(me?.role === "leader" && me.team_id){
+        filterTeam.value = me.team_id;
+        filterTeam.disabled = true;
+      } else {
+        filterTeam.disabled = false;
+      }
+    }
+
+    async function loadUsers(){
+      // RLS sẽ tự giới hạn data theo role (admin/leader)
+      const status = filterStatus.value;
+      let q = supa.from("users").select("*").order("updated_at", { ascending:false });
+
+      if(status !== "ALL") q = q.eq("status", status);
+
+      const team = filterTeam.value;
+      if(team !== "ALL") q = q.eq("team_id", team);
+
+      const { data, error } = await q;
+      if(error){ console.error("users error:", error); return; }
+      USERS = data ?? [];
+    }
+
+    function computeCountries(){
+      const set = new Set(USERS.map(u=>u.country).filter(Boolean));
+      const current = filterCountry.value || "ALL";
+      filterCountry.innerHTML = `<option value="ALL">全部国家</option>` + [...set].sort().map(c=>`<option value="${c}">${c}</option>`).join("");
+      if([...set].includes(current)) filterCountry.value = current;
+      else filterCountry.value = "ALL";
+    }
+
+    function renderDashboard(){
+      const country = filterCountry.value;
+      const data = (country==="ALL") ? USERS : USERS.filter(u=>u.country===country);
+
+      const total = data.length;
+
+      const posCount = Object.fromEntries(posKeys.map(k=>[k,0]));
+      const teamMap = {};
+
+      data.forEach(u=>{
+        const t = TEAMS.find(x=>x.id===u.team_id)?.team_name ?? "未分组";
+        const p = POSITIONS.find(x=>x.id===u.position_id)?.position_name ?? "其他";
+
+        if(teamMap[t] == null){
+          teamMap[t] = { total:0, ...Object.fromEntries(posKeys.map(k=>[k,0])) };
+        }
+        teamMap[t].total++;
+
+        if(posCount[p] != null) posCount[p]++;
+        if(teamMap[t][p] != null) teamMap[t][p]++;
+      });
+
+      kpiTotal.textContent = total;
+      kpiCS.textContent = posCount["客服"] ?? 0;
+      kpiWD.textContent = posCount["出款"] ?? 0;
+      kpiDP.textContent = posCount["查单"] ?? 0;
+
+      tbodyStats.innerHTML = "";
+      const entries = Object.entries(teamMap).sort((a,b)=>b[1].total-a[1].total);
+
+      for(const [teamName, obj] of entries){
+        const percent = total>0 ? ((obj.total/total)*100).toFixed(1) : "0.0";
+        tbodyStats.innerHTML += `
+          <tr>
+            <td>${teamName}</td>
+            <td>${obj["客服"]||0}</td>
+            <td>${obj["出款"]||0}</td>
+            <td>${obj["查单"]||0}</td>
+            <td>${obj["财务"]||0}</td>
+            <td>${obj["质检"]||0}</td>
+            <td>${obj["彩金"]||0}</td>
+            <td><span class="pill">${obj.total}</span></td>
+            <td>${percent}%</td>
+          </tr>
+        `;
+      }
+
+      const posLabels = posKeys;
+      const posValues = posLabels.map(l=>posCount[l]||0);
+
+      const teamLabels = entries.map(([name])=>name);
+      const teamValues = entries.map(([,obj])=>obj.total);
+
+      if(chartPos) chartPos.destroy();
+      chartPos = new Chart(document.getElementById("chartPosition"), {
+        type: "doughnut",
+        data: { labels: posLabels, datasets: [{ data: posValues }] },
+        options: { responsive:true, plugins:{ legend:{ position:"bottom" } } }
+      });
+
+      if(chartTeam) chartTeam.destroy();
+      chartTeam = new Chart(document.getElementById("chartTeam"), {
+        type: "bar",
+        data: { labels: teamLabels, datasets: [{ data: teamValues }] },
+        options: { responsive:true, plugins:{ legend:{ display:false } } }
+      });
+    }
+
+    function renderEmployees(){
+      const q = safeText(searchEmp.value).trim().toLowerCase();
+      const data = q
+        ? USERS.filter(u => safeText(u.name).toLowerCase().includes(q) || safeText(u.country).toLowerCase().includes(q))
+        : USERS;
+
+      tbodyEmp.innerHTML = data.map(u=>{
+        const teamName = TEAMS.find(x=>x.id===u.team_id)?.team_name ?? "未分组";
+        const posName  = POSITIONS.find(x=>x.id===u.position_id)?.position_name ?? "其他";
+        const statusPill = u.status==="在职" ? `<span class="pill">${u.status}</span>` : `<span class="pill red">${u.status}</span>`;
+        return `
+          <tr>
+            <td><strong>${safeText(u.name)}</strong></td>
+            <td>${teamName}</td>
+            <td>${posName}</td>
+            <td>${safeText(u.country) || "-"}</td>
+            <td>${statusPill}</td>
+            <td class="muted">${fmtTime(u.updated_at)}</td>
+            <td class="actions">
+              <button class="edit" data-id="${u.id}">Edit</button>
+              <button class="del" data-id="${u.id}">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderMaster(){
+      teamsList.innerHTML = TEAMS.map(t=>`
+        <div class="row" style="justify-content:space-between;border:1px solid #eee;padding:10px;border-radius:12px;margin-bottom:8px">
+          <div><strong>${t.team_name}</strong> <span class="muted">${t.id}</span></div>
+          <button class="actions del" data-team="${t.id}">Delete</button>
+        </div>
+      `).join("");
+
+      posList.innerHTML = POSITIONS.map(p=>`
+        <div class="row" style="justify-content:space-between;border:1px solid #eee;padding:10px;border-radius:12px;margin-bottom:8px">
+          <div><strong>${p.position_name}</strong> <span class="muted">${p.id}</span></div>
+          <button class="actions del" data-pos="${p.id}">Delete</button>
+        </div>
+      `).join("");
+
+      const isAdmin = me?.role === "admin";
+      btnAddTeam.disabled = !isAdmin;
+      btnAddPos.disabled  = !isAdmin;
+      newTeamName.disabled = !isAdmin;
+      newPosName.disabled  = !isAdmin;
+    }
+
+    async function refreshAll(){
+      await loadMasterData();
+      me = await ensureProfile();
+      fillSelectOptions();
+      setRoleUI();
+
+      await loadUsers();
+      computeCountries();
+      renderDashboard();
+      renderEmployees();
+      renderMaster();
+    }
+
+    // === Auth actions ===
+    btnLogin.onclick = ()=> openModal(modalLogin);
+    btnCloseLogin.onclick = ()=> closeModal(modalLogin);
+
+    // ✅ SESSION FIX: signIn xong đọc session ngay + refreshAll
+    btnDoLogin.onclick = async ()=>{
+      loginMsg.textContent = "Logging in...";
+      btnDoLogin.disabled = true;
+
+      try{
+        const email = loginEmail.value.trim();
+        const password = loginPass.value;
+
+        const { data, error } = await supa.auth.signInWithPassword({ email, password });
+
+        if(error){
+          loginMsg.textContent = `❌ ${error.message}`;
+          return;
+        }
+
+        // ✅ đảm bảo session có
+        const session = data?.session;
+        if(!session){
+          loginMsg.textContent = "❌ No session returned (check auth settings)";
+          return;
+        }
+
+        loginMsg.textContent = "✅ Logged in";
+        closeModal(modalLogin);
+
+        await refreshAll();
+
+      } catch (e){
+        console.error(e);
+        loginMsg.textContent = "❌ Error, check console";
+      } finally{
+        btnDoLogin.disabled = false;
+      }
+    };
+
+    btnLogout.onclick = async ()=>{
+      await supa.auth.signOut();
+      me = null;
+      USERS = [];
+      setRoleUI();
+      tbodyStats.innerHTML = "";
+      tbodyEmp.innerHTML = "";
+      kpiTotal.textContent = "0"; kpiCS.textContent="0"; kpiWD.textContent="0"; kpiDP.textContent="0";
+      alert("Logged out");
+    };
+
+    // ✅ SESSION FIX: onAuthStateChange dùng session param (không gọi getUser)
+    supa.auth.onAuthStateChange(async (_event, session)=>{
+      if(session?.user){
+        await refreshAll();
+      } else {
+        me = null;
+        USERS = [];
+        setRoleUI();
+      }
+    });
+
+    // === Tabs ===
+    tabs.forEach(t=>{
+      t.onclick = ()=>{
+        if(t.classList.contains("hidden")) return;
+        showTab(t.dataset.tab);
+      };
+    });
+
+    // === Filters ===
+    filterStatus.onchange = async ()=>{ await loadUsers(); computeCountries(); renderDashboard(); renderEmployees(); };
+    filterTeam.onchange   = async ()=>{ await loadUsers(); computeCountries(); renderDashboard(); renderEmployees(); };
+    filterCountry.onchange= ()=>{ renderDashboard(); };
+    searchEmp.oninput = ()=> renderEmployees();
+
+    // === Employee modal CRUD ===
+    function openEmpModal(mode, u=null){
+      empMsg.textContent = "";
+      editId = u?.id ?? null;
+      empTitle.textContent = mode==="edit" ? "Edit employee" : "Add employee";
+
+      empName.value = u?.name ?? "";
+      empCountry.value = u?.country ?? "";
+      empStatus.value = u?.status ?? "在职";
+
+      empTeam.innerHTML = TEAMS.map(t=>`<option value="${t.id}">${t.team_name}</option>`).join("");
+      empPos.innerHTML  = POSITIONS.map(p=>`<option value="${p.id}">${p.position_name}</option>`).join("");
+
+      if(me?.role==="leader" && me.team_id){
+        empTeam.value = me.team_id;
+        empTeam.disabled = true;
+      }else{
+        empTeam.value = u?.team_id ?? (TEAMS[0]?.id ?? "");
+        empTeam.disabled = false;
+      }
+      empPos.value  = u?.position_id ?? (POSITIONS[0]?.id ?? "");
+
+      openModal(modalEmp);
+    }
+
+    btnAddEmp.onclick = ()=>{
+      if(!me || (me.role!=="admin" && me.role!=="leader")){
+        alert("No permission");
+        return;
+      }
+      openEmpModal("add");
+    };
+
+    btnCloseEmp.onclick = ()=> closeModal(modalEmp);
+    btnCancelEmp.onclick = ()=> closeModal(modalEmp);
+
+    btnSaveEmp.onclick = async ()=>{
+      if(!me || (me.role!=="admin" && me.role!=="leader")){
+        alert("No permission");
+        return;
+      }
+      const payload = {
+        name: empName.value.trim(),
+        team_id: empTeam.value,
+        position_id: empPos.value,
+        country: empCountry.value.trim(),
+        status: empStatus.value
+      };
+      if(!payload.name){ empMsg.textContent = "❌ 姓名不能为空"; return; }
+
+      empMsg.textContent = "Saving...";
+      let res;
+      if(editId){
+        res = await supa.from("users").update(payload).eq("id", editId);
+      }else{
+        res = await supa.from("users").insert(payload);
+      }
+      if(res.error){
+        console.error(res.error);
+        empMsg.innerHTML = `<span class="danger">❌ ${res.error.message}</span>`;
+        return;
+      }
+      closeModal(modalEmp);
+      await loadUsers();
+      computeCountries();
+      renderDashboard();
+      renderEmployees();
+    };
+
+    tbodyEmp.onclick = async (e)=>{
+      const btn = e.target.closest("button");
+      if(!btn) return;
+      const id = btn.dataset.id;
+      if(!id) return;
+
+      const u = USERS.find(x=>x.id===id);
+      if(btn.classList.contains("edit")){
+        openEmpModal("edit", u);
+      }
+      if(btn.classList.contains("del")){
+        if(!confirm("Delete this employee?")) return;
+        const res = await supa.from("users").delete().eq("id", id);
+        if(res.error){ alert(res.error.message); return; }
+        await loadUsers();
+        computeCountries();
+        renderDashboard();
+        renderEmployees();
+      }
+    };
+
+    // === Master CRUD (admin) ===
+    btnAddTeam.onclick = async ()=>{
+      if(me?.role!=="admin") return alert("Admin only");
+      const name = newTeamName.value.trim();
+      if(!name) return;
+      const res = await supa.from("teams").insert({ team_name: name });
+      if(res.error) return alert(res.error.message);
+      newTeamName.value="";
+      await refreshAll();
+    };
+
+    btnAddPos.onclick = async ()=>{
+      if(me?.role!=="admin") return alert("Admin only");
+      const name = newPosName.value.trim();
+      if(!name) return;
+      const res = await supa.from("positions").insert({ position_name: name });
+      if(res.error) return alert(res.error.message);
+      newPosName.value="";
+      await refreshAll();
+    };
+
+    teamsList.onclick = async (e)=>{
+      const btn = e.target.closest("button");
+      if(!btn) return;
+      const id = btn.dataset.team;
+      if(!id) return;
+      if(me?.role!=="admin") return alert("Admin only");
+      if(!confirm("Delete team? (employees using this team will break)")) return;
+      const res = await supa.from("teams").delete().eq("id", id);
+      if(res.error) return alert(res.error.message);
+      await refreshAll();
+    };
+
+    posList.onclick = async (e)=>{
+      const btn = e.target.closest("button");
+      if(!btn) return;
+      const id = btn.dataset.pos;
+      if(!id) return;
+      if(me?.role!=="admin") return alert("Admin only");
+      if(!confirm("Delete position? (employees using this position will break)")) return;
+      const res = await supa.from("positions").delete().eq("id", id);
+      if(res.error) return alert(res.error.message);
+      await refreshAll();
+    };
+
+    // === init ===
+    setRoleUI();
+    showTab("dashboard");
+
+    // ✅ SESSION FIX: load trang xong tự check session để auto-login
+    (async ()=>{
+      const { data } = await supa.auth.getSession();
+      if(data?.session?.user){
+        await refreshAll();
+      }
+    })();
+  </script>
+</body>
+</html>
