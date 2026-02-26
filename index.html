@@ -13,12 +13,9 @@ header{
   background:#0f172a;
   color:#fff;
   padding:16px 24px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center
 }
 .container{
-  max-width:1300px;
+  max-width:1400px;
   margin:20px auto;
   padding:0 20px
 }
@@ -81,14 +78,14 @@ td.clickable{
 
   <div class="card">
     <h2>统计总览</h2>
-    <div style="color:#6b7280">按团队统计（点击数字查看员工）</div>
+    <div style="color:#6b7280">按团队统计（点击查看员工）</div>
   </div>
 
   <div class="kpi">
     <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
-    <div class="kpiBox"><div>岗位种类</div><h3 id="kPosition">0</h3></div>
-    <div class="kpiBox"><div>团队数量</div><h3 id="kTeam">0</h3></div>
     <div class="kpiBox"><div>出款人数</div><h3 id="kWD">0</h3></div>
+    <div class="kpiBox"><div>客服人数</div><h3 id="kCS">0</h3></div>
+    <div class="kpiBox"><div>查单人数</div><h3 id="kDP">0</h3></div>
   </div>
 
   <div class="grid">
@@ -108,7 +105,10 @@ td.clickable{
       <thead>
         <tr>
           <th>团队</th>
-          <th>人数</th>
+          <th>总人数</th>
+          <th>出款</th>
+          <th>客服</th>
+          <th>查单</th>
         </tr>
       </thead>
       <tbody id="tbodyStats"></tbody>
@@ -120,10 +120,16 @@ td.clickable{
     <table>
       <thead>
         <tr>
+          <th>负责人</th>
+          <th>现场培训</th>
+          <th>线上组长</th>
+          <th>线上培训</th>
+          <th>组别</th>
           <th>姓名</th>
-          <th>岗位</th>
           <th>ID</th>
           <th>国家</th>
+          <th>岗位</th>
+          <th>盘口</th>
         </tr>
       </thead>
       <tbody id="employeeList"></tbody>
@@ -134,58 +140,75 @@ td.clickable{
 
 <script>
 
-/* ===== GOOGLE SHEET API ===== */
 const sheetAPI =
 "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
 
-let rawData = [];
-let chart1, chart2;
+let rawData=[];
+let chart1,chart2;
 
 async function loadData(){
-  const res = await fetch(sheetAPI);
-  const data = await res.json();
+  const res=await fetch(sheetAPI);
+  const data=await res.json();
 
-  rawData = data.map(r=>({
-    team: r["团队"] || r["团队统计"] || r["F"] || "",
-    name: r["姓名"] || "",
-    id: r["ID"] || r["G"] || "",
-    position: r["岗位"] || r["K"] || "",
-    country: r["国家"] || ""
+  rawData=data.map(r=>({
+    leader:r["负责人"]||"",
+    onsite:r["现场培训"]||"",
+    onlineLead:r["线上组长"]||"",
+    onlineTrain:r["线上培训"]||"",
+    team:r["组别"]||r["团队"]||"",
+    name:r["姓名"]||"",
+    id:r["ID"]||"",
+    country:r["国家"]||"",
+    position:r["岗位"]||"",
+    market:r["盘口"]||""
   }));
 
-  // 删除 ID 为空的
-  rawData = rawData.filter(r=>r.id && r.id.trim()!=="")
+  // unique theo C + D + G
+  const uniqueMap=new Map();
+  rawData.forEach(r=>{
+    if(r.id.trim()==="") return;
+    const key=r.onsite+"-"+r.onlineLead+"-"+r.id;
+    if(!uniqueMap.has(key)) uniqueMap.set(key,r);
+  });
+
+  rawData=[...uniqueMap.values()];
 
   renderDashboard();
 }
 
 function renderDashboard(){
 
-  const total = rawData.length;
-  kTotal.innerText = total;
+  const total=rawData.length;
+  kTotal.innerText=total;
 
-  const positions = [...new Set(rawData.map(r=>r.position))];
-  kPosition.innerText = positions.length;
+  const wd=rawData.filter(r=>r.position==="出款").length;
+  const cs=rawData.filter(r=>r.position==="客服").length;
+  const dp=rawData.filter(r=>r.position==="查单").length;
 
-  const teams = [...new Set(rawData.map(r=>r.team))];
-  kTeam.innerText = teams.length;
+  kWD.innerText=wd;
+  kCS.innerText=cs;
+  kDP.innerText=dp;
 
-  const wd = rawData.filter(r=>r.position==="出款").length;
-  kWD.innerText = wd;
+  const teams=[...new Set(rawData.map(r=>r.team))];
 
-  tbodyStats.innerHTML = teams.map(t=>{
-    const count = rawData.filter(r=>r.team===t).length;
+  tbodyStats.innerHTML=teams.map(t=>{
+    const teamData=rawData.filter(r=>r.team===t);
     return `
     <tr>
-      <td>${t}</td>
-      <td class="clickable" onclick="showTeam('${t}')">${count}</td>
+      <td class="clickable" onclick="showTeam('${t}')">${t}</td>
+      <td>${teamData.length}</td>
+      <td>${teamData.filter(r=>r.position==="出款").length}</td>
+      <td>${teamData.filter(r=>r.position==="客服").length}</td>
+      <td>${teamData.filter(r=>r.position==="查单").length}</td>
     </tr>`;
   }).join("");
 
   if(chart1) chart1.destroy();
   if(chart2) chart2.destroy();
 
-  chart1 = new Chart(chartPosition,{
+  const positions=[...new Set(rawData.map(r=>r.position))];
+
+  chart1=new Chart(chartPosition,{
     type:"doughnut",
     data:{
       labels:positions,
@@ -195,7 +218,7 @@ function renderDashboard(){
     }
   });
 
-  chart2 = new Chart(chartTeam,{
+  chart2=new Chart(chartTeam,{
     type:"bar",
     data:{
       labels:teams,
@@ -205,21 +228,26 @@ function renderDashboard(){
       }]
     }
   });
-
 }
 
 function showTeam(team){
-  const filtered = rawData.filter(r=>r.team===team);
+  const filtered=rawData.filter(r=>r.team===team);
 
   employeeSection.style.display="block";
-  employeeTitle.innerText = team + " 员工名单";
+  employeeTitle.innerText=team+" 员工名单";
 
-  employeeList.innerHTML = filtered.map(r=>`
+  employeeList.innerHTML=filtered.map(r=>`
     <tr>
+      <td>${r.leader}</td>
+      <td>${r.onsite}</td>
+      <td>${r.onlineLead}</td>
+      <td>${r.onlineTrain}</td>
+      <td>${r.team}</td>
       <td>${r.name}</td>
-      <td>${r.position}</td>
       <td>${r.id}</td>
       <td>${r.country}</td>
+      <td>${r.position}</td>
+      <td>${r.market}</td>
     </tr>
   `).join("");
 }
