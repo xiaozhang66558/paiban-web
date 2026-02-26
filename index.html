@@ -1,214 +1,256 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>HR SaaS</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8" />
+<title>HR System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
 body{margin:0;background:#f3f4f6}
-header{background:#0f172a;color:#fff;padding:16px 24px;display:flex;justify-content:space-between}
-.badge{background:#1e293b;padding:6px 12px;border-radius:999px;font-size:12px}
-.container{max-width:1400px;margin:20px auto;padding:0 20px;display:none}
-.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:20px}
-table{width:100%;border-collapse:collapse;margin-top:15px}
-th{background:#0f172a;color:#fff;padding:8px;font-size:13px}
-td{padding:8px;border-bottom:1px solid #eee;text-align:center}
-td:first-child{text-align:left}
-.clickable{cursor:pointer;color:#2563eb;font-weight:bold}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center}
-.modal-box{background:#fff;padding:20px;border-radius:16px;width:700px;max-height:80vh;overflow:auto}
-.loginModal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
-.loginBox{background:#fff;padding:20px;border-radius:16px;width:300px}
-.loginBox input{width:100%;padding:8px;margin-bottom:10px}
-button{padding:8px 12px;border:0;border-radius:8px;cursor:pointer}
-.btn-primary{background:#2563eb;color:#fff}
+
+header{
+  background:#0f172a;
+  color:#fff;
+  padding:16px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center
+}
+
+.container{
+  max-width:1200px;
+  margin:20px auto;
+  padding:0 20px
+}
+
+.card{
+  background:#fff;
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.06);
+  margin-bottom:20px;
+}
+
+.kpi{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
+  margin:20px 0
+}
+
+.kpiBox{
+  background:#fff;
+  border-radius:16px;
+  padding:15px;
+  box-shadow:0 2px 10px rgba(0,0,0,.06)
+}
+
+.kpiBox h3{margin:0;font-size:22px}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px
+}
+
+th{
+  background:#0f172a;
+  color:#fff;
+  padding:10px;
+  text-align:center;
+}
+
+td{
+  padding:8px;
+  border-bottom:1px solid #eee;
+  text-align:center;
+}
+
+td.clickable{
+  color:#2563eb;
+  cursor:pointer;
+  font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div>HR SaaS</div>
-  <div>
-    <span id="roleBadge" class="badge">Not logged in</span>
-    <button id="logoutBtn" style="display:none">Logout</button>
-  </div>
+  <strong>HR System</strong>
 </header>
 
-<div class="container" id="mainApp">
+<div class="container">
 
   <div class="card">
-    <h3>团队统计图</h3>
-    <canvas id="teamChart"></canvas>
+    <h2>统计总览</h2>
+    <div style="color:#6b7280">按团队统计（点击人数查看员工）</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
+    <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
+    <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
+    <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>岗位分布</h3>
+      <canvas id="chartPosition"></canvas>
+    </div>
+    <div class="card">
+      <h3>团队人数</h3>
+      <canvas id="chartTeam"></canvas>
+    </div>
   </div>
 
   <div class="card">
-    <h3>团队统计表（点击数字查看员工）</h3>
+    <h3>团队统计表</h3>
     <table>
-      <thead id="tableHead"></thead>
-      <tbody id="tableBody"></tbody>
+      <thead>
+        <tr>
+          <th>团队</th>
+          <th>出款人数</th>
+          <th>客服人数</th>
+          <th>查单人数</th>
+          <th>总人数</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyStats"></tbody>
+    </table>
+  </div>
+
+  <div class="card" id="employeeSection" style="display:none">
+    <h3 id="employeeTitle"></h3>
+    <table>
+      <thead>
+        <tr>
+          <th>姓名</th>
+          <th>岗位</th>
+          <th>ID</th>
+          <th>国家</th>
+        </tr>
+      </thead>
+      <tbody id="employeeList"></tbody>
     </table>
   </div>
 
 </div>
 
-<!-- LOGIN -->
-<div id="loginModal" class="loginModal">
-  <div class="loginBox">
-    <h3>Login</h3>
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-    <button class="btn-primary" style="width:100%" onclick="login()">Login</button>
-    <div id="loginMsg" style="color:red;margin-top:8px"></div>
-  </div>
-</div>
-
-<!-- DETAIL MODAL -->
-<div id="detailModal" class="modal">
-  <div class="modal-box">
-    <h3 id="detailTitle"></h3>
-    <div id="detailContent"></div>
-    <br>
-    <button onclick="closeDetail()">Close</button>
-  </div>
-</div>
-
 <script>
 
-const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
-const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
+/* ===== GOOGLE SHEET API ===== */
+const sheetAPI =
+"https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
 
-const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let rawData = [];
+let chart1, chart2;
 
-const sheetAPI="https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
+async function loadData(){
+  const res = await fetch(sheetAPI);
+  rawData = await res.json();
 
-let sheetData=[];
-let chart;
+  // 只保留 A-M 列
+  rawData = rawData.map(r=>({
+    team: r["团队统计"] || "",
+    name: r["姓名"] || "",
+    position: r["岗位"] || "",
+    id: r["ID"] || "",
+    country: r["国家"] || ""
+  }));
 
-/* ================= AUTH ================= */
-
-async function checkSession(){
-  const {data:{session}}=await supa.auth.getSession();
-  if(session){
-    showApp();
-  }else{
-    showLogin();
-  }
+  renderDashboard();
 }
 
-async function login(){
-  const {error}=await supa.auth.signInWithPassword({
-    email:email.value,
-    password:password.value
-  });
+function renderDashboard(){
 
-  if(error){
-    loginMsg.innerText="Invalid login credentials";
-    return;
-  }
+  const total = rawData.length;
+  const wd = rawData.filter(r=>r.position==="出款").length;
+  const cs = rawData.filter(r=>r.position==="客服").length;
+  const dp = rawData.filter(r=>r.position==="查单").length;
 
-  showApp();
-}
+  kTotal.innerText = total;
+  kWD.innerText = wd;
+  kCS.innerText = cs;
+  kDP.innerText = dp;
 
-async function logout(){
-  await supa.auth.signOut();
-  location.reload();
-}
+  // ===== 团队统计 =====
+  const teams = [...new Set(rawData.map(r=>r.team))];
 
-function showApp(){
-  loginModal.style.display="none";
-  mainApp.style.display="block";
-  roleBadge.innerText="Logged in";
-  logoutBtn.style.display="inline-block";
-  loadSheet();
-}
+  tbodyStats.innerHTML = teams.map(t=>{
+    const teamData = rawData.filter(r=>r.team===t);
+    const wdCount = teamData.filter(r=>r.position==="出款").length;
+    const csCount = teamData.filter(r=>r.position==="客服").length;
+    const dpCount = teamData.filter(r=>r.position==="查单").length;
 
-function showLogin(){
-  loginModal.style.display="flex";
-  mainApp.style.display="none";
-}
-
-logoutBtn.onclick=logout;
-
-/* ================= LOAD SHEET ================= */
-
-async function loadSheet(){
-  const res=await fetch(sheetAPI);
-  sheetData=await res.json();
-
-  renderTable();
-  renderChart();
-}
-
-/* ================= TABLE ================= */
-
-function renderTable(){
-
-  if(sheetData.length===0) return;
-
-  const headers=Object.keys(sheetData[0]);
-
-  tableHead.innerHTML="<tr>"+headers.map(h=>`<th>${h}</th>`).join("")+"</tr>";
-
-  tableBody.innerHTML=sheetData.map(row=>{
-    return "<tr>"+headers.map(h=>{
-      const value=row[h]||0;
-      if(h!=="团队统计" && h!=="现场培训" && h!=="线上培训"){
-        return `<td class="clickable" onclick="showDetail('${row["团队统计"]}','${h}')">${value}</td>`;
-      }
-      return `<td>${value}</td>`;
-    }).join("")+"</tr>";
+    return `
+    <tr>
+      <td>${t}</td>
+      <td class="clickable" onclick="showEmployees('${t}','出款')">${wdCount}</td>
+      <td class="clickable" onclick="showEmployees('${t}','客服')">${csCount}</td>
+      <td class="clickable" onclick="showEmployees('${t}','查单')">${dpCount}</td>
+      <td class="clickable" onclick="showEmployees('${t}','全部')">${teamData.length}</td>
+    </tr>`;
   }).join("");
-}
 
-/* ================= CHART ================= */
+  // ===== 图表 =====
+  if(chart1) chart1.destroy();
+  if(chart2) chart2.destroy();
 
-function renderChart(){
-
-  const labels=sheetData.map(r=>r["团队统计"]);
-  const totals=sheetData.map(r=>Number(r["总人数"]||0));
-
-  if(chart) chart.destroy();
-
-  chart=new Chart(teamChart,{
-    type:"bar",
+  chart1 = new Chart(chartPosition,{
+    type:"doughnut",
     data:{
-      labels:labels,
-      datasets:[{
-        label:"总人数",
-        data:totals
-      }]
-    },
-    options:{
-      onClick:(e, elements)=>{
-        if(elements.length>0){
-          const index=elements[0].index;
-          const team=labels[index];
-          showDetail(team,"总人数");
-        }
-      }
+      labels:["出款","客服","查单"],
+      datasets:[{data:[wd,cs,dp]}]
     }
   });
+
+  chart2 = new Chart(chartTeam,{
+    type:"bar",
+    data:{
+      labels:teams,
+      datasets:[{
+        label:"人数",
+        data:teams.map(t=>rawData.filter(r=>r.team===t).length)
+      }]
+    }
+  });
+
 }
 
-/* ================= DETAIL ================= */
+function showEmployees(team, position){
 
-function showDetail(team, field){
-  detailTitle.innerText=team+" - "+field;
-  detailContent.innerHTML="<p>这里可以接员工明细表数据</p>";
-  detailModal.style.display="flex";
+  let filtered = rawData.filter(r=>r.team===team);
+
+  if(position!=="全部"){
+    filtered = filtered.filter(r=>r.position===position);
+  }
+
+  employeeSection.style.display="block";
+  employeeTitle.innerText = team + " - " + position + " 员工名单";
+
+  employeeList.innerHTML = filtered.map(r=>`
+    <tr>
+      <td>${r.name}</td>
+      <td>${r.position}</td>
+      <td>${r.id}</td>
+      <td>${r.country}</td>
+    </tr>
+  `).join("");
+
 }
 
-function closeDetail(){
-  detailModal.style.display="none";
-}
-
-checkSession();
+loadData();
 
 </script>
 
