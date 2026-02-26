@@ -2,181 +2,184 @@
 <html>
 <head>
 <meta charset="UTF-8" />
-<title>HR System - SaaS Dashboard</title>
+<title>HR Dashboard (Public)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <style>
+:root{
+  --bg1:#eef2ff;
+  --bg2:#f0f9ff;
+  --bg3:#f8fafc;
+  --ink:#0f172a;
+  --muted:#64748b;
+  --card:#ffffff;
+  --line:#e2e8f0;
+  --brand:#2563eb;
+  --dark:#0b1220;
+  --pill:#f1f5f9;
+}
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
-body{margin:0;background:#f3f4f6;color:#0f172a}
+body{
+  margin:0;color:var(--ink);
+  background: radial-gradient(900px 500px at 10% 10%, var(--bg1), transparent 70%),
+              radial-gradient(900px 500px at 90% 20%, var(--bg2), transparent 70%),
+              linear-gradient(180deg, #fbfdff 0%, var(--bg3) 100%);
+}
 header{
-  background:#0f172a;color:#fff;padding:16px 24px;
-  display:flex;justify-content:space-between;align-items:center;
-  position:sticky;top:0;z-index:10
+  position:sticky;top:0;z-index:10;
+  background:rgba(11,18,32,.92);backdrop-filter: blur(10px);
+  color:#fff;padding:14px 22px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid rgba(255,255,255,.08)
 }
+header .left{display:flex;gap:10px;align-items:center}
 .badge{
-  background:#1e293b;padding:6px 12px;border-radius:999px;font-size:12px;
-  display:inline-flex;gap:6px;align-items:center
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.16);
+  padding:6px 12px;border-radius:999px;
+  font-size:12px;color:#e2e8f0
 }
-.badge .dot{width:8px;height:8px;border-radius:50%;background:#64748b}
-.badge.ok .dot{background:#22c55e}
-
-button{
-  padding:8px 14px;border-radius:10px;border:0;cursor:pointer;
-  font-weight:600
-}
-.btn-primary{background:#2563eb;color:#fff}
-.btn-dark{background:#1e293b;color:#fff}
-.btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2)}
-.container{max-width:1250px;margin:20px auto;padding:0 20px}
-.tabs{display:flex;gap:10px;margin-bottom:16px}
+.container{max-width:1250px;margin:20px auto;padding:0 18px}
+.tabs{display:flex;gap:10px;margin-bottom:14px}
 .tab{
-  padding:8px 16px;background:#e5e7eb;border-radius:999px;cursor:pointer;
-  font-weight:600;color:#0f172a
+  padding:8px 16px;border-radius:999px;cursor:pointer;
+  background:rgba(15,23,42,.06);font-weight:800;color:#0f172a;
+  border:1px solid rgba(15,23,42,.06)
 }
-.tab.active{background:#0f172a;color:#fff}
+.tab.active{background:var(--dark);color:#fff;border-color:rgba(255,255,255,.06)}
 .card{
-  background:#fff;border-radius:18px;padding:20px;
-  box-shadow:0 2px 14px rgba(0,0,0,.06)
+  background:rgba(255,255,255,.9);
+  border:1px solid rgba(15,23,42,.06);
+  border-radius:20px;padding:18px;
+  box-shadow:0 10px 26px rgba(15,23,42,.06);
 }
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.h2{margin:0 0 6px 0;font-size:22px;font-weight:900}
+.muted{color:var(--muted);font-weight:600}
 .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:16px 0}
 .kpiBox{
-  background:#fff;border-radius:18px;padding:14px;
-  box-shadow:0 2px 14px rgba(0,0,0,.06)
+  background:rgba(255,255,255,.92);
+  border:1px solid rgba(15,23,42,.06);
+  border-radius:18px;padding:14px;
+  box-shadow:0 10px 26px rgba(15,23,42,.06);
 }
-.kpiBox .label{color:#64748b;font-weight:600}
-.kpiBox .value{font-size:26px;font-weight:800;margin-top:6px}
+.kpiBox .label{color:var(--muted);font-weight:800}
+.kpiBox .value{font-size:28px;font-weight:950;margin-top:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sectionTitle{font-size:16px;font-weight:950;margin:0 0 10px 0}
+.flexWrap{display:flex;flex-wrap:wrap;gap:12px}
+.miniCard{
+  background:rgba(255,255,255,.92);
+  border:1px solid rgba(15,23,42,.06);
+  border-radius:18px;padding:14px;min-width:170px;
+  box-shadow:0 10px 26px rgba(15,23,42,.06);
+  cursor:pointer;transition:.15s;
+}
+.miniCard:hover{transform:translateY(-2px);box-shadow:0 18px 40px rgba(15,23,42,.10)}
+.miniCard .t{font-weight:950}
+.miniCard .n{font-size:22px;font-weight:950;margin-top:6px}
+.miniCard .sub{margin-top:6px;color:var(--muted);font-size:12px;font-weight:700}
 
-.sectionTitle{font-size:18px;font-weight:900;margin:0 0 10px 0}
-.muted{color:#64748b}
+.hr{height:1px;background:var(--line);margin:14px 0}
+
+.teamBlock{
+  background:rgba(255,255,255,.92);
+  border:1px solid rgba(15,23,42,.06);
+  border-radius:18px;padding:14px;
+  box-shadow:0 10px 26px rgba(15,23,42,.06);
+}
+.teamHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.teamName{font-weight:950}
+.teamName .link{color:var(--brand);text-decoration:none}
+.teamName .link:hover{text-decoration:underline}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pill{
+  background:var(--pill);
+  border:1px solid rgba(15,23,42,.06);
+  border-radius:12px;padding:7px 10px;
+  font-weight:900;font-size:12px;
+  cursor:pointer;
+}
+.pill:hover{background:#e8eef7}
 
 .hidden{display:none!important}
 
-/* Clickable cards */
-.flexWrap{display:flex;flex-wrap:wrap;gap:12px}
-.miniCard{
-  background:#fff;border-radius:16px;padding:14px 14px;min-width:165px;
-  box-shadow:0 2px 14px rgba(0,0,0,.06);
-  cursor:pointer;transition:.15s;
-  border:1px solid rgba(15,23,42,.06)
-}
-.miniCard:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,0,0,.08)}
-.miniCard .t{font-weight:900}
-.miniCard .n{font-size:22px;font-weight:900;margin-top:6px}
-.miniCard .sub{margin-top:6px;color:#64748b;font-size:12px;line-height:1.3}
-
-.hr{height:1px;background:#e5e7eb;margin:16px 0}
-
-/* Team list rows (horizontal style) */
-.teamBlock{
-  background:#fff;border-radius:18px;padding:16px;
-  box-shadow:0 2px 14px rgba(0,0,0,.06);
-  border:1px solid rgba(15,23,42,.06)
-}
-.teamHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.teamName{font-size:16px;font-weight:900}
-.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.pill{
-  background:#f1f5f9;border-radius:10px;padding:6px 10px;
-  font-weight:800;color:#0f172a;font-size:12px;cursor:pointer
-}
-.pill:hover{background:#e2e8f0}
-
-/* Tables */
+/* tables */
 table{width:100%;border-collapse:collapse;margin-top:12px}
 th{
-  background:#0f172a;color:#fff;padding:10px;border:0;font-size:13px
+  background:rgba(11,18,32,.96);color:#fff;
+  padding:10px;font-size:13px;text-align:left
 }
-td{padding:10px;border-bottom:1px solid #eee;font-size:13px}
-tr:hover td{background:#fafafa}
-a.link{color:#2563eb;text-decoration:none;font-weight:800}
-a.link:hover{text-decoration:underline}
+td{padding:10px;border-bottom:1px solid #edf2f7;font-size:13px}
+tr:hover td{background:rgba(37,99,235,.04)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.toolbar input,.toolbar select{
+  padding:10px;border-radius:14px;border:1px solid #cbd5e1;
+  background:rgba(255,255,255,.96);outline:none
+}
+.toolbar input:focus,.toolbar select:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 3px rgba(37,99,235,.16)
+}
+.btn{
+  padding:10px 12px;border-radius:14px;border:0;cursor:pointer;
+  font-weight:900;background:var(--dark);color:#fff
+}
 
-/* Login modal */
-.modal{
-  position:fixed;inset:0;background:rgba(0,0,0,.45);
-  display:none;align-items:center;justify-content:center;z-index:30;
-}
-.modal.show{display:flex}
-.modal-box{
-  background:#fff;border-radius:18px;width:340px;padding:18px 18px 16px;
-  box-shadow:0 14px 40px rgba(0,0,0,.25)
-}
-.modal-box h3{margin:4px 0 12px 0}
-.modal-box input, .modal-box select{
-  width:100%;padding:10px;border-radius:12px;border:1px solid #cbd5e1;margin-bottom:10px;
-  outline:none
-}
-.modal-box input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-.modal-actions{display:flex;gap:10px}
-.modal-actions button{width:100%}
-.err{color:#ef4444;font-weight:700;margin-top:8px;font-size:13px}
-
-/* Popup detail modal */
+/* popup modal */
 .pop{
-  position:fixed;inset:0;background:rgba(2,6,23,.55);
-  display:none;align-items:center;justify-content:center;z-index:40;
+  position:fixed;inset:0;z-index:50;
+  background:rgba(2,6,23,.62);
+  display:none;align-items:center;justify-content:center;
 }
 .pop.show{display:flex}
 .pop-box{
   width:min(1200px,96vw);max-height:86vh;overflow:auto;
-  background:#fff;border-radius:18px;padding:18px;
-  box-shadow:0 20px 60px rgba(0,0,0,.35)
+  background:rgba(255,255,255,.96);
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:20px;padding:16px;
+  box-shadow:0 26px 70px rgba(0,0,0,.35);
 }
-.pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.pop-title{font-weight:900;font-size:18px}
-.pop-sub{color:#64748b;font-size:13px;margin-top:4px}
-.pop-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.pop-tools input, .pop-tools select{
-  padding:10px;border-radius:12px;border:1px solid #cbd5e1
-}
-.pop-tools button{background:#0f172a}
-.small{font-size:12px;color:#64748b}
+.pop-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.pop-title{font-size:18px;font-weight:950}
+.pop-sub{color:var(--muted);font-weight:700;font-size:13px;margin-top:4px}
+.small{color:var(--muted);font-weight:700;font-size:12px}
 </style>
 </head>
 
 <body>
-
 <header>
-  <div style="display:flex;gap:10px;align-items:center">
+  <div class="left">
     <strong>HR System</strong>
-    <span id="roleBadge" class="badge"><span class="dot"></span><span id="badgeText">Not logged in</span></span>
+    <span class="badge">Public View · Google Sheet</span>
   </div>
-  <div style="display:flex;gap:10px;align-items:center">
-    <button id="btnLogin" class="btn-primary">Login</button>
-    <button id="btnLogout" class="btn-dark hidden">Logout</button>
-  </div>
+  <div class="badge" id="status">Loading...</div>
 </header>
 
 <div class="container">
-
   <div class="tabs">
     <div class="tab active" data-tab="dash">Dashboard</div>
     <div class="tab" data-tab="employees">Employees</div>
   </div>
 
-  <!-- DASHBOARD -->
+  <!-- DASH -->
   <div id="dashView">
-
     <div class="card">
-      <h2 style="margin:0 0 6px 0">统计总览</h2>
-      <div class="muted">按团队统计（点击岗位/团队弹出员工名单）</div>
+      <div class="h2">统计总览</div>
+      <div class="muted">点击岗位 / 团队 / 图表即可弹出员工名单（不需要登录）</div>
     </div>
 
     <div class="kpi">
-      <div class="kpiBox"><div class="label">总人数</div><div class="value" id="kTotal">-</div></div>
+      <div class="kpiBox"><div class="label">总人数（unique ID）</div><div class="value" id="kTotal">-</div></div>
       <div class="kpiBox"><div class="label">出款人数</div><div class="value" id="kWD">-</div></div>
       <div class="kpiBox"><div class="label">客服人数</div><div class="value" id="kCS">-</div></div>
       <div class="kpiBox"><div class="label">查单人数</div><div class="value" id="kDP">-</div></div>
     </div>
 
-    <!-- charts on top -->
+    <!-- charts top -->
     <div class="grid2">
       <div class="card">
-        <div class="sectionTitle">岗位分布（点击图例/扇区弹出名单）</div>
+        <div class="sectionTitle">岗位分布（cột K / 点击扇区弹出名单）</div>
         <canvas id="chartPosition" height="160"></canvas>
       </div>
       <div class="card">
@@ -185,31 +188,30 @@ a.link:hover{text-decoration:underline}
       </div>
     </div>
 
-    <!-- Positions as individual tiles -->
-    <div class="card" style="margin-top:20px">
-      <div class="sectionTitle">岗位统计（每个岗位一个卡片，点击查看员工）</div>
+    <div class="card" style="margin-top:16px">
+      <div class="sectionTitle">岗位统计（每个岗位一个卡片）</div>
       <div id="posCards" class="flexWrap"></div>
     </div>
 
-    <!-- Teams as blocks + pills -->
-    <div class="card" style="margin-top:20px">
+    <div class="card" style="margin-top:16px">
       <div class="sectionTitle">团队统计（cột F）（点击团队或岗位数字弹出员工）</div>
-      <div id="teamBlocks" style="display:grid;gap:14px"></div>
+      <div id="teamBlocks" style="display:grid;gap:12px"></div>
       <div class="hr"></div>
-      <div class="small">提示：团队=Google Sheet cột F（团队），岗位=Google Sheet cột K（岗位），ID=Google Sheet cột G（ID，不为空才统计）</div>
+      <div class="small">
+        规则：团队=cột F，岗位=cột K，ID=cột G（为空不统计，且按ID去重）
+      </div>
     </div>
-
   </div>
 
-  <!-- EMPLOYEES TAB -->
+  <!-- EMPLOYEES -->
   <div id="empView" class="hidden">
     <div class="card">
-      <div class="sectionTitle">员工名单（可搜索）</div>
-      <div class="pop-tools" style="margin-top:10px">
-        <input id="empSearch" placeholder="Search 姓名/ID/团队/岗位/国家..." style="flex:1;min-width:240px" />
-        <select id="empTeamFilter"><option value="">全部团队</option></select>
-        <select id="empPosFilter"><option value="">全部岗位</option></select>
-        <button id="empExport">Export CSV</button>
+      <div class="sectionTitle">员工名单（可搜索/筛选）</div>
+      <div class="toolbar">
+        <input id="empSearch" placeholder="Search 姓名/ID/团队/岗位/国家/盘口..." style="flex:1;min-width:260px">
+        <select id="empTeamFilter"><option value="">全部团队（cột F）</option></select>
+        <select id="empPosFilter"><option value="">全部岗位（cột K）</option></select>
+        <button class="btn" id="empExport">Export CSV</button>
       </div>
 
       <table>
@@ -232,24 +234,9 @@ a.link:hover{text-decoration:underline}
       </table>
     </div>
   </div>
-
 </div>
 
-<!-- LOGIN MODAL -->
-<div id="loginModal" class="modal">
-  <div class="modal-box">
-    <h3>Login</h3>
-    <input id="loginEmail" placeholder="Email" autocomplete="username" />
-    <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password" />
-    <div class="modal-actions">
-      <button id="doLogin" class="btn-primary">Login</button>
-      <button id="closeLogin" class="btn-dark">Close</button>
-    </div>
-    <div id="loginMsg" class="err"></div>
-  </div>
-</div>
-
-<!-- POPUP DETAIL MODAL -->
+<!-- POPUP -->
 <div id="pop" class="pop">
   <div class="pop-box">
     <div class="pop-head">
@@ -257,10 +244,10 @@ a.link:hover{text-decoration:underline}
         <div class="pop-title" id="popTitle">-</div>
         <div class="pop-sub" id="popSub">-</div>
       </div>
-      <div class="pop-tools">
+      <div class="toolbar" style="margin:0">
         <input id="popSearch" placeholder="Search..." />
         <select id="popCountry"><option value="">All countries</option></select>
-        <button id="popClose">Close</button>
+        <button class="btn" id="popClose">Close</button>
       </div>
     </div>
 
@@ -287,37 +274,59 @@ a.link:hover{text-decoration:underline}
 
 <script>
 /* ================= CONFIG ================= */
-const SUPABASE_URL = "https://mxeqccecqkyllwvbylej.supabase.co";
-const SUPABASE_KEY = "sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
-
-// Google Sheet -> OpenSheet JSON
+// ✅ Replace only if you change sheet
 const sheetAPI = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
 
-const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-});
-
 /* ================= STATE ================= */
-let RAW_ROWS = [];         // raw from opensheet
-let EMPLOYEES = [];        // normalized + unique by ID
-let ROLE = "admin";        // admin / leader
-let LEADER_TEAM = "";      // leader team name
+let RAW_ROWS = [];
+let EMPLOYEES = []; // normalized + unique by ID (G)
 let chartPos = null;
 let chartTeam = null;
+let popData = [];
 
-let popData = [];          // current popup dataset
-
-/* ================= HELPERS ================= */
+/* ================= UTILS ================= */
 const $ = (id)=>document.getElementById(id);
+const norm = (v)=> (v ?? "").toString().trim();
 
-function norm(v){
-  return (v ?? "").toString().trim();
+function escapeHtml(s){
+  s = (s ?? "").toString();
+  return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 
-// Robust pick: support multiple possible header names
+function csvCell(v){
+  v = (v ?? "").toString().replaceAll('"','""');
+  if(v.includes(",") || v.includes("\n") || v.includes('"')) return `"${v}"`;
+  return v;
+}
+
+function downloadFile(name, content){
+  const blob = new Blob([content], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function countBy(list, keyFn){
+  const m = new Map();
+  for(const item of list){
+    const k = norm(keyFn(item)) || "未分类";
+    m.set(k, (m.get(k)||0) + 1);
+  }
+  return m;
+}
+function sortMapDesc(m){ return [...m.entries()].sort((a,b)=>b[1]-a[1]); }
+
+/* ================= NORMALIZE (A-M) =================
+   You want show: 负责人 现场培训 线上组长 线上培训 组别 姓名 ID 国家 岗位 盘口
+   And team must be column F (团队), ID is column G, position is column K
+*/
 function pick(row, keys){
   for(const k of keys){
-    if(row && Object.prototype.hasOwnProperty.call(row, k)){
+    if(Object.prototype.hasOwnProperty.call(row, k)){
       const v = norm(row[k]);
       if(v !== "") return v;
     }
@@ -325,154 +334,37 @@ function pick(row, keys){
   return "";
 }
 
-// Normalize a row based on your columns A-M
-// A 负责人, B 现场培训, C 线上组长, D 线上培训, E 组别, F 团队, G ID, H? (some sheets) etc.
-// You told: Team is cột F, ID is cột G, Position is cột K.
 function normalizeRow(r){
-  const负责人 = pick(r, ["负责人","負責人","Leader","A"]);
-  const现场培训 = pick(r, ["现场培训","現場培訓","B"]);
-  const线上组长 = pick(r, ["线上组长","線上組長","C"]);
-  const线上培训 = pick(r, ["线上培训","線上培訓","D"]);
-  const组别 = pick(r, ["组别","組別","E"]);
-  const团队 = pick(r, ["团队","團隊","F"]); // ✅ MUST BE COL F
-  const姓名 = pick(r, ["姓名","名字","Name","G_NAME","姓名 "]); // (your sheet shows 姓名)
-  constID = pick(r, ["ID","Id","员工ID","员工编号","G"]); // ✅ MUST BE COL G
-  const国家 = pick(r, ["国家","國家","Country","J","国家 "]);
-  const岗位 = pick(r, ["岗位","崗位","Position","K"]); // ✅ MUST BE COL K
-  const盘口 = pick(r, ["盘口","盤口","盘口/品牌","品牌","L"]);
+  // We support header names; OpenSheet uses headers, not A/B/C letters.
+  // If your sheet header is exactly these Chinese titles, it will work.
+  const 负责人   = pick(r, ["负责人","負責人"]);
+  const 现场培训 = pick(r, ["现场培训","現場培訓"]);
+  const 线上组长 = pick(r, ["线上组长","線上組長"]);
+  const 线上培训 = pick(r, ["线上培训","線上培訓"]);
+  const 组别     = pick(r, ["组别","組別"]);
+  const 团队     = pick(r, ["团队","團隊"]);         // ✅ cột F
+  const 姓名     = pick(r, ["姓名","名字","Name"]);
+  const ID       = pick(r, ["ID","Id","员工ID","员工编号"]); // ✅ cột G
+  const 国家     = pick(r, ["国家","國家","Country"]);
+  const 岗位     = pick(r, ["岗位","崗位","Position"]);      // ✅ cột K
+  const 盘口     = pick(r, ["盘口","盤口","品牌","盘口/品牌"]);
 
-  return {
-    负责人, 现场培训, 线上组长, 线上培训, 组别,
-    团队, 姓名, ID: constID, 国家, 岗位, 盘口
-  };
+  return { 负责人, 现场培训, 线上组长, 线上培训, 组别, 团队, 姓名, ID, 国家, 岗位, 盘口 };
 }
 
 function uniqueById(rows){
   const map = new Map();
   for(const r of rows){
     const id = norm(r.ID);
-    if(!id) continue; // ✅ ID empty -> ignore
-    if(!map.has(id)){
-      map.set(id, r);
-    }
+    if(!id) continue; // ✅ ID empty ignore
+    if(!map.has(id)) map.set(id, r);
   }
   return [...map.values()];
 }
 
-function applyRoleFilter(list){
-  if(ROLE === "leader" && LEADER_TEAM){
-    return list.filter(x => x.团队 === LEADER_TEAM);
-  }
-  return list;
-}
-
-function countBy(list, keyFn){
-  const m = new Map();
-  for(const item of list){
-    const k = norm(keyFn(item)) || "未分类";
-    m.set(k, (m.get(k)||0)+1);
-  }
-  return m;
-}
-
-function sortMapDesc(m){
-  return [...m.entries()].sort((a,b)=>b[1]-a[1]);
-}
-
-/* ================= AUTH UI ================= */
-function setAuthUI(loggedIn){
-  if(loggedIn){
-    $("roleBadge").classList.add("ok");
-    $("badgeText").innerText = `Logged in (${ROLE}${ROLE==="leader" && LEADER_TEAM ? " - "+LEADER_TEAM : ""})`;
-    $("btnLogin").classList.add("hidden");
-    $("btnLogout").classList.remove("hidden");
-  }else{
-    $("roleBadge").classList.remove("ok");
-    $("badgeText").innerText = "Not logged in";
-    $("btnLogin").classList.remove("hidden");
-    $("btnLogout").classList.add("hidden");
-  }
-}
-
-/* ================= LOGIN MODAL ================= */
-$("btnLogin").onclick = ()=>{ $("loginMsg").innerText=""; $("loginModal").classList.add("show"); };
-$("closeLogin").onclick = ()=>{ $("loginModal").classList.remove("show"); };
-$("btnLogout").onclick = async ()=>{ await supa.auth.signOut(); location.reload(); };
-
-$("doLogin").onclick = async ()=>{
-  $("loginMsg").innerText = "";
-  const email = norm($("loginEmail").value);
-  const pass = norm($("loginPass").value);
-  if(!email || !pass){ $("loginMsg").innerText="Please enter email & password"; return; }
-
-  const { error } = await supa.auth.signInWithPassword({ email, password: pass });
-  if(error){ $("loginMsg").innerText = error.message; return; }
-
-  // On success: modal closes in auth listener.
-};
-
-/* ================= AUTH FLOW (FIX TREO) ================= */
-async function resolveRoleFromUser(user){
-  // Priority:
-  // 1) user_metadata.role / user_metadata.team
-  // 2) localStorage role/team fallback
-  const meta = user?.user_metadata || {};
-  ROLE = norm(meta.role) || norm(localStorage.getItem("role")) || "admin";
-  LEADER_TEAM = norm(meta.team) || norm(localStorage.getItem("team")) || "";
-}
-
-async function bootAfterLogin(user){
-  await resolveRoleFromUser(user);
-  setAuthUI(true);
-  $("loginModal").classList.remove("show"); // ✅ FIX: hide login modal
-  await loadSheetAndRender();               // ✅ fetch AFTER login only
-}
-
-async function bootLoggedOut(){
-  setAuthUI(false);
-  // Clear UI data
-  $("kTotal").innerText = "-";
-  $("kWD").innerText = "-";
-  $("kCS").innerText = "-";
-  $("kDP").innerText = "-";
-  $("posCards").innerHTML = "";
-  $("teamBlocks").innerHTML = "";
-  if(chartPos) { chartPos.destroy(); chartPos = null; }
-  if(chartTeam){ chartTeam.destroy(); chartTeam = null; }
-}
-
-supa.auth.onAuthStateChange(async (event, session)=>{
-  const user = session?.user;
-  if(user){
-    await bootAfterLogin(user);
-  }else{
-    await bootLoggedOut();
-  }
-});
-
-// Initial
-(async()=>{
-  const { data:{ session } } = await supa.auth.getSession();
-  if(session?.user){
-    await bootAfterLogin(session.user);
-  }else{
-    await bootLoggedOut();
-  }
-})();
-
-/* ================= TAB SWITCH ================= */
-document.querySelectorAll(".tab").forEach(t=>{
-  t.onclick = ()=>{
-    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    const tab = t.dataset.tab;
-    $("dashView").classList.toggle("hidden", tab!=="dash");
-    $("empView").classList.toggle("hidden", tab!=="employees");
-  };
-});
-
-/* ================= LOAD GOOGLE SHEET ================= */
-async function loadSheetAndRender(){
+/* ================= LOAD SHEET ================= */
+async function loadSheet(){
+  $("status").innerText = "Loading sheet...";
   try{
     const res = await fetch(sheetAPI, { cache:"no-store" });
     const json = await res.json();
@@ -481,13 +373,10 @@ async function loadSheetAndRender(){
     RAW_ROWS = [];
   }
 
-  // Normalize and unique by ID (cột G not empty)
   const normalized = RAW_ROWS.map(normalizeRow);
-  const uniq = uniqueById(normalized);
+  EMPLOYEES = uniqueById(normalized);
 
-  // Apply role filter
-  EMPLOYEES = applyRoleFilter(uniq);
-
+  $("status").innerText = `Loaded: ${EMPLOYEES.length.toLocaleString()} employees`;
   renderAll();
 }
 
@@ -502,12 +391,9 @@ function renderAll(){
 
 function renderKPIs(){
   const total = EMPLOYEES.length;
-
-  const countPos = (pos)=>EMPLOYEES.filter(x=>x.岗位===pos).length;
-  const wd = countPos("出款");
-  const cs = countPos("客服");
-  const dp = countPos("查单");
-
+  const wd = EMPLOYEES.filter(x=>x.岗位==="出款").length;
+  const cs = EMPLOYEES.filter(x=>x.岗位==="客服").length;
+  const dp = EMPLOYEES.filter(x=>x.岗位==="查单").length;
   $("kTotal").innerText = total.toLocaleString();
   $("kWD").innerText = wd.toLocaleString();
   $("kCS").innerText = cs.toLocaleString();
@@ -515,90 +401,78 @@ function renderKPIs(){
 }
 
 function renderCharts(){
-  // Position chart
-  const posMap = countBy(EMPLOYEES, x=>x.岗位);
-  const posPairs = sortMapDesc(posMap);
+  // Position chart (K)
+  const posPairs = sortMapDesc(countBy(EMPLOYEES, x=>x.岗位));
   const posLabels = posPairs.map(x=>x[0]);
   const posValues = posPairs.map(x=>x[1]);
 
   if(chartPos) chartPos.destroy();
   chartPos = new Chart($("chartPosition"),{
     type:"doughnut",
-    data:{ labels: posLabels, datasets:[{ data: posValues }] },
+    data:{ labels:posLabels, datasets:[{ data:posValues }] },
     options:{
       responsive:true,
       plugins:{ legend:{ position:"top" } },
-      onClick:(evt, elements)=>{
-        if(!elements?.length) return;
-        const idx = elements[0].index;
-        const pos = posLabels[idx];
-        openPopup({ type:"position", key: pos });
+      onClick:(evt, els)=>{
+        if(!els?.length) return;
+        const pos = posLabels[els[0].index];
+        openPopup({type:"position", key:pos});
       }
     }
   });
 
-  // Team chart (✅ team = cột F)
-  const teamMap = countBy(EMPLOYEES, x=>x.团队);
-  const teamPairs = sortMapDesc(teamMap).slice(0, 60); // avoid too long label
+  // Team chart (F)
+  const teamPairs = sortMapDesc(countBy(EMPLOYEES, x=>x.团队)).slice(0, 60);
   const teamLabels = teamPairs.map(x=>x[0]);
   const teamValues = teamPairs.map(x=>x[1]);
 
   if(chartTeam) chartTeam.destroy();
   chartTeam = new Chart($("chartTeam"),{
     type:"bar",
-    data:{
-      labels:teamLabels,
-      datasets:[{ label:"人数", data:teamValues }]
-    },
+    data:{ labels:teamLabels, datasets:[{ label:"人数", data:teamValues }] },
     options:{
       responsive:true,
       plugins:{ legend:{ display:true } },
       scales:{ x:{ ticks:{ maxRotation:60, minRotation:60 } } },
-      onClick:(evt, elements)=>{
-        if(!elements?.length) return;
-        const idx = elements[0].index;
-        const team = teamLabels[idx];
-        openPopup({ type:"team", key: team });
+      onClick:(evt, els)=>{
+        if(!els?.length) return;
+        const team = teamLabels[els[0].index];
+        openPopup({type:"team", key:team});
       }
     }
   });
 }
 
 function renderPositionCards(){
-  const posMap = sortMapDesc(countBy(EMPLOYEES, x=>x.岗位));
   const wrap = $("posCards");
   wrap.innerHTML = "";
-
-  posMap.forEach(([pos, n])=>{
+  const posPairs = sortMapDesc(countBy(EMPLOYEES, x=>x.岗位));
+  posPairs.forEach(([pos,n])=>{
     const div = document.createElement("div");
     div.className = "miniCard";
-    div.innerHTML = `
-      <div class="t">${pos}</div>
-      <div class="n">${n}</div>
-      <div class="sub">点击查看员工</div>
-    `;
-    div.onclick = ()=>openPopup({ type:"position", key: pos });
+    div.innerHTML = `<div class="t">${escapeHtml(pos)}</div><div class="n">${n}</div><div class="sub">点击查看员工</div>`;
+    div.onclick = ()=>openPopup({type:"position", key:pos});
     wrap.appendChild(div);
   });
 }
 
 function renderTeamBlocks(){
-  // ✅ team = cột F
-  const teamMap = sortMapDesc(countBy(EMPLOYEES, x=>x.团队));
-  const allPositions = sortMapDesc(countBy(EMPLOYEES, x=>x.岗位)).map(x=>x[0]);
-
   const box = $("teamBlocks");
   box.innerHTML = "";
 
-  teamMap.forEach(([team, total])=>{
+  const allPositions = sortMapDesc(countBy(EMPLOYEES, x=>x.岗位)).map(x=>x[0]);
+  const teamPairs = sortMapDesc(countBy(EMPLOYEES, x=>x.团队));
+
+  teamPairs.forEach(([team,total])=>{
     const teamEmps = EMPLOYEES.filter(x=>x.团队===team);
 
+    // count each position within team
     const posCount = new Map();
     for(const p of allPositions) posCount.set(p, 0);
-    teamEmps.forEach(e=>{
+    for(const e of teamEmps){
       const p = norm(e.岗位) || "未分类";
       posCount.set(p, (posCount.get(p)||0)+1);
-    });
+    }
 
     const wrap = document.createElement("div");
     wrap.className = "teamBlock";
@@ -607,50 +481,53 @@ function renderTeamBlocks(){
     head.className = "teamHead";
     head.innerHTML = `
       <div>
-        <div class="teamName"><a class="link" href="javascript:void(0)">${team}</a></div>
+        <div class="teamName">
+          <a class="link" href="javascript:void(0)">${escapeHtml(team)}</a>
+        </div>
         <div class="muted">总人数：${total}</div>
       </div>
       <div class="small">点击团队名或任意岗位数字弹出员工名单</div>
     `;
-    head.querySelector("a.link").onclick = ()=>openPopup({ type:"team", key: team });
+    head.querySelector("a.link").onclick = ()=>openPopup({type:"team", key:team});
     wrap.appendChild(head);
 
     const pills = document.createElement("div");
     pills.className = "pills";
 
-    // 总人数 pill
-    const pillTotal = document.createElement("div");
-    pillTotal.className = "pill";
-    pillTotal.textContent = `总人数 ${total}`;
-    pillTotal.onclick = ()=>openPopup({ type:"team", key: team });
-    pills.appendChild(pillTotal);
+    const totalPill = document.createElement("div");
+    totalPill.className = "pill";
+    totalPill.textContent = `总人数 ${total}`;
+    totalPill.onclick = ()=>openPopup({type:"team", key:team});
+    pills.appendChild(totalPill);
 
-    // Position pills
-    for(const [pos, cnt] of [...posCount.entries()].sort((a,b)=>b[1]-a[1])){
-      if(cnt<=0) continue;
+    [...posCount.entries()].sort((a,b)=>b[1]-a[1]).forEach(([pos,cnt])=>{
+      if(cnt<=0) return;
       const pill = document.createElement("div");
       pill.className = "pill";
       pill.textContent = `${pos} ${cnt}`;
-      pill.onclick = ()=>openPopup({ type:"team+position", key: team, pos });
+      pill.onclick = ()=>openPopup({type:"team+position", key:team, pos});
       pills.appendChild(pill);
-    }
+    });
 
     wrap.appendChild(pills);
     box.appendChild(wrap);
   });
 }
 
-/* ================= EMPLOYEES TAB ================= */
-function fillSelectOptions(){
+function fillEmpFilters(){
   const teams = sortMapDesc(countBy(EMPLOYEES, x=>x.团队)).map(x=>x[0]);
-  const poss = sortMapDesc(countBy(EMPLOYEES, x=>x.岗位)).map(x=>x[0]);
+  const poss  = sortMapDesc(countBy(EMPLOYEES, x=>x.岗位)).map(x=>x[0]);
 
-  $("empTeamFilter").innerHTML = `<option value="">全部团队</option>` + teams.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
-  $("empPosFilter").innerHTML = `<option value="">全部岗位</option>` + poss.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+  $("empTeamFilter").innerHTML = `<option value="">全部团队（cột F）</option>` +
+    teams.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+
+  $("empPosFilter").innerHTML = `<option value="">全部岗位（cột K）</option>` +
+    poss.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
 }
 
 function renderEmployeesTab(){
-  fillSelectOptions();
+  fillEmpFilters();
+
   const render = ()=>{
     const kw = norm($("empSearch").value).toLowerCase();
     const t = norm($("empTeamFilter").value);
@@ -666,7 +543,7 @@ function renderEmployeesTab(){
       });
     }
 
-    $("empBody").innerHTML = arr.slice(0, 1000).map(e=>`
+    $("empBody").innerHTML = arr.slice(0, 1200).map(e=>`
       <tr>
         <td>${escapeHtml(e.负责人)}</td>
         <td>${escapeHtml(e.现场培训)}</td>
@@ -688,10 +565,9 @@ function renderEmployeesTab(){
   $("empPosFilter").onchange = render;
 
   $("empExport").onclick = ()=>{
-    const rows = EMPLOYEES;
     const cols = ["负责人","现场培训","线上组长","线上培训","组别","团队","姓名","ID","国家","岗位","盘口"];
     const csv = [cols.join(",")].concat(
-      rows.map(r=>cols.map(c=>csvCell(r[c])).join(","))
+      EMPLOYEES.map(r=>cols.map(c=>csvCell(r[c])).join(","))
     ).join("\n");
     downloadFile("employees.csv", csv);
   };
@@ -701,14 +577,13 @@ function renderEmployeesTab(){
 
 /* ================= POPUP ================= */
 $("popClose").onclick = closePopup;
-$("pop").onclick = (e)=>{ if(e.target === $("pop")) closePopup(); };
-
-$("popSearch").oninput = ()=>renderPopupTable();
-$("popCountry").onchange = ()=>renderPopupTable();
+$("pop").onclick = (e)=>{ if(e.target===$("pop")) closePopup(); };
+$("popSearch").oninput = renderPopupTable;
+$("popCountry").onchange = renderPopupTable;
 
 function openPopup({type, key, pos}){
-  let title = "";
   let arr = [];
+  let title = "";
 
   if(type==="position"){
     title = `${key} 员工名单`;
@@ -725,9 +600,9 @@ function openPopup({type, key, pos}){
   $("popTitle").innerText = title;
   $("popSub").innerText = `共 ${arr.length} 人（可搜索/按国家过滤）`;
 
-  // Fill country filter
   const countries = sortMapDesc(countBy(arr, x=>x.国家)).map(x=>x[0]);
-  $("popCountry").innerHTML = `<option value="">All countries</option>` + countries.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  $("popCountry").innerHTML = `<option value="">All countries</option>` +
+    countries.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
 
   $("popSearch").value = "";
   $("popCountry").value = "";
@@ -738,10 +613,10 @@ function openPopup({type, key, pos}){
 
 function renderPopupTable(){
   const kw = norm($("popSearch").value).toLowerCase();
-  const country = norm($("popCountry").value);
+  const c  = norm($("popCountry").value);
 
   let arr = popData.slice();
-  if(country) arr = arr.filter(x=>x.国家===country);
+  if(c) arr = arr.filter(x=>x.国家===c);
   if(kw){
     arr = arr.filter(x=>{
       const s = `${x.负责人} ${x.现场培训} ${x.线上组长} ${x.线上培训} ${x.组别} ${x.团队} ${x.姓名} ${x.ID} ${x.国家} ${x.岗位} ${x.盘口}`.toLowerCase();
@@ -771,26 +646,19 @@ function closePopup(){
   popData = [];
 }
 
-/* ================= UTILS ================= */
-function escapeHtml(s){
-  s = (s ?? "").toString();
-  return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-}
-function csvCell(v){
-  v = (v ?? "").toString().replaceAll('"','""');
-  if(v.includes(",") || v.includes("\n") || v.includes('"')) return `"${v}"`;
-  return v;
-}
-function downloadFile(name, content){
-  const blob = new Blob([content], {type:"text/csv;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+/* ================= TABS ================= */
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick = ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    const tab = t.dataset.tab;
+    $("dashView").classList.toggle("hidden", tab!=="dash");
+    $("empView").classList.toggle("hidden", tab!=="employees");
+  };
+});
+
+/* ================= START ================= */
+loadSheet();
 </script>
 
 </body>
