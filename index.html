@@ -168,21 +168,18 @@ td{
 const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
 const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
 
-const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
-  auth:{persistSession:true}
-});
+const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let USERS=[],TEAMS=[];
 let chart1,chart2;
 
-/* ===== UI ===== */
+/* ================= UI ================= */
 
 function showLogin(){
   loginModal.classList.remove("hidden");
   roleBadge.innerText="Not logged in";
   btnLogin.classList.remove("hidden");
   btnLogout.classList.add("hidden");
-  clearDashboard();
 }
 
 function showDashboard(){
@@ -192,43 +189,44 @@ function showDashboard(){
   btnLogout.classList.remove("hidden");
 }
 
-/* ===== LOGIN ===== */
+/* ================= LOGIN ================= */
 
-btnLogin.onclick=()=>loginModal.classList.remove("hidden");
+btnLogin.onclick=()=>{
+  loginModal.classList.remove("hidden");
+};
 
 doLogin.onclick=async()=>{
   loginMsg.innerText="";
+
   const {error}=await supa.auth.signInWithPassword({
     email:loginEmail.value.trim(),
     password:loginPass.value
   });
+
   if(error){
     loginMsg.innerText=error.message;
     return;
   }
+
+  // ĐÓNG MODAL NGAY
+  showDashboard();
+
+  await loadData();
 };
 
-/* ===== LOGOUT ===== */
+/* ================= LOGOUT ================= */
 
 btnLogout.onclick=async()=>{
   await supa.auth.signOut();
+  showLogin();
+  clearDashboard();
 };
 
-/* ===== AUTH SYNC ===== */
-
-supa.auth.onAuthStateChange(async (event, session)=>{
-  if(session){
-    showDashboard();
-    await loadData();
-  }else{
-    showLogin();
-  }
-});
-
-/* ===== INITIAL CHECK ===== */
+/* ================= INITIAL CHECK ================= */
 
 (async()=>{
   const {data:{session}}=await supa.auth.getSession();
+
   if(session){
     showDashboard();
     await loadData();
@@ -237,7 +235,7 @@ supa.auth.onAuthStateChange(async (event, session)=>{
   }
 })();
 
-/* ===== LOAD DATA ===== */
+/* ================= LOAD DATA ================= */
 
 async function loadData(){
   const usersRes=await supa.from("users").select("*");
@@ -249,7 +247,7 @@ async function loadData(){
   renderDashboard();
 }
 
-/* ===== CLEAR ===== */
+/* ================= CLEAR ================= */
 
 function clearDashboard(){
   kTotal.innerText=0;
@@ -261,7 +259,7 @@ function clearDashboard(){
   if(chart2) chart2.destroy();
 }
 
-/* ===== RENDER ===== */
+/* ================= RENDER ================= */
 
 function renderDashboard(){
   kTotal.innerText=USERS.length;
@@ -300,6 +298,3 @@ function renderDashboard(){
   });
 }
 </script>
-
-</body>
-</html>
