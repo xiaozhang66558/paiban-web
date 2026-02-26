@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
@@ -25,16 +24,8 @@ header{
   border-radius:999px;
   font-size:12px
 }
-button{
-  padding:8px 14px;
-  border-radius:10px;
-  border:0;
-  cursor:pointer
-}
-.btn-primary{background:#2563eb;color:#fff}
-.btn-dark{background:#1e293b;color:#fff}
 .container{
-  max-width:1200px;
+  max-width:1300px;
   margin:20px auto;
   padding:0 20px;
   display:none;
@@ -44,7 +35,6 @@ button{
   border-radius:16px;
   padding:20px;
   box-shadow:0 2px 10px rgba(0,0,0,.06);
-  margin-bottom:20px;
 }
 table{
   width:100%;
@@ -54,40 +44,21 @@ table{
 th{
   background:#0f172a;
   color:#fff;
-  padding:10px
+  padding:10px;
+  font-size:13px;
 }
 td{
   padding:8px;
   border-bottom:1px solid #eee;
-  text-align:center
+  text-align:center;
 }
 td:first-child{text-align:left}
-.hidden{display:none}
-.clickable{cursor:pointer;font-weight:bold;color:#2563eb}
-
-/* Login modal */
+.clickable{
+  cursor:pointer;
+  font-weight:bold;
+  color:#2563eb;
+}
 .modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.modal-box{
-  background:#fff;
-  padding:20px;
-  border-radius:16px;
-  width:300px;
-}
-.modal-box input{
-  width:100%;
-  padding:8px;
-  margin-bottom:10px;
-}
-
-/* Employee detail modal */
-.empModal{
   position:fixed;
   inset:0;
   background:rgba(0,0,0,.5);
@@ -95,7 +66,7 @@ td:first-child{text-align:left}
   align-items:center;
   justify-content:center;
 }
-.empBox{
+.modal-box{
   background:#fff;
   padding:20px;
   border-radius:16px;
@@ -111,59 +82,41 @@ td:first-child{text-align:left}
 <header>
   <div style="display:flex;gap:10px;align-items:center">
     <strong>HR System</strong>
-    <span id="roleBadge" class="badge">Not logged in</span>
-  </div>
-  <div>
-    <button id="btnLogout" class="btn-dark hidden">Logout</button>
+    <span id="roleBadge" class="badge">Logged in</span>
   </div>
 </header>
 
 <div class="container" id="mainApp">
-
   <div class="card">
     <h2>团队统计表（点击数字查看员工）</h2>
 
     <table>
       <thead>
         <tr>
-          <th>团队</th>
+          <th>团队统计</th>
+          <th>现场培训</th>
+          <th>线上培训</th>
           <th>出款人数</th>
           <th>客服人数</th>
           <th>查单人数</th>
+          <th>财务人数</th>
+          <th>质检人数</th>
+          <th>彩金人数</th>
+          <th>其他岗位</th>
           <th>总人数</th>
         </tr>
       </thead>
       <tbody id="tbodyStats"></tbody>
     </table>
-  </div>
 
-</div>
-
-<!-- LOGIN -->
-<div id="loginModal" class="modal">
-  <div class="modal-box">
-    <h3>Login</h3>
-    <input id="loginEmail" placeholder="Email">
-    <input id="loginPass" type="password" placeholder="Password">
-    <button id="doLogin" class="btn-primary" style="width:100%">Login</button>
-    <div id="loginMsg" style="color:red;margin-top:8px"></div>
   </div>
 </div>
 
 <!-- EMPLOYEE MODAL -->
-<div id="empModal" class="empModal">
-  <div class="empBox">
+<div id="empModal" class="modal">
+  <div class="modal-box">
     <h3 id="empTitle"></h3>
-    <table>
-      <thead>
-        <tr>
-          <th>姓名</th>
-          <th>岗位</th>
-          <th>团队</th>
-        </tr>
-      </thead>
-      <tbody id="empBody"></tbody>
-    </table>
+    <div id="empContent"></div>
     <br>
     <button onclick="closeEmp()">Close</button>
   </div>
@@ -171,145 +124,56 @@ td:first-child{text-align:left}
 
 <script>
 
-const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
-const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
+const sheetAPI =
+"https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
 
-const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-const SHEET_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vRvLVqRNfym_H6vz_JrMx3EkLiFsojlO0HoXerolpdotmLUrkvUFS5AQdwrXhknrwFVW7tM-LUYLKLw/pub?gid=1256461492&single=true&output=csv";
-
-let EMPLOYEES=[];
-
-/* ================= AUTH ================= */
-
-async function checkSession(){
-  const {data:{session}}=await supa.auth.getSession();
-  if(session){
-    showApp();
-  }else{
-    showLogin();
-  }
-}
-
-async function login(){
-  const {error}=await supa.auth.signInWithPassword({
-    email:loginEmail.value,
-    password:loginPass.value
-  });
-
-  if(error){
-    loginMsg.innerText="Invalid login credentials";
-    return;
-  }
-
-  showApp();
-}
-
-async function logout(){
-  await supa.auth.signOut();
-  location.reload();
-}
-
-function showApp(){
-  loginModal.style.display="none";
-  mainApp.style.display="block";
-  roleBadge.innerText="Logged in";
-  btnLogout.classList.remove("hidden");
-  loadSheet();
-}
-
-function showLogin(){
-  loginModal.style.display="flex";
-  mainApp.style.display="none";
-  roleBadge.innerText="Not logged in";
-}
-
-doLogin.onclick=login;
-btnLogout.onclick=logout;
-
-/* ================= GOOGLE SHEET LOAD ================= */
+let sheetData = [];
 
 async function loadSheet(){
-  const res=await fetch(SHEET_URL);
-  const text=await res.text();
+  const res = await fetch(sheetAPI);
+  sheetData = await res.json();
 
-  const rows=text.split(/\r?\n/)
-    .map(r=>r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g));
-
-  if(!rows || rows.length<2) return;
-
-  const headers=rows[0].map(h=>h.replace(/"/g,'').trim());
-
-  const nameIndex=headers.indexOf("姓名");
-  const teamIndex=headers.indexOf("团队");
-  const positionIndex=headers.indexOf("岗位");
-
-  if(nameIndex===-1 || teamIndex===-1 || positionIndex===-1){
-    console.error("Header mismatch:",headers);
-    return;
-  }
-
-  EMPLOYEES=rows.slice(1).map(r=>({
-    name:r[nameIndex]?.replace(/"/g,'').trim(),
-    team:r[teamIndex]?.replace(/"/g,'').trim(),
-    position:r[positionIndex]?.replace(/"/g,'').trim()
-  })).filter(e=>e.name);
-
-  renderStats();
+  renderTable();
 }
 
-/* ================= STATS ================= */
-
-function renderStats(){
-
-  const teams=[...new Set(EMPLOYEES.map(e=>e.team))];
-
-  tbodyStats.innerHTML=teams.map(team=>{
-    const teamUsers=EMPLOYEES.filter(e=>e.team===team);
-
-    const wd=teamUsers.filter(e=>e.position==="出款").length;
-    const cs=teamUsers.filter(e=>e.position==="客服").length;
-    const dp=teamUsers.filter(e=>e.position==="查单").length;
+function renderTable(){
+  tbodyStats.innerHTML = sheetData.map(row => {
 
     return `
       <tr>
-        <td><b>${team}</b></td>
-        <td class="clickable" onclick="showEmp('${team}','出款')">${wd}</td>
-        <td class="clickable" onclick="showEmp('${team}','客服')">${cs}</td>
-        <td class="clickable" onclick="showEmp('${team}','查单')">${dp}</td>
-        <td class="clickable" onclick="showEmp('${team}','ALL')">${teamUsers.length}</td>
+        <td><b>${row["团队统计"]}</b></td>
+        <td>${row["现场培训"]}</td>
+        <td>${row["线上培训"]}</td>
+        <td class="clickable" onclick="showDetail('${row["团队统计"]}','出款人数')">${row["出款人数"]}</td>
+        <td class="clickable" onclick="showDetail('${row["团队统计"]}','客服人数')">${row["客服人数"]}</td>
+        <td class="clickable" onclick="showDetail('${row["团队统计"]}','查单人数')">${row["查单人数"]}</td>
+        <td class="clickable" onclick="showDetail('${row["团队统计"]}','财务人数')">${row["财务人数"]}</td>
+        <td class="clickable" onclick="showDetail('${row["团队统计"]}','质检人数')">${row["质检人数"]}</td>
+        <td class="clickable" onclick="showDetail('${row["团队统计"]}','彩金人数')">${row["彩金人数"]}</td>
+        <td class="clickable" onclick="showDetail('${row["团队统计"]}','其他岗位')">${row["其他岗位"]}</td>
+        <td class="clickable" onclick="showDetail('${row["团队统计"]}','总人数')">${row["总人数"]}</td>
       </tr>
     `;
   }).join("");
 }
 
-/* ================= CLICK ================= */
+function showDetail(team, field){
+  empTitle.innerText = team + " - " + field;
 
-function showEmp(team,pos){
-  let list=EMPLOYEES.filter(e=>e.team===team);
-  if(pos!=="ALL"){
-    list=list.filter(e=>e.position===pos);
-  }
+  empContent.innerHTML = `
+    <p>这里可以接员工明细数据（下一步可以对接员工明细表）</p>
+    <p>当前点击：${team} / ${field}</p>
+  `;
 
-  empTitle.innerText=`${team} - ${pos}`;
-  empBody.innerHTML=list.map(e=>`
-    <tr>
-      <td>${e.name}</td>
-      <td>${e.position}</td>
-      <td>${e.team}</td>
-    </tr>
-  `).join("");
-
-  empModal.style.display="flex";
+  empModal.style.display = "flex";
 }
 
 function closeEmp(){
-  empModal.style.display="none";
+  empModal.style.display = "none";
 }
 
-/* ================= INIT ================= */
-
-checkSession();
+document.getElementById("mainApp").style.display="block";
+loadSheet();
 
 </script>
 
