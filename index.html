@@ -1,354 +1,1015 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <head>
-<meta charset="UTF-8"/>
-<title>Enterprise HR Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HR SaaS - Enterprise Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <style>
-*{box-sizing:border-box;font-family:Segoe UI,Arial}
-body{margin:0;background:#f1f5f9}
-header{
-  background:linear-gradient(90deg,#0f172a,#1e293b);
-  color:#fff;padding:18px 30px;
-  font-size:20px;font-weight:700;
-}
-.container{max-width:1700px;margin:25px auto;padding:0 25px}
-
-.card{
-  background:#fff;border-radius:18px;padding:22px;
-  box-shadow:0 4px 20px rgba(0,0,0,.06);
-  margin-bottom:22px;
-}
-
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-
-.kpiGrid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:16px;margin-top:16px
+:root{
+  --bg:#0b1220;
+  --panel:rgba(255,255,255,.06);
+  --panel2:rgba(255,255,255,.08);
+  --stroke:rgba(255,255,255,.10);
+  --text:#eaf0ff;
+  --muted:rgba(234,240,255,.65);
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+  --radius:18px;
+  --radius2:14px;
+  --accent:#60a5fa;
+  --accent2:#22c55e;
+  --danger:#ef4444;
+  --warn:#f59e0b;
+  --chip:rgba(255,255,255,.08);
 }
 
-.kpiBox{
-  background:#fff;border-radius:14px;padding:18px;
-  box-shadow:0 3px 12px rgba(0,0,0,.05);
+*{box-sizing:border-box;font-family:Segoe UI,system-ui,-apple-system,Arial}
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--text);
+  background:
+    radial-gradient(900px 500px at 15% 10%, rgba(96,165,250,.35), transparent 55%),
+    radial-gradient(900px 500px at 85% 20%, rgba(34,197,94,.25), transparent 55%),
+    radial-gradient(900px 500px at 55% 90%, rgba(245,158,11,.18), transparent 55%),
+    linear-gradient(180deg, #070b14, #0b1220 50%, #070b14);
+  overflow-x:hidden;
+}
+
+/* layout */
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+.sidebar{
+  position:sticky;top:0;height:100vh;
+  padding:18px;
+  border-right:1px solid var(--stroke);
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  backdrop-filter: blur(18px);
+}
+.brand{
+  display:flex;gap:12px;align-items:center;
+  padding:14px 12px;border-radius:16px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--stroke);
+  box-shadow:var(--shadow);
+}
+.logo{
+  width:42px;height:42px;border-radius:14px;
+  background:linear-gradient(135deg, rgba(96,165,250,.9), rgba(34,197,94,.85));
+  box-shadow:0 12px 22px rgba(96,165,250,.22);
+}
+.brand .t1{font-weight:800;letter-spacing:.3px}
+.brand .t2{font-size:12px;color:var(--muted);margin-top:2px}
+
+.nav{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.navbtn{
+  display:flex;gap:10px;align-items:center;
+  padding:12px 12px;border-radius:14px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.03);
   cursor:pointer;
-  transition:.2s;
+  transition:.18s;
 }
-.kpiBox:hover{transform:translateY(-3px);background:#eef2ff}
-
-.teamRow{
-  background:#fff;border-radius:16px;padding:18px;
-  box-shadow:0 3px 14px rgba(0,0,0,.05);
-  margin-bottom:18px
+.navbtn:hover{transform:translateY(-1px);background:rgba(255,255,255,.06)}
+.navbtn.active{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.25)}
+.dot{
+  width:10px;height:10px;border-radius:50%;
+  background:rgba(255,255,255,.25);
+}
+.navbtn.active .dot{background:var(--accent)}
+.sideCard{
+  margin-top:16px;
+  padding:14px;border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.03);
+}
+.small{font-size:12px;color:var(--muted);line-height:1.4}
+.badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:7px 10px;border-radius:999px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--stroke);
+  font-size:12px;color:var(--muted);
+}
+.pulse{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--accent2);
+  box-shadow:0 0 0 0 rgba(34,197,94,.55);
+  animation:pulse 1.8s infinite;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}
+  70%{box-shadow:0 0 0 10px rgba(34,197,94,0)}
+  100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}
 }
 
-.teamTitle{font-weight:800;margin-bottom:12px;font-size:17px}
-
-.teamStats{display:flex;flex-wrap:wrap;gap:10px}
-
-.statChip{
-  background:#f3f4f6;padding:8px 14px;
-  border-radius:12px;cursor:pointer;
-  font-size:14px;
-  transition:.15s;
+.main{padding:18px 18px 40px}
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:12px;
+  position:sticky;top:0;z-index:5;
+  padding:14px 14px;
+  margin-bottom:14px;
+  border-radius:18px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--stroke);
+  backdrop-filter: blur(18px);
+  box-shadow:var(--shadow);
 }
-.statChip:hover{background:#dbeafe}
-.statChip b{font-weight:800}
+.titleWrap{display:flex;flex-direction:column;gap:3px}
+.h1{font-weight:900;font-size:18px;letter-spacing:.2px}
+.h2{font-size:12px;color:var(--muted)}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  padding:10px 12px;border-radius:12px;
+  cursor:pointer;transition:.18s;
+  display:inline-flex;gap:8px;align-items:center;
+}
+.btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.08)}
+.btn.primary{background:rgba(96,165,250,.16);border-color:rgba(96,165,250,.25)}
+.btn.primary:hover{background:rgba(96,165,250,.22)}
+.btn.danger{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.25)}
+.btn.danger:hover{background:rgba(239,68,68,.22)}
+.input,select{
+  padding:10px 12px;border-radius:12px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  outline:none;
+}
+.input::placeholder{color:rgba(234,240,255,.45)}
+select option{color:#0b1220}
 
+.panel{
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
+  backdrop-filter: blur(18px);
+}
+
+/* KPI row */
+.kpiRow{
+  display:grid;gap:12px;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  margin-top:12px;
+}
+.kpi{
+  padding:16px;border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.04);
+  transition:.18s;
+}
+.kpi:hover{transform:translateY(-2px);background:rgba(255,255,255,.07)}
+.kpi .k1{font-size:12px;color:var(--muted)}
+.kpi .k2{font-size:26px;font-weight:900;margin-top:6px}
+.kpi .k3{font-size:12px;color:rgba(234,240,255,.55);margin-top:8px}
+
+/* Cards grid for positions / teams */
+.cardsGrid{
+  display:grid;gap:12px;
+  grid-template-columns:repeat(auto-fill, minmax(170px, 1fr));
+  margin-top:14px;
+}
+.cardMini{
+  padding:14px;border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.035);
+  cursor:pointer;
+  transition:.18s;
+}
+.cardMini:hover{transform:translateY(-2px);background:rgba(255,255,255,.07)}
+.cardMini .t{font-weight:900}
+.cardMini .n{margin-top:8px;font-size:18px;font-weight:900;color:#fff}
+.cardMini .sub{margin-top:6px;font-size:12px;color:var(--muted)}
+
+/* charts row */
+.chartsRow{
+  display:grid;gap:12px;
+  grid-template-columns: 1fr 1fr;
+  margin-top:12px;
+}
+.chartBox{
+  padding:14px;border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.03);
+  min-height:330px;
+}
+.chartHeader{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:10px;
+}
+.chartHeader .left{font-weight:900}
+.chartHeader .right{font-size:12px;color:var(--muted)}
+canvas{max-width:100%}
+
+/* team matrix */
+.teamMatrixHeader{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  gap:10px;flex-wrap:wrap;
+  margin-top:6px;
+}
+.teamMatrixHeader .hint{font-size:12px;color:var(--muted)}
+.teamTableWrap{
+  margin-top:12px;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid var(--stroke);
+}
+table{width:100%;border-collapse:collapse}
+thead th{
+  background:rgba(255,255,255,.06);
+  color:rgba(234,240,255,.85);
+  font-size:12px;
+  padding:10px;
+  text-align:center;
+  position:sticky;top:0;z-index:1;
+  backdrop-filter: blur(14px);
+}
+tbody td{
+  padding:10px;
+  border-top:1px solid rgba(255,255,255,.06);
+  text-align:center;
+  color:rgba(234,240,255,.86);
+}
+tbody tr:hover{background:rgba(255,255,255,.04)}
+.link{color:var(--accent);cursor:pointer;font-weight:800;text-decoration:none}
+.pill{
+  display:inline-flex;gap:6px;align-items:center;
+  padding:6px 10px;border-radius:999px;
+  background:var(--chip);
+  border:1px solid rgba(255,255,255,.08);
+  font-size:12px;
+}
+
+/* modal */
 .modal{
   position:fixed;inset:0;
-  background:rgba(0,0,0,.55);
-  display:none;justify-content:center;align-items:center
+  background:rgba(0,0,0,.60);
+  display:none;align-items:center;justify-content:center;
+  z-index:50;
 }
-
 .modalBox{
-  background:#fff;width:97%;max-width:1650px;
-  max-height:90vh;overflow:auto;
-  border-radius:18px;padding:20px 24px;
+  width:96%;
+  max-width:1650px;
+  max-height:90vh;
+  border-radius:22px;
+  background:rgba(15,23,42,.78);
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 20px 60px rgba(0,0,0,.55);
+  backdrop-filter: blur(18px);
+  overflow:hidden;
+}
+.modalTop{
+  padding:14px 16px;
+  border-bottom:1px solid rgba(255,255,255,.10);
+  display:flex;justify-content:space-between;align-items:center;
+  gap:10px;flex-wrap:wrap;
+}
+.modalTop .ttl{font-weight:900}
+.modalTop .sub{font-size:12px;color:rgba(234,240,255,.65);margin-top:2px}
+.modalTop .leftWrap{display:flex;flex-direction:column}
+.modalTop .rightWrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.modalBody{
+  padding:0;
+  max-height:calc(90vh - 64px);
+  overflow:auto;
+}
+.modalTools{
+  padding:12px 16px;
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+}
+.modalTools .hint{font-size:12px;color:rgba(234,240,255,.60)}
+.modalClose{
+  padding:10px 12px;border-radius:12px;
+  border:1px solid rgba(239,68,68,.30);
+  background:rgba(239,68,68,.14);
+  color:#fff;cursor:pointer;font-weight:800;
+}
+.modalClose:hover{background:rgba(239,68,68,.22)}
+.modalTable{width:100%;border-collapse:collapse}
+.modalTable th{
+  position:sticky;top:0;
+  background:rgba(255,255,255,.06);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.modalTable td,.modalTable th{
+  padding:10px;
+  text-align:center;
+  white-space:nowrap;
+}
+.modalTable td{
+  border-top:1px solid rgba(255,255,255,.06);
+  color:rgba(234,240,255,.86);
+}
+.modalTable tr:hover{background:rgba(255,255,255,.04)}
+
+.toast{
+  position:fixed;right:18px;bottom:18px;
+  padding:12px 14px;border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(15,23,42,.75);
+  color:rgba(234,240,255,.9);
+  box-shadow:var(--shadow);
+  display:none;
 }
 
-.modalHeader{
-  display:flex;align-items:center;justify-content:space-between;
+@media (max-width:1100px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:relative;height:auto}
+  .chartsRow{grid-template-columns:1fr}
+  .kpiRow{grid-template-columns:1fr 1fr}
 }
-
-.closeBtn{cursor:pointer;color:#ef4444;font-weight:800}
-
-.toolbar{
-  display:flex;gap:10px;margin-top:14px;flex-wrap:wrap
+@media (max-width:560px){
+  .kpiRow{grid-template-columns:1fr}
 }
-
-input,select{
-  padding:8px 12px;border-radius:8px;
-  border:1px solid #ddd;font-size:14px
-}
-
-button{
-  padding:8px 14px;border:none;border-radius:8px;
-  background:#2563eb;color:#fff;cursor:pointer
-}
-
-button:hover{background:#1d4ed8}
-
-table{
-  width:100%;border-collapse:collapse;margin-top:14px
-}
-th{
-  background:#0f172a;color:#fff;padding:10px;
-  position:sticky;top:0
-}
-td{padding:8px;border-bottom:1px solid #eee;text-align:center}
-
-.small{font-size:12px;color:#64748b;margin-top:6px}
 </style>
 </head>
 
 <body>
-<header>🏢 Enterprise HR Dashboard</header>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <div class="t1">HR SaaS</div>
+        <div class="t2">Enterprise Analytics</div>
+      </div>
+    </div>
 
-<div class="container">
+    <div class="nav">
+      <div class="navbtn active" id="navDash"><span class="dot"></span> Dashboard</div>
+      <div class="navbtn" id="navTeams"><span class="dot"></span> Teams Matrix</div>
+      <div class="navbtn" id="navPeople"><span class="dot"></span> People Viewer</div>
+    </div>
 
-<!-- TOP CHARTS -->
-<div class="grid">
-<div class="card">
-<h3>岗位分布 (cột K)</h3>
-<canvas id="chartPosition"></canvas>
-<div class="small">点击扇区查看员工</div>
-</div>
+    <div class="sideCard">
+      <div class="badge"><span class="pulse"></span> Live from Google Sheet</div>
+      <div class="small" style="margin-top:10px" id="sheetHint">
+        Source: opensheet.elk.sh<br/>
+        Unique by ID (cột G). Team = cột F, Position = cột K.
+      </div>
+      <div class="small" style="margin-top:10px" id="lastLoad">Last load: -</div>
+      <div class="small" style="margin-top:10px">Tip: Click chart / card / table to open popup.</div>
+    </div>
+  </aside>
 
-<div class="card">
-<h3>团队人数 (cột F)</h3>
-<canvas id="chartTeam"></canvas>
-<div class="small">点击柱子查看团队</div>
-</div>
-</div>
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="titleWrap">
+        <div class="h1">统计总览</div>
+        <div class="h2">按团队统计（点击岗位/团队弹出员工名单）</div>
+      </div>
+      <div class="actions">
+        <input class="input" id="globalSearch" placeholder="全局搜索 姓名 / ID / 团队 / 岗位" />
+        <select id="quickCountry"></select>
+        <button class="btn primary" id="btnReload">刷新数据</button>
+        <button class="btn" id="btnExportAll">导出全部 CSV</button>
+      </div>
+    </div>
 
-<!-- KPI -->
-<div class="card">
-<h3>总人数: <span id="totalCount">0</span></h3>
-<div id="positionCards" class="kpiGrid"></div>
-</div>
+    <!-- Overview Panel -->
+    <section class="panel" id="panelOverview">
+      <div class="kpiRow">
+        <div class="kpi" id="kpiTotal">
+          <div class="k1">总人数（unique by ID cột G）</div>
+          <div class="k2" id="totalPeople">0</div>
+          <div class="k3" id="totalNote">ID 为空已忽略</div>
+        </div>
+        <div class="kpi">
+          <div class="k1">出款人数（岗位=出款）</div>
+          <div class="k2" id="countWD">0</div>
+          <div class="k3">click 查看名单</div>
+        </div>
+        <div class="kpi">
+          <div class="k1">客服人数（岗位=客服）</div>
+          <div class="k2" id="countCS">0</div>
+          <div class="k3">click 查看名单</div>
+        </div>
+        <div class="kpi">
+          <div class="k1">查单人数（岗位=查单）</div>
+          <div class="k2" id="countDP">0</div>
+          <div class="k3">click 查看名单</div>
+        </div>
+      </div>
 
-<!-- TEAM STATS -->
-<div class="card">
-<h3>团队统计（真正使用 cột F）</h3>
-<div id="teamCards"></div>
-</div>
+      <!-- Position cards -->
+      <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <div style="font-weight:900">岗位（cột K）</div>
+        <div class="small">每个岗位一个卡片；点击卡片弹窗员工名单</div>
+      </div>
+      <div class="cardsGrid" id="positionCards"></div>
 
+      <!-- Charts on top -->
+      <div class="chartsRow">
+        <div class="chartBox">
+          <div class="chartHeader">
+            <div class="left">岗位分布（cột K）</div>
+            <div class="right">点击扇区弹出员工</div>
+          </div>
+          <canvas id="chartPosition"></canvas>
+        </div>
+
+        <div class="chartBox">
+          <div class="chartHeader">
+            <div class="left">团队人数（cột F）</div>
+            <div class="right">点击柱子弹出团队员工</div>
+          </div>
+          <canvas id="chartTeam"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Team matrix panel -->
+    <section class="panel" id="panelTeams" style="margin-top:14px">
+      <div class="teamMatrixHeader">
+        <div>
+          <div style="font-weight:900">团队统计表（团队=cột F）</div>
+          <div class="hint">每行一个团队：总人数 + 各岗位人数。点击任意数字打开弹窗名单。</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input class="input" id="teamSearch" placeholder="搜索团队（cột F）" />
+          <select id="teamSort">
+            <option value="desc">按总人数：高→低</option>
+            <option value="asc">按总人数：低→高</option>
+            <option value="name">按团队名称</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="teamTableWrap">
+        <table>
+          <thead>
+            <tr id="teamHeadRow">
+              <th style="min-width:160px">团队（cột F）</th>
+              <th>总人数</th>
+              <!-- dynamic position columns -->
+            </tr>
+          </thead>
+          <tbody id="teamBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- People panel -->
+    <section class="panel" id="panelPeople" style="margin-top:14px;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:900">People Viewer</div>
+          <div class="small">全量员工（已去重）快速检索</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <input class="input" id="peopleSearch" placeholder="搜索 姓名 / ID / 团队 / 岗位 / 国家" />
+          <select id="peopleCountry"></select>
+          <select id="peopleLimit">
+            <option value="100">显示 100</option>
+            <option value="300">显示 300</option>
+            <option value="800">显示 800</option>
+            <option value="999999">显示 全部</option>
+          </select>
+          <button class="btn" id="btnOpenAllModal">全量弹窗查看</button>
+        </div>
+      </div>
+
+      <div class="teamTableWrap" style="margin-top:12px">
+        <table>
+          <thead>
+            <tr>
+              <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th>
+              <th>组别</th><th>团队</th><th>姓名</th><th>ID</th><th>国家</th><th>岗位</th><th>盘口</th>
+            </tr>
+          </thead>
+          <tbody id="peopleBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
 </div>
 
 <!-- MODAL -->
 <div class="modal" id="modal">
-<div class="modalBox">
+  <div class="modalBox">
+    <div class="modalTop">
+      <div class="leftWrap">
+        <div class="ttl" id="modalTitle">员工名单</div>
+        <div class="sub" id="modalSub">-</div>
+      </div>
+      <div class="rightWrap">
+        <button class="btn" id="btnModalExport">导出 CSV</button>
+        <button class="modalClose" onclick="closeModal()">关闭 ✖</button>
+      </div>
+    </div>
 
-<div class="modalHeader">
-<h3 id="modalTitle"></h3>
-<div class="closeBtn" onclick="closeModal()">关闭 ✖</div>
+    <div class="modalTools">
+      <input class="input" id="modalSearch" placeholder="搜索 姓名 / ID / 团队 / 岗位" />
+      <select id="modalCountry"></select>
+      <select id="modalSort">
+        <option value="name">排序：姓名</option>
+        <option value="id">排序：ID</option>
+        <option value="team">排序：团队</option>
+        <option value="pos">排序：岗位</option>
+      </select>
+      <span class="hint" id="modalCountHint">0 items</span>
+    </div>
+
+    <div class="modalBody">
+      <table class="modalTable">
+        <thead>
+          <tr>
+            <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th>
+            <th>组别</th><th>团队</th><th>姓名</th><th>ID</th><th>国家</th><th>岗位</th><th>盘口</th>
+          </tr>
+        </thead>
+        <tbody id="modalBody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
-<div class="toolbar">
-<input id="searchInput" placeholder="搜索 姓名 / ID"/>
-<select id="countryFilter"></select>
-<button onclick="exportCSV()">导出 CSV</button>
-</div>
-
-<table>
-<thead>
-<tr>
-<th>负责人</th>
-<th>现场培训</th>
-<th>线上组长</th>
-<th>线上培训</th>
-<th>组别</th>
-<th>团队</th>
-<th>姓名</th>
-<th>ID</th>
-<th>国家</th>
-<th>岗位</th>
-<th>盘口</th>
-</tr>
-</thead>
-<tbody id="modalBody"></tbody>
-</table>
-
-</div>
-</div>
+<div class="toast" id="toast"></div>
 
 <script>
-const sheetAPI =
-"https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
+/* ===================== CONFIG ===================== */
+const sheetAPI = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
 
-let data = [];
-let filteredData = [];
+/*
+你表头字段（来自 opensheet）必须是这些中文列名：
+负责人, 现场培训, 线上组长, 线上培训, 组别, 团队, 姓名, ID, 国家, 岗位, 盘口
+其中：
+- 团队 = cột F = “团队”
+- 岗位 = cột K = “岗位”
+- ID = cột G = “ID”
+*/
 
-function norm(v){return String(v??"").trim()}
+/* ===================== STATE ===================== */
+let DATA = [];            // unique-by-ID records
+let POSITIONS = [];       // all unique positions
+let TEAMS = [];           // all unique teams
+let teamStats = {};       // team -> { total, posCounts }
+let posCounts = {};       // position -> count
 
-async function load(){
-const res = await fetch(sheetAPI);
-const raw = await res.json();
+let chartPos = null;
+let chartTeam = null;
 
-let map = new Map();
+/* modal state */
+let MODAL_BASE = [];
+let MODAL_VIEW = [];
+let MODAL_TITLE = "";
 
-raw.forEach(r=>{
-let id = norm(r["ID"]);
-if(!id) return;
-if(!map.has(id)){
-map.set(id,{
-leader:norm(r["负责人"]),
-onsite:norm(r["现场培训"]),
-onlineLead:norm(r["线上组长"]),
-onlineTrain:norm(r["线上培训"]),
-group:norm(r["组别"]),
-team:norm(r["团队"]), // 🔥 cột F đúng
-name:norm(r["姓名"]),
-id:id,
-country:norm(r["国家"]),
-position:norm(r["岗位"]),
-market:norm(r["盘口"])
-});
+/* ===================== HELPERS ===================== */
+const $ = (id)=>document.getElementById(id);
+function norm(v){ return String(v ?? "").trim(); }
+function toast(msg){
+  const t = $("toast");
+  t.innerText = msg;
+  t.style.display = "block";
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.style.display="none", 2200);
 }
-});
-
-data=[...map.values()];
-render();
+function csvEscape(v){
+  const s = String(v ?? "");
+  if(/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+  return s;
 }
-
-function render(){
-document.getElementById("totalCount").innerText=data.length;
-
-let posMap=groupBy(data,"position");
-let teamMap=groupBy(data,"team");
-
-renderPositionCards(posMap);
-renderTeamCards(teamMap);
-renderCharts(posMap,teamMap);
-}
-
-function groupBy(arr,key){
-let m={};
-arr.forEach(x=>{
-let k=norm(x[key]);
-if(!k)return;
-m[k]=(m[k]||0)+1;
-});
-return m;
+function downloadCSV(filename, rows, header){
+  const lines = [];
+  if(header) lines.push(header.map(csvEscape).join(","));
+  for(const r of rows){
+    lines.push(r.map(csvEscape).join(","));
+  }
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
 }
 
-function renderPositionCards(map){
-let div=document.getElementById("positionCards");
-div.innerHTML="";
-Object.entries(map).forEach(([k,v])=>{
-div.innerHTML+=`
-<div class="kpiBox" onclick="openModal({position:'${k}'})">
-<b>${k}</b><br>${v} 人
-</div>`;
-});
+/* ===================== LOAD + BUILD ===================== */
+async function loadData(){
+  toast("正在加载 Google Sheet ...");
+  const res = await fetch(sheetAPI, {cache:"no-store"});
+  const raw = await res.json();
+
+  // unique by ID (cột G). ID empty -> skip
+  const map = new Map();
+  for(const r of raw){
+    const id = norm(r["ID"]);
+    if(!id) continue;
+    if(map.has(id)) continue;
+
+    map.set(id, {
+      leader: norm(r["负责人"]),
+      onsite: norm(r["现场培训"]),
+      onlineLead: norm(r["线上组长"]),
+      onlineTrain: norm(r["线上培训"]),
+      group: norm(r["组别"]),
+      team: norm(r["团队"]),     // ✅ cột F
+      name: norm(r["姓名"]),
+      id: id,                   // ✅ cột G
+      country: norm(r["国家"]),
+      position: norm(r["岗位"]), // ✅ cột K
+      market: norm(r["盘口"])
+    });
+  }
+
+  DATA = [...map.values()];
+
+  // build positions & teams
+  const posSet = new Set();
+  const teamSet = new Set();
+  for(const p of DATA){
+    if(p.position) posSet.add(p.position);
+    if(p.team) teamSet.add(p.team);
+  }
+  POSITIONS = [...posSet].sort((a,b)=>a.localeCompare(b,'zh-Hans'));
+  TEAMS = [...teamSet].sort((a,b)=>a.localeCompare(b,'zh-Hans'));
+
+  // build counts
+  posCounts = {};
+  for(const p of POSITIONS) posCounts[p]=0;
+  for(const x of DATA){
+    const p = x.position || "未填写岗位";
+    posCounts[p] = (posCounts[p]||0)+1;
+  }
+
+  // build team stats
+  teamStats = {};
+  for(const t of TEAMS){
+    teamStats[t] = { total:0, pos:{} };
+    for(const p of POSITIONS) teamStats[t].pos[p]=0;
+  }
+  for(const x of DATA){
+    const t = x.team || "未填写团队";
+    if(!teamStats[t]){
+      teamStats[t] = { total:0, pos:{} };
+      for(const p of POSITIONS) teamStats[t].pos[p]=0;
+    }
+    teamStats[t].total++;
+    const p = x.position || "未填写岗位";
+    if(teamStats[t].pos[p] == null) teamStats[t].pos[p]=0;
+    teamStats[t].pos[p]++;
+  }
+
+  $("lastLoad").innerText = "Last load: " + new Date().toLocaleString();
+
+  renderAll();
+  toast("加载完成 ✅");
 }
 
-function renderTeamCards(map){
-let div=document.getElementById("teamCards");
-div.innerHTML="";
-Object.keys(map).forEach(team=>{
-let teamData=data.filter(x=>x.team===team);
-let posMap=groupBy(teamData,"position");
+/* ===================== RENDER ===================== */
+function renderAll(){
+  // KPI
+  $("totalPeople").innerText = DATA.length;
 
-let chips=`<div class="statChip" onclick="openModal({team:'${team}'})"><b>总人数</b> ${teamData.length}</div>`;
+  const countPos = (name)=>DATA.filter(x=>x.position===name).length;
+  $("countWD").innerText = countPos("出款");
+  $("countCS").innerText = countPos("客服");
+  $("countDP").innerText = countPos("查单");
 
-Object.entries(posMap).forEach(([p,c])=>{
-chips+=`<div class="statChip" onclick="openModal({team:'${team}',position:'${p}'})"><b>${p}</b> ${c}</div>`;
-});
+  // KPI clicks
+  $("kpiTotal").onclick = ()=> openModal(DATA, "全部员工", "unique by ID（cột G）");
+  $("countWD").parentElement.onclick = ()=> openModal(DATA.filter(x=>x.position==="出款"), "出款 员工名单", "岗位=出款（cột K）");
+  $("countCS").parentElement.onclick = ()=> openModal(DATA.filter(x=>x.position==="客服"), "客服 员工名单", "岗位=客服（cột K）");
+  $("countDP").parentElement.onclick = ()=> openModal(DATA.filter(x=>x.position==="查单"), "查单 员工名单", "岗位=查单（cột K）");
 
-div.innerHTML+=`
-<div class="teamRow">
-<div class="teamTitle">${team}</div>
-<div class="teamStats">${chips}</div>
-</div>`;
-});
+  renderPositionCards();
+  renderCharts();
+  renderTeamTable();
+  renderPeopleViewer();
+  renderCountryDropdowns();
 }
 
-function renderCharts(posMap,teamMap){
-new Chart(document.getElementById("chartPosition"),{
-type:"doughnut",
-data:{labels:Object.keys(posMap),datasets:[{data:Object.values(posMap)}]},
-options:{onClick:(e,el)=>{if(!el.length)return;openModal({position:Object.keys(posMap)[el[0].index]})}}
-});
+function renderPositionCards(){
+  const wrap = $("positionCards");
+  wrap.innerHTML = "";
 
-new Chart(document.getElementById("chartTeam"),{
-type:"bar",
-data:{labels:Object.keys(teamMap),datasets:[{label:"人数",data:Object.values(teamMap)}]},
-options:{onClick:(e,el)=>{if(!el.length)return;openModal({team:Object.keys(teamMap)[el[0].index]})}}
-});
+  // include also "未填写岗位" if exists
+  const allPos = Object.keys(posCounts).sort((a,b)=>a.localeCompare(b,'zh-Hans'));
+  for(const p of allPos){
+    const n = posCounts[p]||0;
+    const el = document.createElement("div");
+    el.className = "cardMini";
+    el.innerHTML = `
+      <div class="t">${p}</div>
+      <div class="n">${n}</div>
+      <div class="sub">点击查看员工</div>
+    `;
+    el.onclick = ()=> openModal(DATA.filter(x=>(x.position||"未填写岗位")===p), `${p} 员工名单`, "点击岗位卡片");
+    wrap.appendChild(el);
+  }
 }
 
-function openModal(filter){
-document.getElementById("modal").style.display="flex";
+function renderCharts(){
+  // Position doughnut
+  const posLabels = Object.keys(posCounts);
+  const posVals = posLabels.map(k=>posCounts[k]||0);
 
-filteredData=data;
-if(filter.team) filteredData=filteredData.filter(x=>x.team===filter.team);
-if(filter.position) filteredData=filteredData.filter(x=>x.position===filter.position);
+  if(chartPos) chartPos.destroy();
+  chartPos = new Chart($("chartPosition"),{
+    type:"doughnut",
+    data:{ labels:posLabels, datasets:[{data:posVals}] },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:"rgba(234,240,255,.85)"}}
+      },
+      onClick:(evt, active)=>{
+        if(!active?.length) return;
+        const idx = active[0].index;
+        const label = posLabels[idx];
+        openModal(DATA.filter(x=>(x.position||"未填写岗位")===label), `${label} 员工名单`, "来自岗位分布图");
+      }
+    }
+  });
 
-document.getElementById("modalTitle").innerText=
-(filter.team||"")+" "+(filter.position||"");
+  // Team bar
+  const teamLabels = Object.keys(teamStats);
+  const teamVals = teamLabels.map(t=>teamStats[t].total);
 
-renderModalTable(filteredData);
-renderCountryFilter();
+  if(chartTeam) chartTeam.destroy();
+  chartTeam = new Chart($("chartTeam"),{
+    type:"bar",
+    data:{ labels:teamLabels, datasets:[{label:"人数", data:teamVals}] },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:"rgba(234,240,255,.85)"}}
+      },
+      scales:{
+        x:{ticks:{color:"rgba(234,240,255,.75)"}},
+        y:{ticks:{color:"rgba(234,240,255,.75)"}}
+      },
+      onClick:(evt, active)=>{
+        if(!active?.length) return;
+        const idx = active[0].index;
+        const team = teamLabels[idx];
+        openModal(DATA.filter(x=>(x.team||"未填写团队")===team), `${team} 员工名单`, "来自团队人数图（cột F）");
+      }
+    }
+  });
 }
 
-function renderModalTable(arr){
-let tbody=document.getElementById("modalBody");
-tbody.innerHTML=arr.map(r=>`
-<tr>
-<td>${r.leader}</td>
-<td>${r.onsite}</td>
-<td>${r.onlineLead}</td>
-<td>${r.onlineTrain}</td>
-<td>${r.group}</td>
-<td>${r.team}</td>
-<td>${r.name}</td>
-<td>${r.id}</td>
-<td>${r.country}</td>
-<td>${r.position}</td>
-<td>${r.market}</td>
-</tr>
-`).join("");
+function renderTeamTable(){
+  // build columns: 总人数 + each position
+  const headRow = $("teamHeadRow");
+  headRow.innerHTML = `<th style="min-width:160px">团队（cột F）</th><th>总人数</th>`;
+  const cols = POSITIONS.slice(); // all positions
+  // also include 未填写岗位 if exists
+  if(posCounts["未填写岗位"]) cols.push("未填写岗位");
+
+  for(const p of cols){
+    const th = document.createElement("th");
+    th.textContent = p;
+    headRow.appendChild(th);
+  }
+
+  // build rows with sorting/filter
+  let teams = Object.keys(teamStats);
+
+  const keyword = norm($("teamSearch").value);
+  if(keyword){
+    teams = teams.filter(t=>t.includes(keyword));
+  }
+
+  const sortMode = $("teamSort").value;
+  if(sortMode==="desc"){
+    teams.sort((a,b)=> (teamStats[b].total - teamStats[a].total));
+  }else if(sortMode==="asc"){
+    teams.sort((a,b)=> (teamStats[a].total - teamStats[b].total));
+  }else{
+    teams.sort((a,b)=>a.localeCompare(b,'zh-Hans'));
+  }
+
+  const body = $("teamBody");
+  body.innerHTML = "";
+
+  for(const team of teams){
+    const st = teamStats[team];
+    const tr = document.createElement("tr");
+
+    // team name clickable
+    const tdTeam = document.createElement("td");
+    tdTeam.innerHTML = `<span class="link">${team}</span>`;
+    tdTeam.onclick = ()=> openModal(DATA.filter(x=>(x.team||"未填写团队")===team), `${team} 员工名单`, "点击团队名称");
+    tr.appendChild(tdTeam);
+
+    // total clickable
+    const tdTotal = document.createElement("td");
+    tdTotal.innerHTML = `<span class="pill"><b>${st.total}</b></span>`;
+    tdTotal.onclick = ()=> openModal(DATA.filter(x=>(x.team||"未填写团队")===team), `${team} 员工名单`, "点击总人数");
+    tr.appendChild(tdTotal);
+
+    // each position clickable
+    for(const p of cols){
+      const c = (st.pos[p] ?? 0);
+      const td = document.createElement("td");
+      td.innerHTML = c ? `<span class="pill"><b>${c}</b></span>` : `<span style="opacity:.45">0</span>`;
+      td.style.cursor = c ? "pointer" : "default";
+      if(c){
+        td.onclick = ()=> openModal(
+          DATA.filter(x=>(x.team||"未填写团队")===team && (x.position||"未填写岗位")===p),
+          `${team} - ${p} 员工名单`,
+          "点击岗位人数"
+        );
+      }
+      tr.appendChild(td);
+    }
+
+    body.appendChild(tr);
+  }
 }
 
-function renderCountryFilter(){
-let sel=document.getElementById("countryFilter");
-let countries=[...new Set(filteredData.map(x=>x.country).filter(Boolean))];
-sel.innerHTML=`<option value="">全部国家</option>`+
-countries.map(c=>`<option>${c}</option>`).join("");
-sel.onchange=()=>{
-let val=sel.value;
-let arr=filteredData;
-if(val) arr=arr.filter(x=>x.country===val);
-renderModalTable(arr);
-};
+function renderCountryDropdowns(){
+  const countries = [...new Set(DATA.map(x=>x.country).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hans'));
+  const make = (selId)=>{
+    const sel = $(selId);
+    sel.innerHTML = `<option value="">全部国家</option>` + countries.map(c=>`<option value="${c}">${c}</option>`).join("");
+  };
+  make("quickCountry");
+  make("peopleCountry");
 }
 
-document.getElementById("searchInput").oninput=(e)=>{
-let val=e.target.value.toLowerCase();
-let arr=filteredData.filter(x=>
-x.name.toLowerCase().includes(val)||
-x.id.toLowerCase().includes(val)
-);
-renderModalTable(arr);
-};
+/* people viewer */
+function renderPeopleViewer(){
+  const limit = parseInt($("peopleLimit").value || "100", 10);
+  const keyword = ($("peopleSearch").value || "").toLowerCase();
+  const country = $("peopleCountry").value || "";
 
-function exportCSV(){
-let rows=filteredData.map(x=>Object.values(x).join(",")).join("\n");
-let blob=new Blob([rows],{type:"text/csv"});
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="员工名单.csv";
-a.click();
+  let arr = DATA.slice();
+  if(keyword){
+    arr = arr.filter(x=>
+      (x.name||"").toLowerCase().includes(keyword) ||
+      (x.id||"").toLowerCase().includes(keyword) ||
+      (x.team||"").toLowerCase().includes(keyword) ||
+      (x.position||"").toLowerCase().includes(keyword) ||
+      (x.country||"").toLowerCase().includes(keyword)
+    );
+  }
+  if(country) arr = arr.filter(x=>x.country===country);
+
+  const show = arr.slice(0, limit);
+  const body = $("peopleBody");
+  body.innerHTML = show.map(r=>`
+    <tr>
+      <td>${r.leader}</td><td>${r.onsite}</td><td>${r.onlineLead}</td><td>${r.onlineTrain}</td>
+      <td>${r.group}</td><td>${r.team}</td><td style="font-weight:800">${r.name}</td>
+      <td>${r.id}</td><td>${r.country}</td><td>${r.position}</td><td>${r.market}</td>
+    </tr>
+  `).join("");
+}
+
+/* ===================== MODAL ===================== */
+function openModal(records, title, sub){
+  MODAL_BASE = records.slice();
+  MODAL_VIEW = records.slice();
+  MODAL_TITLE = title;
+
+  $("modalTitle").innerText = title;
+  $("modalSub").innerText = sub || "";
+  $("modal").style.display = "flex";
+
+  $("modalSearch").value = "";
+  $("modalCountry").innerHTML = buildModalCountryOptions(MODAL_BASE);
+  $("modalSort").value = "name";
+
+  applyModalFilters();
 }
 
 function closeModal(){
-document.getElementById("modal").style.display="none";
+  $("modal").style.display = "none";
 }
 
-load();
+function buildModalCountryOptions(arr){
+  const countries = [...new Set(arr.map(x=>x.country).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hans'));
+  return `<option value="">全部国家</option>` + countries.map(c=>`<option value="${c}">${c}</option>`).join("");
+}
+
+function applyModalFilters(){
+  const kw = ($("modalSearch").value||"").toLowerCase();
+  const ctry = $("modalCountry").value || "";
+  const sort = $("modalSort").value || "name";
+
+  let arr = MODAL_BASE.slice();
+  if(kw){
+    arr = arr.filter(x=>
+      (x.name||"").toLowerCase().includes(kw) ||
+      (x.id||"").toLowerCase().includes(kw) ||
+      (x.team||"").toLowerCase().includes(kw) ||
+      (x.position||"").toLowerCase().includes(kw)
+    );
+  }
+  if(ctry) arr = arr.filter(x=>x.country===ctry);
+
+  arr.sort((a,b)=>{
+    const A = sort==="id"?a.id:sort==="team"?a.team:sort==="pos"?a.position:a.name;
+    const B = sort==="id"?b.id:sort==="team"?b.team:sort==="pos"?b.position:b.name;
+    return String(A||"").localeCompare(String(B||""),'zh-Hans');
+  });
+
+  MODAL_VIEW = arr;
+  $("modalCountHint").innerText = `${arr.length} items`;
+
+  const body = $("modalBody");
+  body.innerHTML = arr.map(r=>`
+    <tr>
+      <td>${r.leader}</td><td>${r.onsite}</td><td>${r.onlineLead}</td><td>${r.onlineTrain}</td>
+      <td>${r.group}</td><td>${r.team}</td>
+      <td style="font-weight:900">${r.name}</td>
+      <td>${r.id}</td><td>${r.country}</td><td>${r.position}</td><td>${r.market}</td>
+    </tr>
+  `).join("");
+}
+
+/* ===================== EVENTS ===================== */
+$("btnReload").onclick = loadData;
+
+$("btnExportAll").onclick = ()=>{
+  const header = ["负责人","现场培训","线上组长","线上培训","组别","团队","姓名","ID","国家","岗位","盘口"];
+  const rows = DATA.map(r=>[r.leader,r.onsite,r.onlineLead,r.onlineTrain,r.group,r.team,r.name,r.id,r.country,r.position,r.market]);
+  downloadCSV("全部员工.csv", rows, header);
+};
+
+$("btnOpenAllModal").onclick = ()=> openModal(DATA, "全部员工名单", "People Viewer -> 全量弹窗");
+
+$("teamSearch").oninput = renderTeamTable;
+$("teamSort").onchange = renderTeamTable;
+
+$("peopleSearch").oninput = renderPeopleViewer;
+$("peopleCountry").onchange = renderPeopleViewer;
+$("peopleLimit").onchange = renderPeopleViewer;
+
+$("globalSearch").oninput = ()=>{
+  const kw = ($("globalSearch").value||"").trim();
+  if(!kw) return;
+  const low = kw.toLowerCase();
+  const arr = DATA.filter(x=>
+    (x.name||"").toLowerCase().includes(low) ||
+    (x.id||"").toLowerCase().includes(low) ||
+    (x.team||"").toLowerCase().includes(low) ||
+    (x.position||"").toLowerCase().includes(low) ||
+    (x.country||"").toLowerCase().includes(low)
+  );
+  openModal(arr, `全局搜索：${kw}`, "来自顶部搜索");
+};
+
+$("quickCountry").onchange = ()=>{
+  const c = $("quickCountry").value || "";
+  if(!c) { toast("已清除国家过滤"); return; }
+  openModal(DATA.filter(x=>x.country===c), `国家：${c}`, "快速过滤");
+};
+
+$("modalSearch").oninput = applyModalFilters;
+$("modalCountry").onchange = applyModalFilters;
+$("modalSort").onchange = applyModalFilters;
+
+$("btnModalExport").onclick = ()=>{
+  const header = ["负责人","现场培训","线上组长","线上培训","组别","团队","姓名","ID","国家","岗位","盘口"];
+  const rows = MODAL_VIEW.map(r=>[r.leader,r.onsite,r.onlineLead,r.onlineTrain,r.group,r.team,r.name,r.id,r.country,r.position,r.market]);
+  downloadCSV(`${MODAL_TITLE}.csv`, rows, header);
+};
+
+// nav
+function setActiveNav(which){
+  $("navDash").classList.remove("active");
+  $("navTeams").classList.remove("active");
+  $("navPeople").classList.remove("active");
+  if(which==="dash") $("navDash").classList.add("active");
+  if(which==="teams") $("navTeams").classList.add("active");
+  if(which==="people") $("navPeople").classList.add("active");
+}
+$("navDash").onclick=()=>{
+  setActiveNav("dash");
+  $("panelOverview").style.display="";
+  $("panelTeams").style.display="";
+  $("panelPeople").style.display="none";
+};
+$("navTeams").onclick=()=>{
+  setActiveNav("teams");
+  $("panelOverview").style.display="none";
+  $("panelTeams").style.display="";
+  $("panelPeople").style.display="none";
+};
+$("navPeople").onclick=()=>{
+  setActiveNav("people");
+  $("panelOverview").style.display="none";
+  $("panelTeams").style.display="none";
+  $("panelPeople").style.display="";
+};
+
+/* ===================== INIT ===================== */
+loadData().catch(err=>{
+  console.error(err);
+  toast("加载失败，请检查 opensheet 是否可访问");
+});
 </script>
 </body>
 </html>
