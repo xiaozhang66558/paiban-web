@@ -286,8 +286,7 @@
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storage: window.localStorage,
-        flowType: "implicit"
+        storage: window.localStorage
       }
     });
 
@@ -682,9 +681,6 @@
         loginMsg.innerHTML = `<span class="ok">✅ Logged in</span>`;
         closeModal(modalLogin);
 
-        setTimeout(async () => {
-         await refreshAll();
-        }, 200);  
 
       } catch (e){
         logDebug("login exception:", e);
