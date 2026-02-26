@@ -2,62 +2,206 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Auth Test Stable</title>
+<title>HR SaaS Stable</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-body{font-family:Arial;background:#f3f4f6;display:flex;justify-content:center;align-items:center;height:100vh}
-.box{background:#fff;padding:30px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:320px}
-input{width:100%;padding:10px;margin-bottom:10px}
-button{width:100%;padding:10px;background:#2563eb;color:#fff;border:0;border-radius:8px}
-.status{margin-top:10px;font-size:14px}
+*{box-sizing:border-box;font-family:Segoe UI,Arial}
+body{margin:0;background:#f1f5f9}
+header{
+  background:#0f172a;
+  color:#fff;
+  padding:16px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center
+}
+.badge{
+  background:#1e293b;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12px
+}
+button{
+  padding:8px 14px;
+  border-radius:8px;
+  border:0;
+  cursor:pointer;
+  font-weight:600
+}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-dark{background:#111827;color:#fff}
+.container{
+  max-width:1100px;
+  margin:30px auto;
+  padding:0 20px
+}
+.card{
+  background:#fff;
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 4px 20px rgba(0,0,0,.06);
+  margin-bottom:20px
+}
+.hidden{display:none}
+
+/* Modal */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:999
+}
+.modal-box{
+  background:#fff;
+  padding:25px;
+  border-radius:16px;
+  width:320px
+}
+.modal-box input{
+  width:100%;
+  padding:8px;
+  margin-bottom:10px
+}
 </style>
 </head>
+
 <body>
 
-<div class="box">
-<h3>Login Test</h3>
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-<button onclick="logout()" style="margin-top:8px;background:#111827">Logout</button>
-<div class="status" id="status">Checking session...</div>
+<header>
+  <div style="display:flex;gap:10px;align-items:center">
+    <strong>HR SaaS</strong>
+    <span id="roleBadge" class="badge">Checking...</span>
+  </div>
+  <div>
+    <button id="btnLogin" class="btn-primary hidden">Login</button>
+    <button id="btnLogout" class="btn-dark hidden">Logout</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h2>Dashboard</h2>
+    <div id="statusText">Loading...</div>
+  </div>
+
+  <div class="card">
+    <canvas id="chart" height="100"></canvas>
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div id="loginModal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Login</h3>
+    <input id="loginEmail" placeholder="Email">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button id="doLogin" class="btn-primary" style="width:100%">Login</button>
+    <div id="loginMsg" style="color:red;margin-top:8px"></div>
+  </div>
 </div>
 
 <script>
+/* ====== CONFIG ====== */
+const SUPABASE_URL = "https://mxeqccecqkyllwvbylej.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+
+/* ====== INIT ====== */
 const supa = supabase.createClient(
-  "https://mxeqccecqkyllwvbylej.supabase.co",
-  "sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR",
-  { auth:{persistSession:true} }
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  { auth:{ persistSession:true } }
 );
 
-async function checkSession(){
-  const {data:{session}} = await supa.auth.getSession();
-  if(session){
-    status.innerText = "Logged in: " + session.user.email;
-  }else{
-    status.innerText = "Not logged in";
-  }
-}
+let chart;
 
-async function login(){
-  status.innerText = "Logging in...";
-  const {error} = await supa.auth.signInWithPassword({
-    email: email.value.trim(),
-    password: password.value
+/* ====== CHECK SESSION ON LOAD ====== */
+(async()=>{
+  const {data:{session}} = await supa.auth.getSession();
+
+  if(session){
+    setLoggedIn(session.user.email);
+  }else{
+    setLoggedOut();
+  }
+})();
+
+/* ====== LOGIN BUTTON ====== */
+btnLogin.onclick = ()=>{
+  loginModal.classList.remove("hidden");
+};
+
+/* ====== LOGIN ACTION ====== */
+doLogin.onclick = async ()=>{
+  loginMsg.innerText = "";
+
+  const {error,data} = await supa.auth.signInWithPassword({
+    email: loginEmail.value.trim(),
+    password: loginPass.value
   });
+
   if(error){
-    status.innerText = "Error: " + error.message;
+    loginMsg.innerText = error.message;
     return;
   }
-  await checkSession();
-}
 
-async function logout(){
+  loginModal.classList.add("hidden");
+  setLoggedIn(data.user.email);
+};
+
+/* ====== LOGOUT ====== */
+btnLogout.onclick = async ()=>{
   await supa.auth.signOut();
-  await checkSession();
+  setLoggedOut();
+};
+
+/* ====== STATE FUNCTIONS ====== */
+function setLoggedIn(email){
+  roleBadge.innerText = "Logged in";
+  btnLogin.classList.add("hidden");
+  btnLogout.classList.remove("hidden");
+  statusText.innerText = "Welcome: " + email;
+
+  renderChart();
 }
 
-checkSession();
+function setLoggedOut(){
+  roleBadge.innerText = "Not logged in";
+  btnLogin.classList.remove("hidden");
+  btnLogout.classList.add("hidden");
+  statusText.innerText = "Please login.";
+  loginModal.classList.add("hidden");
+
+  if(chart){
+    chart.destroy();
+  }
+}
+
+/* ====== DASHBOARD SAMPLE ====== */
+function renderChart(){
+  const ctx = document.getElementById("chart");
+
+  if(chart){
+    chart.destroy();
+  }
+
+  chart = new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:["Team A","Team B","Team C"],
+      datasets:[{
+        label:"Employees",
+        data:[5,3,7]
+      }]
+    }
+  });
+}
 </script>
 
 </body>
