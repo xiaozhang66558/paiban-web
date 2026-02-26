@@ -1197,43 +1197,68 @@ function buildShiftChart(labels, values){
 }
 
 /* =========================================================
-   LOAD
+   LOAD  (STRICT FILTER BY COLUMN G = 姓名)
    ========================================================= */
 async function load(){
   els.meta.textContent = "Loading data from Google Sheet…";
+
   const res = await fetch(SHEET_API, { cache:"no-store" });
   const data = await res.json();
 
-  // Normalize & keep only needed columns; still keep any extra for safety
-// CHỈ GIỮ DÒNG CÓ 姓名 (cột G)
-RAW = data
-  .map(r=>({
-    ...r,
-    "负责人": norm(r["负责人"]),
-    "现场培训": norm(r["现场培训"]),
-    "线上组长": norm(r["线上组长"]),
-    "线上培训": norm(r["线上培训"]),
-    "组别": norm(r["组别"]),
-    "团队": norm(r["团队"]),
-    "姓名": norm(r["姓名"]),
-    "ID": norm(r["ID"]),
-    "国家": norm(r["国家"]),
-    "岗位": norm(r["岗位"]),
-    "盘口": norm(r["盘口"]),
-    "班次": norm(r["班次"])
-  }))
-  // ❗❗ QUAN TRỌNG: CHỈ GIỮ DÒNG CÓ 姓名
-  .filter(r => r["姓名"] !== "");
+  RAW = data
+    .map(r => {
 
-  // Build filter options from RAW
-  const shifts = uniq(RAW.map(r=>r["班次"]||"").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-  const teams  = uniq(RAW.map(r=>r["团队"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-  const groups = uniq(RAW.map(r=>r["组别"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-  const poss   = uniq(RAW.map(r=>r["岗位"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+      // chuẩn hóa tất cả field
+      const row = {
+        "负责人": norm(r["负责人"]),
+        "现场培训": norm(r["现场培训"]),
+        "线上组长": norm(r["线上组长"]),
+        "线上培训": norm(r["线上培训"]),
+        "组别": norm(r["组别"]),
+        "团队": norm(r["团队"]),
+        "姓名": norm(r["姓名"]),   // ⭐ CỘT G QUAN TRỌNG
+        "ID": norm(r["ID"]),
+        "国家": norm(r["国家"]),
+        "岗位": norm(r["岗位"]),
+        "盘口": norm(r["盘口"]),
+        "班次": norm(r["班次"])
+      };
+
+      return row;
+    })
+
+    // 🔴 CHỈ GIỮ DÒNG CÓ 姓名 HỢP LỆ
+    .filter(r => {
+      const name = r["姓名"];
+
+      if(!name) return false;
+      if(name === "") return false;
+      if(name === "null") return false;
+      if(name === "undefined") return false;
+      if(name.replace(/\s/g,"") === "") return false;
+
+      return true;
+    });
+
+  /* ===============================
+     Build filter options
+     =============================== */
+
+  const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean))
+    .sort((a,b)=>a.localeCompare(b,"zh"));
+
+  const teams  = uniq(RAW.map(r=>r["团队"] || "未填写"))
+    .sort((a,b)=>a.localeCompare(b,"zh"));
+
+  const groups = uniq(RAW.map(r=>r["组别"] || "未填写"))
+    .sort((a,b)=>a.localeCompare(b,"zh"));
+
+  const poss   = uniq(RAW.map(r=>r["岗位"] || "未填写"))
+    .sort((a,b)=>a.localeCompare(b,"zh"));
 
   buildSelectOptions(els.shiftSel, shifts, "All shifts（班次 cột I）");
   buildSelectOptions(els.teamSel, teams, "All teams（团队 cột F）");
-  buildSelectOptions(els.groupSel, groups, "All groups（组别 cột E）");
+  buildSelectOptions(els.groupSel, groups, "All groups（组别）");
   buildSelectOptions(els.posSel, poss, "All positions（岗位）");
 
   applyFilters();
