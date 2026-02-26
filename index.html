@@ -602,14 +602,20 @@ function applyFilters(){
 // Total unique people set = 姓名 + 线上组长 + 线上培训 (as you requested)
 function getTotalPeopleSet(rows){
   const set = new Set();
+
   rows.forEach(r=>{
     const name = norm(r["姓名"]);
     const leader = norm(r["线上组长"]);
     const trainer = norm(r["线上培训"]);
-    if(name) set.add(name);
+
+    // chỉ xử lý nếu có 姓名
+    if(!name) return;
+
+    set.add(name);
     if(leader) set.add(leader);
     if(trainer) set.add(trainer);
   });
+
   return set;
 }
 
@@ -1199,21 +1205,25 @@ async function load(){
   const data = await res.json();
 
   // Normalize & keep only needed columns; still keep any extra for safety
-  RAW = data.map(r=>({
+// CHỈ GIỮ DÒNG CÓ 姓名 (cột G)
+RAW = data
+  .map(r=>({
     ...r,
     "负责人": norm(r["负责人"]),
     "现场培训": norm(r["现场培训"]),
     "线上组长": norm(r["线上组长"]),
     "线上培训": norm(r["线上培训"]),
     "组别": norm(r["组别"]),
-    "团队": norm(r["团队"]),   // MUST be column F in your sheet, header = 团队
-    "姓名": norm(r["姓名"]),   // column G header = 姓名
+    "团队": norm(r["团队"]),
+    "姓名": norm(r["姓名"]),
     "ID": norm(r["ID"]),
     "国家": norm(r["国家"]),
     "岗位": norm(r["岗位"]),
     "盘口": norm(r["盘口"]),
     "班次": norm(r["班次"])
-  }));
+  }))
+  // ❗❗ QUAN TRỌNG: CHỈ GIỮ DÒNG CÓ 姓名
+  .filter(r => r["姓名"] !== "");
 
   // Build filter options from RAW
   const shifts = uniq(RAW.map(r=>r["班次"]||"").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
