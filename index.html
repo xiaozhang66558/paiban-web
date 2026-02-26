@@ -392,7 +392,6 @@
 </header>
 
 <div class="wrap">
-
   <div class="topTabs">
     <div class="tab active" data-page="dashboard">Dashboard</div>
     <div class="tab" data-page="employees">Employees</div>
@@ -416,7 +415,6 @@
 
   <!-- Schedule -->
   <div class="page" id="page-schedule"></div>
-
 </div>
 
 <!-- MODAL -->
@@ -446,13 +444,13 @@ const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP
   - 线上组长
   - 线上培训
   - 组别
-  - 团队   (IMPORTANT: col F)
-  - 姓名   (IMPORTANT: col G)
+  - 团队 (col F)
+  - 姓名 (col G)  ✅ STRICT KEY
   - ID
   - 国家
   - 岗位
   - 盘口
-  - 班次   (IMPORTANT: col I in your sheet; but opensheet returns by header name)
+  - 班次 (col I)
 */
 
 let RAW = [];
@@ -491,6 +489,39 @@ function esc(str){
 }
 
 /* =========================================================
+   ✅ NEW: header-safe pick (chống opensheet header lệch)
+   ========================================================= */
+function pick(r, keys){
+  for(const k of keys){
+    if(Object.prototype.hasOwnProperty.call(r, k)){
+      const v = (r[k] ?? "").toString();
+      if(v.trim() !== "") return v;
+    }
+  }
+  // fallback: try loose match (trim keys of object)
+  const objKeys = Object.keys(r || {});
+  for(const want of keys){
+    const w = (want ?? "").toString().trim();
+    const found = objKeys.find(ok => ok.toString().trim() === w);
+    if(found){
+      const v = (r[found] ?? "").toString();
+      if(v.trim() !== "") return v;
+    }
+  }
+  return "";
+}
+function normPick(r, keys){ return norm(pick(r, keys)); }
+
+function isValidName(name){
+  const v = norm(name);
+  if(!v) return false;
+  const low = v.toLowerCase();
+  if(low === "null" || low === "undefined") return false;
+  if(v.replace(/\s/g,"") === "") return false;
+  return true;
+}
+
+/* =========================================================
    NAV
    ========================================================= */
 els.tabs.forEach(t=>{
@@ -515,7 +546,6 @@ function openModal(title, html){
   els.modalBack.style.display = modalStack.length ? "inline-flex" : "none";
 }
 function pushModal(title, html){
-  // push current
   modalStack.push({ title: els.modalTitle.textContent, html: els.modalBody.innerHTML });
   els.modalBack.style.display = "inline-flex";
   openModal(title, html);
@@ -598,24 +628,20 @@ function applyFilters(){
 /* =========================================================
    STATS HELPERS
    ========================================================= */
-
 // Total unique people set = 姓名 + 线上组长 + 线上培训 (as you requested)
 function getTotalPeopleSet(rows){
   const set = new Set();
-
   rows.forEach(r=>{
     const name = norm(r["姓名"]);
     const leader = norm(r["线上组长"]);
     const trainer = norm(r["线上培训"]);
 
-    // chỉ xử lý nếu có 姓名
-    if(!name) return;
+    if(!isValidName(name)) return;
 
     set.add(name);
-    if(leader) set.add(leader);
-    if(trainer) set.add(trainer);
+    if(isValidName(leader)) set.add(leader);
+    if(isValidName(trainer)) set.add(trainer);
   });
-
   return set;
 }
 
@@ -628,10 +654,10 @@ function getUniqueSetByField(rows, field){
   return set;
 }
 
-function groupBy(rows, field){
+function groupBy(rows, field, emptyLabel="未填写"){
   const m = new Map();
   rows.forEach(r=>{
-    const k = norm(r[field]) || "未填写";
+    const k = norm(r[field]) || emptyLabel;
     if(!m.has(k)) m.set(k, []);
     m.get(k).push(r);
   });
@@ -639,18 +665,16 @@ function groupBy(rows, field){
 }
 
 function countByUniqueName(rows){
-  // count distinct 姓名 within rows
   const set = new Set();
   rows.forEach(r=>{
     const name = norm(r["姓名"]);
-    if(name) set.add(name);
+    if(isValidName(name)) set.add(name);
   });
   return set.size;
 }
 
 /* =========================================================
-   MODAL TABLE RENDER (full fields you requested)
-   显示：负责人 现场培训 线上组长 线上培训 组别 团队 姓名 ID 国家 岗位 盘口 班次
+   MODAL TABLE RENDER
    ========================================================= */
 function renderFullTable(rows, titleHint=""){
   const cols = ["负责人","现场培训","线上组长","线上培训","组别","团队","班次","岗位","姓名","ID","国家","盘口"];
@@ -675,15 +699,6 @@ function renderFullTable(rows, titleHint=""){
 
 /* =========================================================
    MANAGER → SUBORDINATES
-   You requested:
-   - Click KPI list -> show list of those people
-   - Click a person -> show all employees under their management scope
-   We implement scope as:
-     If manager came from:
-       负责人: show rows where 负责人 == manager
-       现场培训: rows where 现场培训 == manager
-       线上组长: rows where 线上组长 == manager
-       线上培训: rows where 线上培训 == manager
    ========================================================= */
 function openManagerList(fieldLabel, rows){
   const set = getUniqueSetByField(rows, fieldLabel);
@@ -741,34 +756,29 @@ function renderDashboard(){
   const teamRows = [...teamMap.entries()]
     .map(([team, list])=>{
       const total = countByUniqueName(list);
-      const byPos = new Map();
-      allPositions.forEach(p=>byPos.set(p,0));
-      list.forEach(r=>{
-        const p = norm(r["岗位"])||"未填写";
-        byPos.set(p, (byPos.get(p)||0) + (norm(r["姓名"])?1:0));
-      });
-      // de-dup by 姓名 per position: do properly
+
       const byPosSet = new Map();
       allPositions.forEach(p=>byPosSet.set(p, new Set()));
+
       list.forEach(r=>{
         const p = norm(r["岗位"])||"未填写";
         const nm = norm(r["姓名"]);
-        if(nm) byPosSet.get(p).add(nm);
+        if(isValidName(nm)) byPosSet.get(p).add(nm);
       });
+
       const byPosFinal = allPositions.map(p=>byPosSet.get(p).size);
 
       return { team, list, total, byPosFinal };
     })
     .sort((a,b)=>b.total-a.total);
 
-  // KPI click content
   els.pageDashboard.innerHTML = `
     <div class="card">
       <h2>统计总览</h2>
       <div class="sub">按岗位 & 团队统计（点击卡片/图表可弹窗查看员工名单）</div>
 
       <div class="kpiRow">
-        <div class="kpi" onclick="openModal('总人数名单（去重逻辑：姓名+线上组长+线上培训）', '${esc(renderFullTable(rows,'去重统计不影响名单展示：这里展示筛选后的所有原始行'))}')">
+        <div class="kpi" onclick="openModal('总人数名单（去重逻辑：姓名+线上组长+线上培训）', renderFullTable(FILTERED,'去重统计不影响名单展示：这里展示筛选后的所有原始行'))">
           <div class="spark"></div>
           <div class="t">总人数（去重）</div>
           <div class="v">${totalPeople.toLocaleString()}</div>
@@ -810,9 +820,9 @@ function renderDashboard(){
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <div>
             <div style="font-weight:1000; font-size:16px;">岗位分布</div>
-            <div class="note">点击图例或柱子 → 弹出该岗位员工名单</div>
+            <div class="note">点击图例或图形 → 弹出该岗位员工名单</div>
           </div>
-          <button class="btn" onclick="openModal('岗位统计（按姓名去重）', '${esc(renderTeamOrPosSummary("岗位","岗位"))}')">查看汇总</button>
+          <button class="btn" onclick="openModal('岗位统计（按姓名去重）', renderTeamOrPosSummary('岗位','岗位'))">查看汇总</button>
         </div>
         <div class="chartBox"><canvas id="chartPos"></canvas></div>
       </div>
@@ -823,7 +833,7 @@ function renderDashboard(){
             <div style="font-weight:1000; font-size:16px;">团队人数（cột F：团队）</div>
             <div class="note">点击柱子 → 弹出该团队员工名单</div>
           </div>
-          <button class="btn" onclick="openModal('团队统计（按姓名去重）', '${esc(renderTeamOrPosSummary("团队","团队"))}')">查看汇总</button>
+          <button class="btn" onclick="openModal('团队统计（按姓名去重）', renderTeamOrPosSummary('团队','团队'))">查看汇总</button>
         </div>
         <div class="chartBox"><canvas id="chartTeam"></canvas></div>
       </div>
@@ -866,7 +876,6 @@ function renderDashboard(){
     </div>
   `;
 
-  // build charts after DOM created
   buildPosChart(posLabels, posCounts);
   buildTeamChart(teamLabels, teamCounts);
 }
@@ -959,7 +968,6 @@ window.openTeamPos = function(team, pos){
 
 /* =========================================================
    EMPLOYEES PAGE
-   - Provide two modes: Table (scroll) and Cards (no horizontal scroll)
    ========================================================= */
 let empViewMode = "cards"; // default to avoid horizontal scroll
 
@@ -1077,19 +1085,21 @@ window.setEmpView = function(mode){
 
 /* =========================================================
    SCHEDULE PAGE（排班表）
-   - Shift stats based on 班次(cột I) UNIQUE
-   - Also chart of shift distribution
-   - List all employees (filtered) without showing only 18
+   ✅ FIX: 不再把空班次归类为 “未填写”
+   - 统计：只统计有班次的行
+   - 另外单独给一个 KPI：未填写班次（可点开看是谁）
    ========================================================= */
 function renderSchedule(){
   const rows = FILTERED;
 
-  // shift unique from 班次
-  const shiftMap = groupBy(rows,"班次");
-  const shiftLabels = [...shiftMap.keys()];
+  const rowsWithShift = rows.filter(r=> norm(r["班次"]) !== "");
+  const rowsNoShift   = rows.filter(r=> norm(r["班次"]) === "");
+
+  // group only by REAL shift values (no empty label)
+  const shiftMap = groupBy(rowsWithShift, "班次", ""); // emptyLabel won't be used because we filtered
+  const shiftLabels = [...shiftMap.keys()].filter(k=>k!=="");
   const shiftCounts = shiftLabels.map(k=>countByUniqueName(shiftMap.get(k)));
 
-  // summary cards
   const shiftCards = shiftLabels
     .map((k,idx)=>({k, c: shiftCounts[idx]}))
     .sort((a,b)=>b.c-a.c)
@@ -1102,17 +1112,27 @@ function renderSchedule(){
       </div>
     `).join("");
 
+  const noShiftUnique = countByUniqueName(rowsNoShift);
+
   els.pageSchedule.innerHTML = `
     <div class="card">
       <h2>排班表</h2>
-      <div class="sub">按岗位 → 班次 分组展示（班次来自 Google Sheet cột I：班次）。点击班次卡片可弹窗查看名单。</div>
+      <div class="sub">按班次统计（班次来自 Google Sheet cột I）。✅ 已修复：空班次不再显示为“班次: 未填写”。</div>
     </div>
 
     <div class="card">
-      <div style="font-weight:1000; font-size:16px;">班次统计（unique by 班次）</div>
-      <div class="note">提示：你说 “中班会有多个时间段”，所以必须从 cột I（班次）取 unique，这里已按你要求。</div>
+      <div style="font-weight:1000; font-size:16px;">班次统计（只统计有班次的行）</div>
+      <div class="note">你说 “中班会有多个时间段”，所以必须从 cột I（班次）取 unique；这里已按你要求。</div>
 
-      <div class="kpiRow" style="grid-template-columns:repeat(3,1fr)">${shiftCards}</div>
+      <div class="kpiRow" style="grid-template-columns:repeat(3,1fr)">
+        ${shiftCards || `<div class="note">没有找到任何班次数据（全部为空或被筛选掉）</div>`}
+        <div class="kpi" style="min-height:86px" onclick="openNoShift()">
+          <div class="spark"></div>
+          <div class="t">未填写班次</div>
+          <div class="v" style="font-size:24px">${noShiftUnique.toLocaleString()}</div>
+          <div class="hint">按姓名去重（点击查看名单）</div>
+        </div>
+      </div>
 
       <div class="chartBox" style="margin-top:14px"><canvas id="chartShift"></canvas></div>
     </div>
@@ -1167,8 +1187,13 @@ function renderSchedule(){
 }
 
 window.openShift = function(shift){
-  const rows = FILTERED.filter(r=> (norm(r["班次"])||"未填写") === shift );
+  const rows = FILTERED.filter(r=> norm(r["班次"]) === shift);
   openModal(`班次：${shift}（${countByUniqueName(rows)}）`, renderFullTable(rows, `班次(cột I) = ${shift}`));
+};
+
+window.openNoShift = function(){
+  const rows = FILTERED.filter(r=> norm(r["班次"]) === "");
+  openModal(`未填写班次（${countByUniqueName(rows)}）`, renderFullTable(rows, `班次(cột I) 为空`));
 };
 
 function buildShiftChart(labels, values){
@@ -1197,64 +1222,38 @@ function buildShiftChart(labels, values){
 }
 
 /* =========================================================
-   LOAD  (STRICT FILTER BY COLUMN G = 姓名)
+   LOAD ✅ STRICT BY COLUMN G (姓名)
    ========================================================= */
 async function load(){
   els.meta.textContent = "Loading data from Google Sheet…";
-
   const res = await fetch(SHEET_API, { cache:"no-store" });
   const data = await res.json();
 
   RAW = data
-    .map(r => {
+    .map(r=>({
+      // ✅ header-safe: allow key with trailing spaces & common alias
+      "负责人":   normPick(r, ["负责人","負責人","Owner","owner"]),
+      "现场培训": normPick(r, ["现场培训","現場培訓","Onsite Training","现场训","現場訓練"]),
+      "线上组长": normPick(r, ["线上组长","線上組長","Online Leader","组长","組長"]),
+      "线上培训": normPick(r, ["线上培训","線上培訓","Online Training","线上训","線上訓練"]),
+      "组别":     normPick(r, ["组别","組別","Group","group"]),
+      "团队":     normPick(r, ["团队","團隊","Team","team"]),
+      "姓名":     normPick(r, ["姓名","员工姓名","員工姓名","Name","name"]),
+      "ID":       normPick(r, ["ID","Id","员工ID","員工ID"]),
+      "国家":     normPick(r, ["国家","國家","Country","country"]),
+      "岗位":     normPick(r, ["岗位","崗位","Position","position"]),
+      "盘口":     normPick(r, ["盘口","盤口","Workfolio","ID WORKFOLIO","workfolio"]),
+      "班次":     normPick(r, ["班次","班次 ","Shift","shift","班 次"])
+    }))
+    // ✅ ONLY keep row if 姓名 is valid (cột G)
+    .filter(r=> isValidName(r["姓名"]));
 
-      // chuẩn hóa tất cả field
-      const row = {
-        "负责人": norm(r["负责人"]),
-        "现场培训": norm(r["现场培训"]),
-        "线上组长": norm(r["线上组长"]),
-        "线上培训": norm(r["线上培训"]),
-        "组别": norm(r["组别"]),
-        "团队": norm(r["团队"]),
-        "姓名": norm(r["姓名"]),   // ⭐ CỘT G QUAN TRỌNG
-        "ID": norm(r["ID"]),
-        "国家": norm(r["国家"]),
-        "岗位": norm(r["岗位"]),
-        "盘口": norm(r["盘口"]),
-        "班次": norm(r["班次"])
-      };
-
-      return row;
-    })
-
-    // 🔴 CHỈ GIỮ DÒNG CÓ 姓名 HỢP LỆ
-    .filter(r => {
-      const name = r["姓名"];
-
-      if(!name) return false;
-      if(name === "") return false;
-      if(name === "null") return false;
-      if(name === "undefined") return false;
-      if(name.replace(/\s/g,"") === "") return false;
-
-      return true;
-    });
-
-  /* ===============================
-     Build filter options
-     =============================== */
-
-  const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean))
-    .sort((a,b)=>a.localeCompare(b,"zh"));
-
-  const teams  = uniq(RAW.map(r=>r["团队"] || "未填写"))
-    .sort((a,b)=>a.localeCompare(b,"zh"));
-
-  const groups = uniq(RAW.map(r=>r["组别"] || "未填写"))
-    .sort((a,b)=>a.localeCompare(b,"zh"));
-
-  const poss   = uniq(RAW.map(r=>r["岗位"] || "未填写"))
-    .sort((a,b)=>a.localeCompare(b,"zh"));
+  // Build filter options from RAW
+  // ✅ shifts select: only actual shift values (no empty)
+  const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+  const teams  = uniq(RAW.map(r=>r["团队"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+  const groups = uniq(RAW.map(r=>r["组别"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+  const poss   = uniq(RAW.map(r=>r["岗位"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
 
   buildSelectOptions(els.shiftSel, shifts, "All shifts（班次 cột I）");
   buildSelectOptions(els.teamSel, teams, "All teams（团队 cột F）");
