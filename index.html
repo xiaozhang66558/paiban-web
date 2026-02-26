@@ -17,7 +17,7 @@ header{
 }
 
 .container{
-  max-width:1500px;
+  max-width:1600px;
   margin:20px auto;
   padding:0 20px
 }
@@ -34,20 +34,47 @@ header{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
   gap:15px;
-  margin:20px 0
+  margin-top:15px
 }
 
 .kpiBox{
   background:#fff;
-  border-radius:16px;
+  border-radius:12px;
   padding:15px;
-  box-shadow:0 2px 10px rgba(0,0,0,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.05);
   cursor:pointer;
-  transition:0.2s;
+  transition:.2s;
 }
-.kpiBox:hover{
-  background:#f0f4ff;
+.kpiBox:hover{background:#eef2ff}
+
+.teamRow{
+  background:#fff;
+  border-radius:14px;
+  padding:15px;
+  box-shadow:0 2px 10px rgba(0,0,0,.05);
+  margin-bottom:15px;
 }
+
+.teamTitle{
+  font-weight:bold;
+  font-size:16px;
+  margin-bottom:10px;
+}
+
+.teamStats{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+.teamStatBox{
+  background:#f3f4f6;
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:.2s;
+}
+.teamStatBox:hover{background:#dbeafe}
 
 .grid{
   display:grid;
@@ -74,13 +101,6 @@ td{
   text-align:center;
 }
 
-td.clickable{
-  color:#2563eb;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-/* Modal */
 .modal{
   position:fixed;
   inset:0;
@@ -93,7 +113,7 @@ td.clickable{
 .modal-box{
   background:#fff;
   width:95%;
-  max-width:1400px;
+  max-width:1500px;
   max-height:85vh;
   overflow:auto;
   padding:20px;
@@ -139,16 +159,8 @@ td.clickable{
   </div>
 
   <div class="card">
-    <h3>团队统计表 (cột F)</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>团队</th>
-          <th>总人数</th>
-        </tr>
-      </thead>
-      <tbody id="tbodyStats"></tbody>
-    </table>
+    <h3>团队统计（横向）</h3>
+    <div id="teamCards"></div>
   </div>
 
 </div>
@@ -195,7 +207,7 @@ async function loadData(){
     onsite:r["现场培训"]||"",
     onlineLead:r["线上组长"]||"",
     onlineTrain:r["线上培训"]||"",
-    team:r["组别"]||"",        // cột F
+    team:r["组别"]||"",
     name:r["姓名"]||"",
     id:r["ID"]||"",
     country:r["国家"]||"",
@@ -203,12 +215,11 @@ async function loadData(){
     market:r["盘口"]||""
   }));
 
-  // unique C + D + G
+  // remove duplicate by ID
   const map=new Map();
   rawData.forEach(r=>{
     if(!r.id) return;
-    const key=r.onsite+"-"+r.onlineLead+"-"+r.id;
-    if(!map.has(key)) map.set(key,r);
+    if(!map.has(r.id)) map.set(r.id,r);
   });
   rawData=[...map.values()];
 
@@ -217,8 +228,7 @@ async function loadData(){
 
 function renderDashboard(){
 
-  const total=rawData.length;
-  kTotal.innerText=total;
+  kTotal.innerText=rawData.length;
 
   const positions=[...new Set(rawData.map(r=>r.position))];
 
@@ -233,15 +243,6 @@ function renderDashboard(){
   }).join("");
 
   const teams=[...new Set(rawData.map(r=>r.team))];
-
-  tbodyStats.innerHTML=teams.map(t=>{
-    const count=rawData.filter(r=>r.team===t).length;
-    return `
-      <tr>
-        <td class="clickable" onclick="openByTeam('${t}')">${t}</td>
-        <td>${count}</td>
-      </tr>`;
-  }).join("");
 
   if(chart1) chart1.destroy();
   if(chart2) chart2.destroy();
@@ -266,6 +267,33 @@ function renderDashboard(){
       }]
     }
   });
+
+  // TEAM KPI ngang
+  teamCards.innerHTML=teams.map(team=>{
+    const teamData=rawData.filter(r=>r.team===team);
+    const teamPositions=[...new Set(teamData.map(r=>r.position))];
+
+    return `
+      <div class="teamRow">
+        <div class="teamTitle">${team}</div>
+        <div class="teamStats">
+          <div class="teamStatBox"
+            onclick="openByTeam('${team}')">
+            总人数 ${teamData.length}
+          </div>
+          ${teamPositions.map(pos=>{
+            const count=teamData.filter(r=>r.position===pos).length;
+            return `
+              <div class="teamStatBox"
+                onclick="openTeamPosition('${team}','${pos}')">
+                ${pos} ${count}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 function openByPosition(position){
@@ -276,6 +304,11 @@ function openByPosition(position){
 function openByTeam(team){
   const filtered=rawData.filter(r=>r.team===team);
   openModal(team+" 员工名单",filtered);
+}
+
+function openTeamPosition(team,position){
+  const filtered=rawData.filter(r=>r.team===team && r.position===position);
+  openModal(team+" - "+position+" 员工名单",filtered);
 }
 
 function openModal(title,data){
