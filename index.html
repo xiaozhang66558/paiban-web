@@ -10,7 +10,7 @@
 
 <style>
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
-body{margin:0;background:#f4f6f9}
+body{margin:0;background:#f3f4f6}
 header{
   background:#0f172a;
   color:#fff;
@@ -31,6 +31,8 @@ button{
   border:0;
   cursor:pointer
 }
+.btn-primary{background:#2563eb;color:#fff}
+.btn-dark{background:#1e293b;color:#fff}
 .container{
   max-width:1200px;
   margin:20px auto;
@@ -90,6 +92,27 @@ td{
   border-bottom:1px solid #eee
 }
 .hidden{display:none}
+
+/* Login modal */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.modal-box{
+  background:#fff;
+  padding:20px;
+  border-radius:16px;
+  width:300px;
+}
+.modal-box input{
+  width:100%;
+  padding:8px;
+  margin-bottom:10px;
+}
 </style>
 </head>
 
@@ -101,17 +124,15 @@ td{
     <span id="roleBadge" class="badge">Not logged in</span>
   </div>
   <div>
-    <button id="btnLogin">Login</button>
-    <button id="btnLogout" class="hidden">Logout</button>
+    <button id="btnLogin" class="btn-primary">Login</button>
+    <button id="btnLogout" class="btn-dark hidden">Logout</button>
   </div>
 </header>
 
 <div class="container">
 
   <div class="tabs">
-    <div class="tab active" onclick="showTab('dashboard')">Dashboard</div>
-    <div class="tab" onclick="showTab('employees')">Employees</div>
-    <div class="tab" onclick="showTab('master')">Teams/Positions</div>
+    <div class="tab active">Dashboard</div>
   </div>
 
   <div id="dashboard">
@@ -153,62 +174,66 @@ td{
     </div>
 
   </div>
+</div>
 
+<!-- LOGIN MODAL -->
+<div id="loginModal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Login</h3>
+    <input id="loginEmail" placeholder="Email">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button id="doLogin" class="btn-primary" style="width:100%">Login</button>
+    <div id="loginMsg" style="color:red;margin-top:8px"></div>
+  </div>
 </div>
 
 <script>
 const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
 const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
 
-const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{persistSession:true}
+});
 
-let me=null, USERS=[], TEAMS=[], POSITIONS=[];
+let USERS=[],TEAMS=[];
+let chart1,chart2;
 
-function showTab(id){
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-  event.target.classList.add("active");
-}
+/* ================= LOGIN ================= */
 
-document.getElementById("btnLogin").onclick=async()=>{
-  const email=prompt("Email");
-  const pass=prompt("Password");
-  await supa.auth.signInWithPassword({email,password:pass});
+btnLogin.onclick=()=>loginModal.classList.remove("hidden");
+
+doLogin.onclick=async()=>{
+  const {error}=await supa.auth.signInWithPassword({
+    email:loginEmail.value,
+    password:loginPass.value
+  });
+  if(error){loginMsg.innerText=error.message;return;}
+  loginModal.classList.add("hidden");
   await init();
 };
 
-document.getElementById("btnLogout").onclick=async()=>{
+btnLogout.onclick=async()=>{
   await supa.auth.signOut();
   location.reload();
 };
+
+/* ================= INIT ================= */
 
 async function init(){
   const {data:{user}}=await supa.auth.getUser();
   if(!user)return;
 
-  let {data:profile}=await supa.from("profiles")
-  .select("*").eq("id",user.id).maybeSingle();
-
-  if(!profile){
-    const {data}=await supa.from("profiles")
-    .insert({id:user.id,role:"staff"}).select().single();
-    profile=data;
-  }
-
-  me=profile;
-  roleBadge.innerText="Role: "+me.role;
+  roleBadge.innerText="Logged in";
   btnLogin.classList.add("hidden");
   btnLogout.classList.remove("hidden");
 
-  await loadData();
-}
-
-async function loadData(){
   USERS=(await supa.from("users").select("*")).data||[];
   TEAMS=(await supa.from("teams").select("*")).data||[];
-  POSITIONS=(await supa.from("positions").select("*")).data||[];
 
   renderDashboard();
 }
+
+/* ================= DASHBOARD ================= */
 
 function renderDashboard(){
   kTotal.innerText=USERS.length;
@@ -226,7 +251,10 @@ function renderDashboard(){
     return `<tr><td>${t.team_name}</td><td>${count}</td></tr>`;
   }).join("");
 
-  new Chart(chartPosition,{
+  if(chart1) chart1.destroy();
+  if(chart2) chart2.destroy();
+
+  chart1=new Chart(chartPosition,{
     type:"doughnut",
     data:{
       labels:["客服","出款","查单"],
@@ -234,7 +262,7 @@ function renderDashboard(){
     }
   });
 
-  new Chart(chartTeam,{
+  chart2=new Chart(chartTeam,{
     type:"bar",
     data:{
       labels:TEAMS.map(t=>t.team_name),
@@ -245,6 +273,8 @@ function renderDashboard(){
     }
   });
 }
+
+/* ================= AUTO LOGIN ================= */
 
 (async()=>{
   const {data:{session}}=await supa.auth.getSession();
