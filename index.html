@@ -682,7 +682,9 @@
         loginMsg.innerHTML = `<span class="ok">✅ Logged in</span>`;
         closeModal(modalLogin);
 
-        await refreshAll();
+        setTimeout(async () => {
+         await refreshAll();
+        }, 200);  
 
       } catch (e){
         logDebug("login exception:", e);
