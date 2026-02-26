@@ -9,16 +9,19 @@
 <style>
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
 body{margin:0;background:#f3f4f6}
+
 header{
   background:#0f172a;
   color:#fff;
   padding:16px 24px;
 }
+
 .container{
   max-width:1400px;
   margin:20px auto;
   padding:0 20px
 }
+
 .card{
   background:#fff;
   border-radius:16px;
@@ -26,44 +29,77 @@ header{
   box-shadow:0 2px 10px rgba(0,0,0,.06);
   margin-bottom:20px;
 }
+
 .kpi{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(2,1fr);
   gap:15px;
   margin:20px 0
 }
+
 .kpiBox{
   background:#fff;
   border-radius:16px;
   padding:15px;
   box-shadow:0 2px 10px rgba(0,0,0,.06)
 }
-.kpiBox h3{margin:0;font-size:22px}
+
 .grid{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:20px
 }
+
 table{
   width:100%;
   border-collapse:collapse;
   margin-top:15px
 }
+
 th{
   background:#0f172a;
   color:#fff;
   padding:10px;
   text-align:center;
 }
+
 td{
   padding:8px;
   border-bottom:1px solid #eee;
   text-align:center;
 }
+
 td.clickable{
   color:#2563eb;
   cursor:pointer;
   font-weight:bold;
+}
+
+/* Modal */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-box{
+  background:#fff;
+  width:90%;
+  max-width:1200px;
+  max-height:80vh;
+  overflow:auto;
+  padding:20px;
+  border-radius:12px;
+}
+
+.closeBtn{
+  float:right;
+  cursor:pointer;
+  font-weight:bold;
+  color:red;
 }
 </style>
 </head>
@@ -78,14 +114,19 @@ td.clickable{
 
   <div class="card">
     <h2>统计总览</h2>
-    <div style="color:#6b7280">按团队统计（点击查看员工）</div>
+    <div style="color:#6b7280">按团队统计（点击团队弹出员工名单）</div>
   </div>
 
   <div class="kpi">
-    <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
-    <div class="kpiBox"><div>出款人数</div><h3 id="kWD">0</h3></div>
-    <div class="kpiBox"><div>客服人数</div><h3 id="kCS">0</h3></div>
-    <div class="kpiBox"><div>查单人数</div><h3 id="kDP">0</h3></div>
+    <div class="kpiBox">
+      <div>总人数</div>
+      <h3 id="kTotal">0</h3>
+      <div id="positionSummary" style="margin-top:10px;font-size:14px;color:#555"></div>
+    </div>
+    <div class="kpiBox">
+      <div>团队数量</div>
+      <h3 id="kTeam">0</h3>
+    </div>
   </div>
 
   <div class="grid">
@@ -115,8 +156,13 @@ td.clickable{
     </table>
   </div>
 
-  <div class="card" id="employeeSection" style="display:none">
-    <h3 id="employeeTitle"></h3>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <span class="closeBtn" onclick="closeModal()">关闭 ✖</span>
+    <h3 id="modalTitle"></h3>
     <table>
       <thead>
         <tr>
@@ -132,10 +178,9 @@ td.clickable{
           <th>盘口</th>
         </tr>
       </thead>
-      <tbody id="employeeList"></tbody>
+      <tbody id="modalBody"></tbody>
     </table>
   </div>
-
 </div>
 
 <script>
@@ -155,7 +200,7 @@ async function loadData(){
     onsite:r["现场培训"]||"",
     onlineLead:r["线上组长"]||"",
     onlineTrain:r["线上培训"]||"",
-    team:r["组别"]||r["团队"]||"",
+    team:r["组别"]||"",
     name:r["姓名"]||"",
     id:r["ID"]||"",
     country:r["国家"]||"",
@@ -164,14 +209,14 @@ async function loadData(){
   }));
 
   // unique theo C + D + G
-  const uniqueMap=new Map();
+  const map=new Map();
   rawData.forEach(r=>{
-    if(r.id.trim()==="") return;
+    if(!r.id) return;
     const key=r.onsite+"-"+r.onlineLead+"-"+r.id;
-    if(!uniqueMap.has(key)) uniqueMap.set(key,r);
+    if(!map.has(key)) map.set(key,r);
   });
 
-  rawData=[...uniqueMap.values()];
+  rawData=[...map.values()];
 
   renderDashboard();
 }
@@ -181,21 +226,21 @@ function renderDashboard(){
   const total=rawData.length;
   kTotal.innerText=total;
 
-  const wd=rawData.filter(r=>r.position==="出款").length;
-  const cs=rawData.filter(r=>r.position==="客服").length;
-  const dp=rawData.filter(r=>r.position==="查单").length;
-
-  kWD.innerText=wd;
-  kCS.innerText=cs;
-  kDP.innerText=dp;
-
   const teams=[...new Set(rawData.map(r=>r.team))];
+  kTeam.innerText=teams.length;
+
+  const positions=[...new Set(rawData.map(r=>r.position))];
+
+  positionSummary.innerHTML=positions.map(p=>{
+    const count=rawData.filter(r=>r.position===p).length;
+    return `${p} (${count})`;
+  }).join(" | ");
 
   tbodyStats.innerHTML=teams.map(t=>{
     const teamData=rawData.filter(r=>r.team===t);
     return `
     <tr>
-      <td class="clickable" onclick="showTeam('${t}')">${t}</td>
+      <td class="clickable" onclick="openModal('${t}')">${t}</td>
       <td>${teamData.length}</td>
       <td>${teamData.filter(r=>r.position==="出款").length}</td>
       <td>${teamData.filter(r=>r.position==="客服").length}</td>
@@ -205,8 +250,6 @@ function renderDashboard(){
 
   if(chart1) chart1.destroy();
   if(chart2) chart2.destroy();
-
-  const positions=[...new Set(rawData.map(r=>r.position))];
 
   chart1=new Chart(chartPosition,{
     type:"doughnut",
@@ -230,13 +273,12 @@ function renderDashboard(){
   });
 }
 
-function showTeam(team){
+function openModal(team){
   const filtered=rawData.filter(r=>r.team===team);
+  modal.style.display="flex";
+  modalTitle.innerText=team+" 员工名单";
 
-  employeeSection.style.display="block";
-  employeeTitle.innerText=team+" 员工名单";
-
-  employeeList.innerHTML=filtered.map(r=>`
+  modalBody.innerHTML=filtered.map(r=>`
     <tr>
       <td>${r.leader}</td>
       <td>${r.onsite}</td>
@@ -250,6 +292,10 @@ function showTeam(team){
       <td>${r.market}</td>
     </tr>
   `).join("");
+}
+
+function closeModal(){
+  modal.style.display="none";
 }
 
 loadData();
