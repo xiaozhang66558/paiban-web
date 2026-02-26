@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8" />
-<title>HR System</title>
+<title>HR System Pro</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -10,7 +10,7 @@
 
 <style>
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
-body{margin:0;background:#f3f4f6}
+body{margin:0;background:#eef2f7}
 header{
   background:#0f172a;
   color:#fff;
@@ -33,50 +33,37 @@ button{
 }
 .btn-primary{background:#2563eb;color:#fff}
 .btn-dark{background:#1e293b;color:#fff}
+
 .container{
   max-width:1200px;
-  margin:20px auto;
+  margin:30px auto;
   padding:0 20px
-}
-.tabs{
-  display:flex;
-  gap:10px;
-  margin-bottom:20px
-}
-.tab{
-  padding:8px 16px;
-  background:#e5e7eb;
-  border-radius:999px;
-  cursor:pointer
-}
-.tab.active{
-  background:#0f172a;
-  color:#fff
 }
 .card{
   background:#fff;
-  border-radius:16px;
-  padding:20px;
-  box-shadow:0 2px 10px rgba(0,0,0,.06)
-}
-.grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px
+  border-radius:18px;
+  padding:24px;
+  box-shadow:0 4px 20px rgba(0,0,0,.06)
 }
 .kpi{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:15px;
-  margin:20px 0
+  gap:20px;
+  margin:25px 0
 }
 .kpiBox{
   background:#fff;
-  border-radius:16px;
-  padding:15px;
-  box-shadow:0 2px 10px rgba(0,0,0,.06)
+  border-radius:18px;
+  padding:20px;
+  box-shadow:0 4px 15px rgba(0,0,0,.05)
 }
-.kpiBox h3{margin:0;font-size:22px}
+.kpiBox h3{margin:0;font-size:26px}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:25px;
+  margin-top:25px
+}
 table{
   width:100%;
   border-collapse:collapse;
@@ -85,33 +72,35 @@ table{
 th{
   background:#0f172a;
   color:#fff;
-  padding:10px
+  padding:12px;
+  border-radius:8px
 }
 td{
-  padding:8px;
+  padding:10px;
   border-bottom:1px solid #eee
 }
 .hidden{display:none}
 
-/* Login modal */
+/* Modal */
 .modal{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.4);
+  background:rgba(0,0,0,.45);
   display:flex;
   align-items:center;
   justify-content:center;
+  z-index:999;
 }
 .modal-box{
   background:#fff;
-  padding:20px;
-  border-radius:16px;
-  width:300px;
+  padding:30px;
+  border-radius:18px;
+  width:320px;
 }
 .modal-box input{
   width:100%;
-  padding:8px;
-  margin-bottom:10px;
+  padding:10px;
+  margin-bottom:12px;
 }
 </style>
 </head>
@@ -120,7 +109,7 @@ td{
 
 <header>
   <div style="display:flex;gap:10px;align-items:center">
-    <strong>HR System</strong>
+    <strong>HR System Pro</strong>
     <span id="roleBadge" class="badge">Not logged in</span>
   </div>
   <div>
@@ -131,49 +120,42 @@ td{
 
 <div class="container">
 
-  <div class="tabs">
-    <div class="tab active">Dashboard</div>
+  <div class="card">
+    <h2>统计总览</h2>
+    <div style="color:#6b7280">按团队统计（管理员全局）</div>
   </div>
 
-  <div id="dashboard">
+  <div class="kpi">
+    <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
+    <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
+    <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
+    <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
+  </div>
 
+  <div class="grid">
     <div class="card">
-      <h2>统计总览</h2>
-      <div style="color:#6b7280">按团队统计（管理员全局）</div>
+      <h3>岗位分布（饼图）</h3>
+      <canvas id="chartPosition"></canvas>
     </div>
-
-    <div class="kpi">
-      <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
-      <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
-      <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
-      <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
+    <div class="card">
+      <h3>团队人数（柱状图）</h3>
+      <canvas id="chartTeam"></canvas>
     </div>
-
-    <div class="grid">
-      <div class="card">
-        <h3>岗位分布（饼图）</h3>
-        <canvas id="chartPosition"></canvas>
-      </div>
-      <div class="card">
-        <h3>团队人数（柱状图）</h3>
-        <canvas id="chartTeam"></canvas>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:20px">
-      <h3>详细统计表</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>团队</th>
-            <th>人数</th>
-          </tr>
-        </thead>
-        <tbody id="tbodyStats"></tbody>
-      </table>
-    </div>
-
   </div>
+
+  <div class="card" style="margin-top:30px">
+    <h3>详细统计表</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>团队</th>
+          <th>人数</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyStats"></tbody>
+    </table>
+  </div>
+
 </div>
 
 <!-- LOGIN MODAL -->
@@ -198,7 +180,7 @@ const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
 let USERS=[],TEAMS=[];
 let chart1,chart2;
 
-/* ================= LOGIN ================= */
+/* LOGIN */
 
 btnLogin.onclick=()=>loginModal.classList.remove("hidden");
 
@@ -207,8 +189,14 @@ doLogin.onclick=async()=>{
     email:loginEmail.value,
     password:loginPass.value
   });
-  if(error){loginMsg.innerText=error.message;return;}
+
+  if(error){
+    loginMsg.innerText=error.message;
+    return;
+  }
+
   loginModal.classList.add("hidden");
+  loginMsg.innerText="";
   await init();
 };
 
@@ -217,11 +205,11 @@ btnLogout.onclick=async()=>{
   location.reload();
 };
 
-/* ================= INIT ================= */
+/* INIT */
 
 async function init(){
   const {data:{user}}=await supa.auth.getUser();
-  if(!user)return;
+  if(!user) return;
 
   roleBadge.innerText="Logged in";
   btnLogin.classList.add("hidden");
@@ -233,7 +221,7 @@ async function init(){
   renderDashboard();
 }
 
-/* ================= DASHBOARD ================= */
+/* DASHBOARD */
 
 function renderDashboard(){
   kTotal.innerText=USERS.length;
@@ -274,7 +262,7 @@ function renderDashboard(){
   });
 }
 
-/* ================= AUTO LOGIN ================= */
+/* AUTO SESSION */
 
 (async()=>{
   const {data:{session}}=await supa.auth.getSession();
