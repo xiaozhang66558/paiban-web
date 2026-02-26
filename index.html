@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8" />
-<title>HR System</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8"/>
+<title>HR Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-*{box-sizing:border-box;font-family:Segoe UI,Arial}
+*{box-sizing:border-box;font-family:Segoe UI}
 body{margin:0;background:#f3f4f6}
 
 header{
@@ -19,7 +18,7 @@ header{
 .container{
   max-width:1600px;
   margin:20px auto;
-  padding:0 20px
+  padding:0 20px;
 }
 
 .card{
@@ -30,11 +29,17 @@ header{
   margin-bottom:20px;
 }
 
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+}
+
 .kpi{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
   gap:15px;
-  margin-top:15px
+  margin-top:15px;
 }
 
 .kpiBox{
@@ -57,49 +62,22 @@ header{
 
 .teamTitle{
   font-weight:bold;
-  font-size:16px;
   margin-bottom:10px;
 }
 
 .teamStats{
   display:flex;
   flex-wrap:wrap;
-  gap:12px;
+  gap:10px;
 }
 
 .teamStatBox{
   background:#f3f4f6;
-  padding:8px 14px;
+  padding:8px 12px;
   border-radius:8px;
   cursor:pointer;
-  transition:.2s;
 }
 .teamStatBox:hover{background:#dbeafe}
-
-.grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:15px
-}
-
-th{
-  background:#0f172a;
-  color:#fff;
-  padding:10px;
-  text-align:center;
-}
-
-td{
-  padding:8px;
-  border-bottom:1px solid #eee;
-  text-align:center;
-}
 
 .modal{
   position:fixed;
@@ -126,6 +104,22 @@ td{
   font-weight:bold;
   color:red;
 }
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px;
+}
+th{
+  background:#0f172a;
+  color:#fff;
+  padding:10px;
+}
+td{
+  padding:8px;
+  border-bottom:1px solid #eee;
+  text-align:center;
+}
 </style>
 </head>
 
@@ -137,9 +131,16 @@ td{
 
 <div class="container">
 
-  <div class="card">
-    <h2>统计总览</h2>
-    <div style="color:#6b7280">点击职位或团队弹出员工名单</div>
+  <!-- BIỂU ĐỒ ĐƯA LÊN TRÊN -->
+  <div class="grid">
+    <div class="card">
+      <h3>岗位分布</h3>
+      <canvas id="chartPosition"></canvas>
+    </div>
+    <div class="card">
+      <h3>团队人数（cột F）</h3>
+      <canvas id="chartTeam"></canvas>
+    </div>
   </div>
 
   <div class="card">
@@ -147,25 +148,14 @@ td{
     <div id="positionCards" class="kpi"></div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <h3>岗位分布</h3>
-      <canvas id="chartPosition"></canvas>
-    </div>
-    <div class="card">
-      <h3>团队人数 (cột F)</h3>
-      <canvas id="chartTeam"></canvas>
-    </div>
-  </div>
-
   <div class="card">
-    <h3>团队统计（横向）</h3>
+    <h3>团队统计（cột F）</h3>
     <div id="teamCards"></div>
   </div>
 
 </div>
 
-<!-- Modal -->
+<!-- POPUP -->
 <div class="modal" id="modal">
   <div class="modal-box">
     <span class="closeBtn" onclick="closeModal()">关闭 ✖</span>
@@ -207,7 +197,7 @@ async function loadData(){
     onsite:r["现场培训"]||"",
     onlineLead:r["线上组长"]||"",
     onlineTrain:r["线上培训"]||"",
-    team:r["组别"]||"",
+    team:r["组别"]||"",  // ✅ cột F
     name:r["姓名"]||"",
     id:r["ID"]||"",
     country:r["国家"]||"",
@@ -215,7 +205,6 @@ async function loadData(){
     market:r["盘口"]||""
   }));
 
-  // remove duplicate by ID
   const map=new Map();
   rawData.forEach(r=>{
     if(!r.id) return;
@@ -223,26 +212,22 @@ async function loadData(){
   });
   rawData=[...map.values()];
 
-  renderDashboard();
+  render();
 }
 
-function renderDashboard(){
+function render(){
 
   kTotal.innerText=rawData.length;
 
   const positions=[...new Set(rawData.map(r=>r.position))];
+  const teams=[...new Set(rawData.map(r=>r.team))];
 
   positionCards.innerHTML=positions.map(p=>{
     const count=rawData.filter(r=>r.position===p).length;
-    return `
-      <div class="kpiBox" onclick="openByPosition('${p}')">
-        <strong>${p}</strong>
-        <div>${count} 人</div>
-      </div>
-    `;
+    return `<div class="kpiBox" onclick="openByPosition('${p}')">
+      <strong>${p}</strong><div>${count} 人</div>
+    </div>`;
   }).join("");
-
-  const teams=[...new Set(rawData.map(r=>r.team))];
 
   if(chart1) chart1.destroy();
   if(chart2) chart2.destroy();
@@ -268,47 +253,37 @@ function renderDashboard(){
     }
   });
 
-  // TEAM KPI ngang
   teamCards.innerHTML=teams.map(team=>{
     const teamData=rawData.filter(r=>r.team===team);
     const teamPositions=[...new Set(teamData.map(r=>r.position))];
 
-    return `
-      <div class="teamRow">
-        <div class="teamTitle">${team}</div>
-        <div class="teamStats">
-          <div class="teamStatBox"
-            onclick="openByTeam('${team}')">
-            总人数 ${teamData.length}
-          </div>
-          ${teamPositions.map(pos=>{
-            const count=teamData.filter(r=>r.position===pos).length;
-            return `
-              <div class="teamStatBox"
-                onclick="openTeamPosition('${team}','${pos}')">
-                ${pos} ${count}
-              </div>
-            `;
-          }).join("")}
+    return `<div class="teamRow">
+      <div class="teamTitle">${team}</div>
+      <div class="teamStats">
+        <div class="teamStatBox" onclick="openByTeam('${team}')">
+          总人数 ${teamData.length}
         </div>
+        ${teamPositions.map(pos=>{
+          const count=teamData.filter(r=>r.position===pos).length;
+          return `<div class="teamStatBox"
+            onclick="openTeamPosition('${team}','${pos}')">
+            ${pos} ${count}
+          </div>`;
+        }).join("")}
       </div>
-    `;
+    </div>`;
   }).join("");
 }
 
-function openByPosition(position){
-  const filtered=rawData.filter(r=>r.position===position);
-  openModal(position+" 员工名单",filtered);
+function openByPosition(p){
+  openModal(p+" 员工名单",rawData.filter(r=>r.position===p));
 }
-
-function openByTeam(team){
-  const filtered=rawData.filter(r=>r.team===team);
-  openModal(team+" 员工名单",filtered);
+function openByTeam(t){
+  openModal(t+" 员工名单",rawData.filter(r=>r.team===t));
 }
-
-function openTeamPosition(team,position){
-  const filtered=rawData.filter(r=>r.team===team && r.position===position);
-  openModal(team+" - "+position+" 员工名单",filtered);
+function openTeamPosition(t,p){
+  openModal(t+" - "+p+" 员工名单",
+    rawData.filter(r=>r.team===t && r.position===p));
 }
 
 function openModal(title,data){
@@ -326,13 +301,10 @@ function openModal(title,data){
       <td>${r.country}</td>
       <td>${r.position}</td>
       <td>${r.market}</td>
-    </tr>
-  `).join("");
+    </tr>`).join("");
 }
 
-function closeModal(){
-  modal.style.display="none";
-}
+function closeModal(){modal.style.display="none"}
 
 loadData();
 
