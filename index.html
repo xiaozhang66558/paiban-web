@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>HR System - Team Dashboard</title>
+  <title>HR System - Dashboard + Shifts</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -23,8 +23,9 @@
     .card{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:16px;}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .row> *{flex:0 0 auto}
-    input,select{padding:10px 12px;border:1px solid #d1d5db;border-radius:12px;outline:none;background:#fff}
-    input:focus,select:focus{border-color:#2563eb}
+    input,select,textarea{padding:10px 12px;border:1px solid #d1d5db;border-radius:12px;outline:none;background:#fff}
+    input:focus,select:focus,textarea:focus{border-color:#2563eb}
+    textarea{min-height:90px;resize:vertical}
     table{width:100%;border-collapse:collapse;background:#fff}
     th,td{border-bottom:1px solid #eee;padding:10px 8px;text-align:left;font-size:14px}
     th{background:#111827;color:#fff;position:sticky;top:58px}
@@ -49,15 +50,14 @@
 
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:18px;z-index:10}
     .modal.show{display:flex}
-    .modal .panel{width:min(760px,100%);background:#fff;border-radius:16px;padding:16px;box-shadow:0 15px 45px rgba(0,0,0,.2)}
+    .modal .panel{width:min(860px,100%);background:#fff;border-radius:16px;padding:16px;box-shadow:0 15px 45px rgba(0,0,0,.2)}
     .modal h3{margin:0 0 10px}
     .modal .form{display:grid;grid-template-columns:1fr;gap:10px}
     @media(min-width:720px){.modal .form{grid-template-columns:1fr 1fr}}
     .modal .form .full{grid-column:1/-1}
     .danger{color:#b91c1c}
     .ok{color:#047857}
-    .btnlink{background:transparent;border:0;color:#2563eb;cursor:pointer;padding:0}
-    .debug{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;white-space:pre-wrap;background:#0b1020;color:#d1d5db;padding:10px;border-radius:12px;max-height:220px;overflow:auto}
+    .debug{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;white-space:pre-wrap;background:#0b1020;color:#d1d5db;padding:10px;border-radius:12px;max-height:240px;overflow:auto}
   </style>
 </head>
 
@@ -78,15 +78,18 @@
     <div class="tabs card">
       <div class="tab active" data-tab="dashboard">Dashboard</div>
       <div class="tab" data-tab="employees">Employees</div>
+      <div class="tab" data-tab="shifts">Shifts</div>
       <div class="tab" data-tab="master">Teams/Positions</div>
+      <div class="tab" data-tab="import">Import</div>
     </div>
 
+    <!-- DASHBOARD -->
     <div id="viewDashboard" class="grid">
       <div class="card">
         <div class="row" style="justify-content:space-between">
           <div>
             <h2 style="margin:0">统计总览</h2>
-            <div class="muted">按团队/岗位统计（管理员全局，Leader 仅自己团队）</div>
+            <div class="muted">按团队/岗位统计（admin 全局，leader 仅自己团队）</div>
           </div>
           <div class="row">
             <select id="filterStatus">
@@ -140,6 +143,7 @@
       </div>
     </div>
 
+    <!-- EMPLOYEES -->
     <div id="viewEmployees" class="card hidden">
       <div class="row" style="justify-content:space-between">
         <div>
@@ -170,6 +174,41 @@
       </div>
     </div>
 
+    <!-- SHIFTS -->
+    <div id="viewShifts" class="card hidden">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h2 style="margin:0">Shifts</h2>
+          <div class="muted">Sắp ca theo ngày (admin toàn bộ, leader chỉ team mình)</div>
+        </div>
+        <div class="row">
+          <input id="shiftDate" type="date" />
+          <select id="shiftTeam"></select>
+          <button id="btnLoadShifts">Load</button>
+          <button id="btnAddShift">+ Add shift</button>
+        </div>
+      </div>
+
+      <div class="muted" style="margin-top:10px">Danh sách ca theo ngày:</div>
+      <div style="overflow:auto;border-radius:12px;margin-top:12px">
+        <table>
+          <thead>
+            <tr>
+              <th>Ngày</th>
+              <th>Nhân sự</th>
+              <th>团队</th>
+              <th>岗位</th>
+              <th>Ca</th>
+              <th>Ghi chú</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyShift"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MASTER -->
     <div id="viewMaster" class="grid hidden">
       <div class="card">
         <h2 style="margin:0 0 10px">Teams</h2>
@@ -191,6 +230,29 @@
         <div id="posList" style="margin-top:12px"></div>
       </div>
     </div>
+
+    <!-- IMPORT -->
+    <div id="viewImport" class="card hidden">
+      <h2 style="margin:0 0 10px">Import Employees (Google Sheet CSV)</h2>
+      <div class="muted">
+        ✅ Cách chạy được trên web: dùng Google Sheet “Publish to web” dạng CSV.<br/>
+        ⚠️ Google Drive link XLSX trực tiếp thường bị chặn CORS nên fetch trên web sẽ lỗi.
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <input id="csvUrl" style="width:min(760px,100%)" placeholder="Dán link CSV (Google Sheet publish)..." />
+        <button id="btnPreviewCsv">Preview</button>
+        <button id="btnImportCsv">Import to Supabase</button>
+      </div>
+
+      <div class="muted" style="margin-top:10px">
+        CSV cần các cột: name, team, position, country, status (hoặc tiếng Trung tương đương).<br/>
+        Ví dụ header: name,team,position,country,status
+      </div>
+
+      <div id="importMsg" class="muted" style="margin-top:10px"></div>
+      <div class="debug" id="csvPreview" style="margin-top:10px"></div>
+    </div>
   </div>
 
   <!-- Login modal -->
@@ -199,7 +261,7 @@
       <div class="row" style="justify-content:space-between;align-items:flex-start">
         <div>
           <h3>Login</h3>
-          <div class="muted">使用 Supabase Auth 登录（支持 Reset / Sign up）</div>
+          <div class="muted">Supabase Auth (Reset / Sign up)</div>
         </div>
         <button id="btnCloseLogin" class="secondary">Close</button>
       </div>
@@ -216,7 +278,7 @@
           <button id="btnDoLogin">Login</button>
           <button id="btnDoSignup" class="secondary">Sign up</button>
           <button id="btnDoReset" class="secondary">Reset password</button>
-          <span class="muted">首次登录会自动生成 profiles</span>
+          <span class="muted">Lần đầu login sẽ auto tạo profiles</span>
         </div>
 
         <div id="loginMsg" class="full muted"></div>
@@ -234,7 +296,7 @@
       <div class="row" style="justify-content:space-between;align-items:flex-start">
         <div>
           <h3 id="empTitle">Add employee</h3>
-          <div class="muted">填完保存即可（权限：admin/leader）</div>
+          <div class="muted">admin/leader</div>
         </div>
         <button id="btnCloseEmp" class="secondary">Close</button>
       </div>
@@ -271,16 +333,49 @@
     </div>
   </div>
 
+  <!-- Shift modal -->
+  <div id="modalShift" class="modal">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <h3 id="shiftTitle">Add shift</h3>
+          <div class="muted">admin/leader</div>
+        </div>
+        <button id="btnCloseShift" class="secondary">Close</button>
+      </div>
+
+      <div class="form" style="margin-top:10px">
+        <div>
+          <input id="shiftDate2" type="date" style="width:100%" />
+        </div>
+        <div>
+          <select id="shiftEmp" style="width:100%"></select>
+        </div>
+
+        <div>
+          <input id="shiftType" placeholder="Ca (VD: Ca sáng / Ca tối / Off)" style="width:100%" />
+        </div>
+        <div>
+          <input id="shiftNote" placeholder="Ghi chú..." style="width:100%" />
+        </div>
+
+        <div class="full row">
+          <button id="btnSaveShift" class="save">Save</button>
+          <button id="btnCancelShift" class="cancel">Cancel</button>
+          <span id="shiftMsg" class="muted"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    // === CONFIG (của bạn) ===
+    // ======= CONFIG: SỬA 2 DÒNG NÀY =======
     const SUPABASE_URL = "https://mxeqccecqkyllwvbylej.supabase.co";
     const SUPABASE_KEY = "sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
+    // =====================================
 
-    // IMPORTANT:
-    // - detectSessionInUrl: TRUE để support reset-password / magic link (hash token)
-    // - persistSession: TRUE để refresh trang vẫn còn session
     const supa = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
         persistSession: true,
@@ -289,18 +384,18 @@
         storage: window.localStorage
       }
     });
-
-    // để bạn debug ngoài console
     window.supa = supa;
 
-    // === UI refs ===
+    // UI refs
     const roleBadge = document.getElementById("roleBadge");
     const teamBadge = document.getElementById("teamBadge");
 
     const tabs = [...document.querySelectorAll(".tab")];
     const viewDashboard = document.getElementById("viewDashboard");
     const viewEmployees  = document.getElementById("viewEmployees");
+    const viewShifts     = document.getElementById("viewShifts");
     const viewMaster     = document.getElementById("viewMaster");
+    const viewImport     = document.getElementById("viewImport");
 
     const btnLogin = document.getElementById("btnLogin");
     const btnLogout = document.getElementById("btnLogout");
@@ -330,19 +425,20 @@
     const searchEmp = document.getElementById("searchEmp");
     const btnAddEmp = document.getElementById("btnAddEmp");
 
+    // Employee modal
     const modalEmp = document.getElementById("modalEmp");
     const empTitle = document.getElementById("empTitle");
     const btnCloseEmp = document.getElementById("btnCloseEmp");
     const btnCancelEmp = document.getElementById("btnCancelEmp");
     const btnSaveEmp = document.getElementById("btnSaveEmp");
     const empMsg = document.getElementById("empMsg");
-
     const empName = document.getElementById("empName");
     const empTeam = document.getElementById("empTeam");
     const empPos  = document.getElementById("empPos");
     const empCountry = document.getElementById("empCountry");
     const empStatus  = document.getElementById("empStatus");
 
+    // Master
     const newTeamName = document.getElementById("newTeamName");
     const btnAddTeam = document.getElementById("btnAddTeam");
     const teamsList = document.getElementById("teamsList");
@@ -351,17 +447,44 @@
     const btnAddPos = document.getElementById("btnAddPos");
     const posList = document.getElementById("posList");
 
-    // === state ===
-    let me = null; // profile row
+    // Shifts
+    const shiftDate = document.getElementById("shiftDate");
+    const shiftTeam = document.getElementById("shiftTeam");
+    const btnLoadShifts = document.getElementById("btnLoadShifts");
+    const btnAddShift = document.getElementById("btnAddShift");
+    const tbodyShift = document.getElementById("tbodyShift");
+
+    const modalShift = document.getElementById("modalShift");
+    const shiftTitle = document.getElementById("shiftTitle");
+    const btnCloseShift = document.getElementById("btnCloseShift");
+    const btnCancelShift = document.getElementById("btnCancelShift");
+    const btnSaveShift = document.getElementById("btnSaveShift");
+    const shiftMsg = document.getElementById("shiftMsg");
+    const shiftDate2 = document.getElementById("shiftDate2");
+    const shiftEmp = document.getElementById("shiftEmp");
+    const shiftType = document.getElementById("shiftType");
+    const shiftNote = document.getElementById("shiftNote");
+
+    // Import
+    const csvUrl = document.getElementById("csvUrl");
+    const btnPreviewCsv = document.getElementById("btnPreviewCsv");
+    const btnImportCsv = document.getElementById("btnImportCsv");
+    const importMsg = document.getElementById("importMsg");
+    const csvPreview = document.getElementById("csvPreview");
+
+    // state
+    let me = null;
     let TEAMS = [];
     let POSITIONS = [];
     let USERS = [];
-    let editId = null;
+    let SHIFTS = [];
+
+    let editEmpId = null;
+    let editShiftId = null;
 
     let chartPos = null;
     let chartTeam = null;
 
-    // === helpers ===
     const posKeys = ["客服","出款","查单","财务","质检","彩金"];
     const safeText = (x) => (x ?? "").toString();
     const fmtTime = (iso) => iso ? new Date(iso).toLocaleString() : "-";
@@ -380,7 +503,9 @@
       tabs.forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
       viewDashboard.classList.toggle("hidden", name!=="dashboard");
       viewEmployees.classList.toggle("hidden",  name!=="employees");
+      viewShifts.classList.toggle("hidden",     name!=="shifts");
       viewMaster.classList.toggle("hidden",     name!=="master");
+      viewImport.classList.toggle("hidden",     name!=="import");
     }
 
     function openModal(el){ el.classList.add("show"); }
@@ -407,17 +532,15 @@
         teamBadge.classList.add("hidden");
       }
 
+      // master tab: admin only
       const masterTab = tabs.find(t=>t.dataset.tab==="master");
       if(me.role === "admin") masterTab.classList.remove("hidden");
       else masterTab.classList.add("hidden");
 
-      if(me.role !== "admin" && me.role !== "leader"){
-        btnAddEmp.disabled = true;
-        btnAddEmp.title = "No permission";
-      } else {
-        btnAddEmp.disabled = false;
-        btnAddEmp.title = "";
-      }
+      // permission add employee/shift
+      const canWrite = (me.role === "admin" || me.role === "leader");
+      btnAddEmp.disabled = !canWrite;
+      btnAddShift.disabled = !canWrite;
     }
 
     async function ensureProfile(){
@@ -427,8 +550,6 @@
       const user = sess?.session?.user;
       if(!user){ logDebug("ensureProfile: no session user"); return null; }
 
-      logDebug("ensureProfile user.id =", user.id);
-
       // read profile
       let { data: prof, error: selErr } = await supa
         .from("profiles")
@@ -436,14 +557,16 @@
         .eq("id", user.id)
         .maybeSingle();
 
-      if(selErr){
-        logDebug("profiles select error:", selErr);
-      }
+      if(selErr){ logDebug("profiles select error:", selErr); }
 
-      // if not exists -> insert
+      // if not exists -> insert default staff
       if(!prof){
         logDebug("profiles not found -> inserting default staff profile");
-        const ins = await supa.from("profiles").insert({ id: user.id, role: "staff" }).select("*").single();
+        const ins = await supa
+          .from("profiles")
+          .insert({ id: user.id, role: "staff" })
+          .select("*")
+          .single();
         if(ins.error){
           logDebug("profiles insert error:", ins.error);
           return null;
@@ -469,11 +592,17 @@
       empTeam.innerHTML = TEAMS.map(t=>`<option value="${t.id}">${t.team_name}</option>`).join("");
       empPos.innerHTML  = POSITIONS.map(p=>`<option value="${p.id}">${p.position_name}</option>`).join("");
 
+      // shifts team select
+      shiftTeam.innerHTML = `<option value="ALL">全部团队</option>` + TEAMS.map(t=>`<option value="${t.id}">${t.team_name}</option>`).join("");
+
       if(me?.role === "leader" && me.team_id){
         filterTeam.value = me.team_id;
         filterTeam.disabled = true;
+        shiftTeam.value = me.team_id;
+        shiftTeam.disabled = true;
       } else {
         filterTeam.disabled = false;
+        shiftTeam.disabled = false;
       }
     }
 
@@ -499,8 +628,7 @@
       const set = new Set(USERS.map(u=>u.country).filter(Boolean));
       const current = filterCountry.value || "ALL";
       filterCountry.innerHTML = `<option value="ALL">全部国家</option>` + [...set].sort().map(c=>`<option value="${c}">${c}</option>`).join("");
-      if([...set].includes(current)) filterCountry.value = current;
-      else filterCountry.value = "ALL";
+      filterCountry.value = [...set].includes(current) ? current : "ALL";
     }
 
     function renderDashboard(){
@@ -508,7 +636,6 @@
       const data = (country==="ALL") ? USERS : USERS.filter(u=>u.country===country);
 
       const total = data.length;
-
       const posCount = Object.fromEntries(posKeys.map(k=>[k,0]));
       const teamMap = {};
 
@@ -623,27 +750,38 @@
     async function refreshAll(){
       logDebug("=== refreshAll() start ===");
 
+      // 1) load teams/positions first
       await loadMasterData();
-      logDebug("loadMasterData ok, TEAMS:", TEAMS.length, "POSITIONS:", POSITIONS.length);
+      logDebug("loadMasterData ok", { teams: TEAMS.length, positions: POSITIONS.length });
 
+      // 2) ensure profile
       me = await ensureProfile();
       logDebug("ensureProfile result:", me);
 
+      // 3) fill selects with role
       fillSelectOptions();
       setRoleUI();
 
+      // 4) load users
       await loadUsers();
-      logDebug("loadUsers ok, USERS:", USERS.length);
+      logDebug("loadUsers ok", { users: USERS.length });
 
       computeCountries();
       renderDashboard();
       renderEmployees();
       renderMaster();
 
+      // default shift date today
+      if(!shiftDate.value){
+        const d = new Date();
+        const iso = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+        shiftDate.value = iso;
+      }
+
       logDebug("=== refreshAll() done ===");
     }
 
-    // === Auth actions ===
+    // ======= AUTH UI =======
     btnLogin.onclick = ()=>{
       loginMsg.textContent = "";
       debugBox.textContent = "";
@@ -651,7 +789,6 @@
     };
     btnCloseLogin.onclick = ()=> closeModal(modalLogin);
 
-    // Login
     btnDoLogin.onclick = async ()=>{
       loginMsg.textContent = "Logging in...";
       btnDoLogin.disabled = true;
@@ -674,17 +811,15 @@
 
         logDebug("login data:", data);
 
-        // Force read session after login
-        const sess = await supa.auth.getSession();
-        logDebug("getSession after login:", sess);
+        // ✅ QUAN TRỌNG: gọi refreshAll ngay sau login
+        await refreshAll();
 
         loginMsg.innerHTML = `<span class="ok">✅ Logged in</span>`;
         closeModal(modalLogin);
 
-
       } catch (e){
         logDebug("login exception:", e);
-        loginMsg.innerHTML = `<span class="danger">❌ Error, check console</span>`;
+        loginMsg.innerHTML = `<span class="danger">❌ Error, check debug</span>`;
       } finally{
         btnDoLogin.disabled = false;
         btnDoSignup.disabled = false;
@@ -692,7 +827,6 @@
       }
     };
 
-    // Sign up
     btnDoSignup.onclick = async ()=>{
       loginMsg.textContent = "Signing up...";
       btnDoLogin.disabled = true;
@@ -703,22 +837,18 @@
         const email = loginEmail.value.trim();
         const password = loginPass.value;
 
-        logDebug("signUp:", { email });
-
         const { data, error } = await supa.auth.signUp({ email, password });
-
         if(error){
           logDebug("signup error:", error);
           loginMsg.innerHTML = `<span class="danger">❌ ${error.message}</span>`;
           return;
         }
-
         logDebug("signup data:", data);
-        loginMsg.innerHTML = `<span class="ok">✅ Sign up ok. Nếu project bật email confirm thì kiểm tra mail.</span>`;
+        loginMsg.innerHTML = `<span class="ok">✅ Sign up ok. Nếu bật email confirm thì check mail.</span>`;
 
       } catch(e){
         logDebug("signup exception:", e);
-        loginMsg.innerHTML = `<span class="danger">❌ Error, check console</span>`;
+        loginMsg.innerHTML = `<span class="danger">❌ Error, check debug</span>`;
       } finally{
         btnDoLogin.disabled = false;
         btnDoSignup.disabled = false;
@@ -726,38 +856,30 @@
       }
     };
 
-    // Reset password (send email)
     btnDoReset.onclick = async ()=>{
       const email = loginEmail.value.trim();
       if(!email){
         loginMsg.innerHTML = `<span class="danger">❌ Nhập email trước</span>`;
         return;
       }
-
       loginMsg.textContent = "Sending reset email...";
       btnDoLogin.disabled = true;
       btnDoSignup.disabled = true;
       btnDoReset.disabled = true;
 
       try{
-        // redirect back to same site
         const redirectTo = window.location.origin + window.location.pathname;
-        logDebug("resetPasswordForEmail:", { email, redirectTo });
-
         const { data, error } = await supa.auth.resetPasswordForEmail(email, { redirectTo });
-
         if(error){
           logDebug("reset error:", error);
           loginMsg.innerHTML = `<span class="danger">❌ ${error.message}</span>`;
           return;
         }
-
         logDebug("reset data:", data);
-        loginMsg.innerHTML = `<span class="ok">✅ Đã gửi mail reset. Mở email và bấm link.</span>`;
-
+        loginMsg.innerHTML = `<span class="ok">✅ Đã gửi mail reset.</span>`;
       } catch(e){
         logDebug("reset exception:", e);
-        loginMsg.innerHTML = `<span class="danger">❌ Error, check console</span>`;
+        loginMsg.innerHTML = `<span class="danger">❌ Error</span>`;
       } finally{
         btnDoLogin.disabled = false;
         btnDoSignup.disabled = false;
@@ -767,16 +889,27 @@
 
     btnLogout.onclick = async ()=>{
       await supa.auth.signOut();
-      me = null;
-      USERS = [];
+      me = null; USERS = []; SHIFTS = [];
       setRoleUI();
       tbodyStats.innerHTML = "";
       tbodyEmp.innerHTML = "";
+      tbodyShift.innerHTML = "";
       kpiTotal.textContent = "0"; kpiCS.textContent="0"; kpiWD.textContent="0"; kpiDP.textContent="0";
       alert("Logged out");
     };
 
-    // === Tabs ===
+    // keep sync
+    supa.auth.onAuthStateChange(async (_event, session)=>{
+      console.log("auth change:", _event, session);
+      if(session?.user){
+        await refreshAll();
+      } else {
+        me = null; USERS = []; SHIFTS = [];
+        setRoleUI();
+      }
+    });
+
+    // ======= TABS =======
     tabs.forEach(t=>{
       t.onclick = ()=>{
         if(t.classList.contains("hidden")) return;
@@ -784,16 +917,16 @@
       };
     });
 
-    // === Filters ===
+    // ======= FILTERS =======
     filterStatus.onchange = async ()=>{ await loadUsers(); computeCountries(); renderDashboard(); renderEmployees(); };
     filterTeam.onchange   = async ()=>{ await loadUsers(); computeCountries(); renderDashboard(); renderEmployees(); };
     filterCountry.onchange= ()=>{ renderDashboard(); };
     searchEmp.oninput = ()=> renderEmployees();
 
-    // === Employee modal CRUD ===
+    // ======= EMP CRUD =======
     function openEmpModal(mode, u=null){
       empMsg.textContent = "";
-      editId = u?.id ?? null;
+      editEmpId = u?.id ?? null;
       empTitle.textContent = mode==="edit" ? "Edit employee" : "Add employee";
 
       empName.value = u?.name ?? "";
@@ -842,8 +975,8 @@
 
       empMsg.textContent = "Saving...";
       let res;
-      if(editId){
-        res = await supa.from("users").update(payload).eq("id", editId);
+      if(editEmpId){
+        res = await supa.from("users").update(payload).eq("id", editEmpId);
       }else{
         res = await supa.from("users").insert(payload);
       }
@@ -880,7 +1013,7 @@
       }
     };
 
-    // === Master CRUD (admin) ===
+    // ======= MASTER CRUD =======
     btnAddTeam.onclick = async ()=>{
       if(me?.role!=="admin") return alert("Admin only");
       const name = newTeamName.value.trim();
@@ -907,7 +1040,7 @@
       const id = btn.dataset.team;
       if(!id) return;
       if(me?.role!=="admin") return alert("Admin only");
-      if(!confirm("Delete team? (employees using this team will break)")) return;
+      if(!confirm("Delete team?")) return;
       const res = await supa.from("teams").delete().eq("id", id);
       if(res.error) return alert(res.error.message);
       await refreshAll();
@@ -919,40 +1052,289 @@
       const id = btn.dataset.pos;
       if(!id) return;
       if(me?.role!=="admin") return alert("Admin only");
-      if(!confirm("Delete position? (employees using this position will break)")) return;
+      if(!confirm("Delete position?")) return;
       const res = await supa.from("positions").delete().eq("id", id);
       if(res.error) return alert(res.error.message);
       await refreshAll();
     };
 
-    // === INIT ===
+    // ======= SHIFT CRUD =======
+    function openShiftModal(mode, row=null){
+      shiftMsg.textContent = "";
+      editShiftId = row?.id ?? null;
+      shiftTitle.textContent = mode==="edit" ? "Edit shift" : "Add shift";
+
+      // default date = selected date
+      shiftDate2.value = row?.shift_date ?? shiftDate.value;
+
+      // build emp list from USERS (already filtered by RLS & filters)
+      const teamFilter = shiftTeam.value;
+      const list = teamFilter==="ALL" ? USERS : USERS.filter(u=>u.team_id===teamFilter);
+
+      shiftEmp.innerHTML = list.map(u=>`<option value="${u.id}">${u.name}</option>`).join("");
+      shiftEmp.value = row?.user_id ?? (list[0]?.id ?? "");
+
+      shiftType.value = row?.shift_type ?? "Ca sáng";
+      shiftNote.value = row?.note ?? "";
+
+      openModal(modalShift);
+    }
+
+    btnAddShift.onclick = ()=>{
+      if(!me || (me.role!=="admin" && me.role!=="leader")){
+        alert("No permission");
+        return;
+      }
+      openShiftModal("add");
+    };
+
+    btnCloseShift.onclick = ()=> closeModal(modalShift);
+    btnCancelShift.onclick = ()=> closeModal(modalShift);
+
+    async function loadShifts(){
+      tbodyShift.innerHTML = "";
+      const d = shiftDate.value;
+      if(!d) return;
+
+      let q = supa
+        .from("shift_schedule")
+        .select("*")
+        .eq("shift_date", d)
+        .order("created_at", { ascending:false });
+
+      const { data, error } = await q;
+      if(error){
+        alert(error.message);
+        logDebug("shift load error:", error);
+        SHIFTS = [];
+        return;
+      }
+      SHIFTS = data ?? [];
+      renderShifts();
+    }
+
+    function renderShifts(){
+      const teamFilter = shiftTeam.value;
+      const rows = SHIFTS.filter(s=>{
+        if(teamFilter==="ALL") return true;
+        const u = USERS.find(x=>x.id===s.user_id);
+        return u?.team_id === teamFilter;
+      });
+
+      tbodyShift.innerHTML = rows.map(s=>{
+        const u = USERS.find(x=>x.id===s.user_id);
+        const teamName = TEAMS.find(x=>x.id===u?.team_id)?.team_name ?? "-";
+        const posName  = POSITIONS.find(x=>x.id===u?.position_id)?.position_name ?? "-";
+        return `
+          <tr>
+            <td>${s.shift_date}</td>
+            <td><strong>${safeText(u?.name) || "-"}</strong></td>
+            <td>${teamName}</td>
+            <td>${posName}</td>
+            <td>${safeText(s.shift_type)}</td>
+            <td>${safeText(s.note || "")}</td>
+            <td class="actions">
+              <button class="edit" data-id="${s.id}">Edit</button>
+              <button class="del" data-id="${s.id}">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    btnLoadShifts.onclick = loadShifts;
+    shiftTeam.onchange = ()=> renderShifts();
+
+    btnSaveShift.onclick = async ()=>{
+      if(!me || (me.role!=="admin" && me.role!=="leader")){
+        alert("No permission");
+        return;
+      }
+      const payload = {
+        shift_date: shiftDate2.value,
+        user_id: shiftEmp.value,
+        shift_type: shiftType.value.trim(),
+        note: shiftNote.value.trim()
+      };
+      if(!payload.shift_date || !payload.user_id || !payload.shift_type){
+        shiftMsg.innerHTML = `<span class="danger">❌ Thiếu dữ liệu</span>`;
+        return;
+      }
+
+      shiftMsg.textContent = "Saving...";
+      let res;
+      if(editShiftId){
+        res = await supa.from("shift_schedule").update(payload).eq("id", editShiftId);
+      }else{
+        res = await supa.from("shift_schedule").insert(payload);
+      }
+      if(res.error){
+        shiftMsg.innerHTML = `<span class="danger">❌ ${res.error.message}</span>`;
+        logDebug("shift save error:", res.error);
+        return;
+      }
+      closeModal(modalShift);
+      await loadShifts();
+    };
+
+    tbodyShift.onclick = async (e)=>{
+      const btn = e.target.closest("button");
+      if(!btn) return;
+      const id = btn.dataset.id;
+      if(!id) return;
+
+      const row = SHIFTS.find(x=>x.id===id);
+      if(btn.classList.contains("edit")){
+        openShiftModal("edit", row);
+      }
+      if(btn.classList.contains("del")){
+        if(!confirm("Delete this shift?")) return;
+        const res = await supa.from("shift_schedule").delete().eq("id", id);
+        if(res.error){ alert(res.error.message); return; }
+        await loadShifts();
+      }
+    };
+
+    // ======= IMPORT (CSV) =======
+    function parseCSV(text){
+      // basic CSV parser (simple, no quoted commas)
+      const lines = text.trim().split(/\r?\n/);
+      const header = lines[0].split(",").map(s=>s.trim());
+      const rows = lines.slice(1).map(line=>{
+        const cols = line.split(",").map(s=>s.trim());
+        const obj = {};
+        header.forEach((h,i)=>obj[h]=cols[i] ?? "");
+        return obj;
+      });
+      return { header, rows };
+    }
+
+    function normalizeStatus(s){
+      const v = (s||"").trim();
+      if(v === "在职" || v.toLowerCase()==="active") return "在职";
+      if(v === "离职" || v.toLowerCase()==="inactive") return "离职";
+      return v || "在职";
+    }
+
+    async function ensureTeamByName(name){
+      const n = (name||"").trim();
+      if(!n) return null;
+      let found = TEAMS.find(t=>t.team_name===n);
+      if(found) return found.id;
+
+      // admin only can create
+      if(me?.role !== "admin") return null;
+
+      const ins = await supa.from("teams").insert({ team_name: n }).select("*").single();
+      if(ins.error) throw ins.error;
+      TEAMS.push(ins.data);
+      return ins.data.id;
+    }
+
+    async function ensurePosByName(name){
+      const n = (name||"").trim();
+      if(!n) return null;
+      let found = POSITIONS.find(p=>p.position_name===n);
+      if(found) return found.id;
+
+      if(me?.role !== "admin") return null;
+
+      const ins = await supa.from("positions").insert({ position_name: n }).select("*").single();
+      if(ins.error) throw ins.error;
+      POSITIONS.push(ins.data);
+      return ins.data.id;
+    }
+
+    btnPreviewCsv.onclick = async ()=>{
+      importMsg.textContent = "";
+      csvPreview.textContent = "";
+      const url = csvUrl.value.trim();
+      if(!url){ importMsg.innerHTML = `<span class="danger">❌ Dán link CSV</span>`; return; }
+
+      try{
+        const res = await fetch(url);
+        if(!res.ok) throw new Error("Fetch failed: " + res.status);
+        const text = await res.text();
+        const { header, rows } = parseCSV(text);
+        csvPreview.textContent = JSON.stringify({ header, sample: rows.slice(0,10) }, null, 2);
+        importMsg.innerHTML = `<span class="ok">✅ Preview ok (show 10 rows)</span>`;
+      }catch(e){
+        importMsg.innerHTML = `<span class="danger">❌ ${e.message}</span>`;
+      }
+    };
+
+    btnImportCsv.onclick = async ()=>{
+      importMsg.textContent = "";
+      const url = csvUrl.value.trim();
+      if(!url){ importMsg.innerHTML = `<span class="danger">❌ Dán link CSV</span>`; return; }
+      if(!me || (me.role!=="admin" && me.role!=="leader")){
+        importMsg.innerHTML = `<span class="danger">❌ No permission</span>`;
+        return;
+      }
+
+      try{
+        importMsg.textContent = "Loading CSV...";
+        const res = await fetch(url);
+        if(!res.ok) throw new Error("Fetch failed: " + res.status);
+        const text = await res.text();
+        const { rows } = parseCSV(text);
+
+        // Map columns (support a few aliases)
+        const get = (obj, keys)=> {
+          for(const k of keys){
+            if(obj[k] != null && obj[k] !== "") return obj[k];
+          }
+          return "";
+        };
+
+        let ok = 0, fail = 0;
+        for(const r of rows){
+          const name = get(r, ["name","姓名","Name"]).trim();
+          const teamName = get(r, ["team","团队","Team"]).trim();
+          const posName  = get(r, ["position","岗位","Position"]).trim();
+          const country  = get(r, ["country","国家","Country"]).trim();
+          const status   = normalizeStatus(get(r, ["status","状态","Status"]));
+
+          if(!name){ fail++; continue; }
+
+          // team/pos by name (admin can auto-create; leader cannot create)
+          const team_id = await ensureTeamByName(teamName);
+          const position_id = await ensurePosByName(posName);
+
+          // leader must keep within own team (if team_id null => skip)
+          if(me.role === "leader" && team_id !== me.team_id){ fail++; continue; }
+
+          const ins = await supa.from("users").insert({
+            name, team_id, position_id, country, status
+          });
+
+          if(ins.error){
+            fail++;
+            console.warn(ins.error);
+          }else{
+            ok++;
+          }
+        }
+
+        importMsg.innerHTML = `<span class="ok">✅ Import done: ok=${ok}, fail=${fail}</span>`;
+        await refreshAll();
+      }catch(e){
+        importMsg.innerHTML = `<span class="danger">❌ ${e.message}</span>`;
+      }
+    };
+
+    // ======= INIT =======
     setRoleUI();
     showTab("dashboard");
 
-    // Load session on start (hard reliable)
+    // load session if already logged in
     (async ()=>{
-      try{
-        const s = await supa.auth.getSession();
-        console.log("init session:", s);
-        if(s?.data?.session?.user){
-          await refreshAll();
-        }
-      }catch(e){
-        console.error(e);
+      const s = await supa.auth.getSession();
+      console.log("init session:", s);
+      if(s?.data?.session?.user){
+        await refreshAll();
       }
     })();
-
-    // Keep UI in sync (optional, but good)
-    supa.auth.onAuthStateChange(async (_event, session)=>{
-      console.log("auth change:", _event, session);
-      if(session?.user){
-        await refreshAll();
-      } else {
-        me = null;
-        USERS = [];
-        setRoleUI();
-      }
-    });
   </script>
 </body>
 </html>
