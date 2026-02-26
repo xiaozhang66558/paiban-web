@@ -8,176 +8,86 @@
 <style>
 *{box-sizing:border-box;font-family:Segoe UI}
 body{margin:0;background:#f3f4f6}
-
-header{
-  background:#0f172a;
-  color:#fff;
-  padding:16px 24px;
-}
-
-.container{
-  max-width:1600px;
-  margin:20px auto;
-  padding:0 20px;
-}
-
-.card{
-  background:#fff;
-  border-radius:16px;
-  padding:20px;
-  box-shadow:0 2px 10px rgba(0,0,0,.06);
-  margin-bottom:20px;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px;
-}
-
-.kpi{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-  gap:15px;
-  margin-top:15px;
-}
-
-.kpiBox{
-  background:#fff;
-  border-radius:12px;
-  padding:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,.05);
-  cursor:pointer;
-  transition:.2s;
-}
+header{background:#0f172a;color:#fff;padding:16px 24px}
+.container{max-width:1600px;margin:20px auto;padding:0 20px}
+.card{background:#fff;border-radius:16px;padding:20px;
+box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+gap:15px;margin-top:15px}
+.kpiBox{background:#fff;border-radius:12px;padding:15px;
+box-shadow:0 2px 8px rgba(0,0,0,.05);cursor:pointer}
 .kpiBox:hover{background:#eef2ff}
-
-.teamRow{
-  background:#fff;
-  border-radius:14px;
-  padding:15px;
-  box-shadow:0 2px 10px rgba(0,0,0,.05);
-  margin-bottom:15px;
-}
-
-.teamTitle{
-  font-weight:bold;
-  margin-bottom:10px;
-}
-
-.teamStats{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-}
-
-.teamStatBox{
-  background:#f3f4f6;
-  padding:8px 12px;
-  border-radius:8px;
-  cursor:pointer;
-}
+.teamRow{background:#fff;border-radius:14px;padding:15px;
+box-shadow:0 2px 10px rgba(0,0,0,.05);margin-bottom:15px}
+.teamTitle{font-weight:bold;margin-bottom:10px}
+.teamStats{display:flex;flex-wrap:wrap;gap:10px}
+.teamStatBox{background:#f3f4f6;padding:8px 12px;
+border-radius:8px;cursor:pointer}
 .teamStatBox:hover{background:#dbeafe}
-
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.5);
-  display:none;
-  justify-content:center;
-  align-items:center;
-}
-
-.modal-box{
-  background:#fff;
-  width:95%;
-  max-width:1500px;
-  max-height:85vh;
-  overflow:auto;
-  padding:20px;
-  border-radius:12px;
-}
-
-.closeBtn{
-  float:right;
-  cursor:pointer;
-  font-weight:bold;
-  color:red;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:15px;
-}
-th{
-  background:#0f172a;
-  color:#fff;
-  padding:10px;
-}
-td{
-  padding:8px;
-  border-bottom:1px solid #eee;
-  text-align:center;
-}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);
+display:none;justify-content:center;align-items:center}
+.modal-box{background:#fff;width:95%;max-width:1500px;
+max-height:85vh;overflow:auto;padding:20px;border-radius:12px}
+.closeBtn{float:right;cursor:pointer;font-weight:bold;color:red}
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th{background:#0f172a;color:#fff;padding:10px}
+td{padding:8px;border-bottom:1px solid #eee;text-align:center}
 </style>
 </head>
 
 <body>
 
-<header>
-  <strong>HR System</strong>
-</header>
+<header><strong>HR System</strong></header>
 
 <div class="container">
 
-  <!-- BIỂU ĐỒ ĐƯA LÊN TRÊN -->
-  <div class="grid">
-    <div class="card">
-      <h3>岗位分布</h3>
-      <canvas id="chartPosition"></canvas>
-    </div>
-    <div class="card">
-      <h3>团队人数（cột F）</h3>
-      <canvas id="chartTeam"></canvas>
-    </div>
-  </div>
-
+<div class="grid">
   <div class="card">
-    <h3>总人数: <span id="kTotal">0</span></h3>
-    <div id="positionCards" class="kpi"></div>
+    <h3>岗位分布</h3>
+    <canvas id="chartPosition"></canvas>
   </div>
-
   <div class="card">
-    <h3>团队统计（cột F）</h3>
-    <div id="teamCards"></div>
+    <h3>团队人数（cột F）</h3>
+    <canvas id="chartTeam"></canvas>
   </div>
+</div>
+
+<div class="card">
+  <h3>总人数: <span id="kTotal">0</span></h3>
+  <div id="positionCards" class="kpi"></div>
+</div>
+
+<div class="card">
+  <h3>团队统计（真正用 cột F）</h3>
+  <div id="teamCards"></div>
+</div>
 
 </div>
 
-<!-- POPUP -->
 <div class="modal" id="modal">
-  <div class="modal-box">
-    <span class="closeBtn" onclick="closeModal()">关闭 ✖</span>
-    <h3 id="modalTitle"></h3>
-    <table>
-      <thead>
-        <tr>
-          <th>负责人</th>
-          <th>现场培训</th>
-          <th>线上组长</th>
-          <th>线上培训</th>
-          <th>组别</th>
-          <th>姓名</th>
-          <th>ID</th>
-          <th>国家</th>
-          <th>岗位</th>
-          <th>盘口</th>
-        </tr>
-      </thead>
-      <tbody id="modalBody"></tbody>
-    </table>
-  </div>
+<div class="modal-box">
+<span class="closeBtn" onclick="closeModal()">关闭 ✖</span>
+<h3 id="modalTitle"></h3>
+<table>
+<thead>
+<tr>
+<th>负责人</th>
+<th>现场培训</th>
+<th>线上组长</th>
+<th>线上培训</th>
+<th>组别(E)</th>
+<th>团队(F)</th>
+<th>姓名</th>
+<th>ID</th>
+<th>国家</th>
+<th>岗位</th>
+<th>盘口</th>
+</tr>
+</thead>
+<tbody id="modalBody"></tbody>
+</table>
+</div>
 </div>
 
 <script>
@@ -197,7 +107,8 @@ async function loadData(){
     onsite:r["现场培训"]||"",
     onlineLead:r["线上组长"]||"",
     onlineTrain:r["线上培训"]||"",
-    team:r["组别"]||"",  // ✅ cột F
+    group:r["组别"]||"",     // cột E
+    team:r["团队"]||"",      // 🔥 cột F
     name:r["姓名"]||"",
     id:r["ID"]||"",
     country:r["国家"]||"",
@@ -224,9 +135,9 @@ function render(){
 
   positionCards.innerHTML=positions.map(p=>{
     const count=rawData.filter(r=>r.position===p).length;
-    return `<div class="kpiBox" onclick="openByPosition('${p}')">
-      <strong>${p}</strong><div>${count} 人</div>
-    </div>`;
+    return `<div class="kpiBox"
+      onclick="openModal('${p}', rawData.filter(r=>r.position==='${p}'))">
+      <strong>${p}</strong><div>${count} 人</div></div>`;
   }).join("");
 
   if(chart1) chart1.destroy();
@@ -255,53 +166,35 @@ function render(){
 
   teamCards.innerHTML=teams.map(team=>{
     const teamData=rawData.filter(r=>r.team===team);
-    const teamPositions=[...new Set(teamData.map(r=>r.position))];
-
     return `<div class="teamRow">
       <div class="teamTitle">${team}</div>
       <div class="teamStats">
-        <div class="teamStatBox" onclick="openByTeam('${team}')">
+        <div class="teamStatBox"
+          onclick="openModal('${team}', rawData.filter(r=>r.team==='${team}'))">
           总人数 ${teamData.length}
         </div>
-        ${teamPositions.map(pos=>{
-          const count=teamData.filter(r=>r.position===pos).length;
-          return `<div class="teamStatBox"
-            onclick="openTeamPosition('${team}','${pos}')">
-            ${pos} ${count}
-          </div>`;
-        }).join("")}
       </div>
     </div>`;
   }).join("");
 }
 
-function openByPosition(p){
-  openModal(p+" 员工名单",rawData.filter(r=>r.position===p));
-}
-function openByTeam(t){
-  openModal(t+" 员工名单",rawData.filter(r=>r.team===t));
-}
-function openTeamPosition(t,p){
-  openModal(t+" - "+p+" 员工名单",
-    rawData.filter(r=>r.team===t && r.position===p));
-}
-
 function openModal(title,data){
   modal.style.display="flex";
-  modalTitle.innerText=title;
+  modalTitle.innerText=title+" 员工名单";
   modalBody.innerHTML=data.map(r=>`
-    <tr>
-      <td>${r.leader}</td>
-      <td>${r.onsite}</td>
-      <td>${r.onlineLead}</td>
-      <td>${r.onlineTrain}</td>
-      <td>${r.team}</td>
-      <td>${r.name}</td>
-      <td>${r.id}</td>
-      <td>${r.country}</td>
-      <td>${r.position}</td>
-      <td>${r.market}</td>
-    </tr>`).join("");
+<tr>
+<td>${r.leader}</td>
+<td>${r.onsite}</td>
+<td>${r.onlineLead}</td>
+<td>${r.onlineTrain}</td>
+<td>${r.group}</td>
+<td>${r.team}</td>
+<td>${r.name}</td>
+<td>${r.id}</td>
+<td>${r.country}</td>
+<td>${r.position}</td>
+<td>${r.market}</td>
+</tr>`).join("");
 }
 
 function closeModal(){modal.style.display="none"}
@@ -309,6 +202,5 @@ function closeModal(){modal.style.display="none"}
 loadData();
 
 </script>
-
 </body>
 </html>
