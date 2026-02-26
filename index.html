@@ -2,315 +2,382 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HR System • Dashboard / Employees / 排班表</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>HR System (Enterprise)</title>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root{
-      --bg1:#eef3f8;
-      --bg2:#f7fbff;
+      --bg0:#f4f7fb;
+      --bg1:#eef3fb;
       --card:#ffffff;
-      --text:#0b1220;
-      --muted:#5b6b83;
-      --line:rgba(15,23,42,.10);
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#e6edf7;
       --nav:#0b1220;
       --nav2:#0f172a;
-      --pill:#eef2ff;
-      --primary:#2563eb;
-      --shadow:0 14px 45px rgba(2, 12, 27, .10);
-      --shadow2:0 10px 30px rgba(2, 12, 27, .08);
-      --radius:18px;
+      --accent:#2563eb;
+      --accent2:#22c55e;
+      --shadow: 0 10px 30px rgba(15,23,42,.08);
+      --shadow2: 0 6px 18px rgba(2,6,23,.08);
+      --r12:12px;
+      --r16:16px;
+      --r20:20px;
     }
-    *{box-sizing:border-box;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+
+    *{box-sizing:border-box;}
     body{
       margin:0;
-      color:var(--text);
-      background:
-        radial-gradient(1200px 600px at 10% 0%, rgba(37,99,235,.10), transparent 55%),
-        radial-gradient(900px 500px at 90% 10%, rgba(16,185,129,.10), transparent 60%),
-        linear-gradient(180deg,var(--bg2),var(--bg1));
+      color:var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial;
+      background: radial-gradient(1200px 600px at 20% 0%, #eaf2ff 0%, transparent 55%),
+                  radial-gradient(1200px 600px at 90% 10%, #edf7ff 0%, transparent 55%),
+                  linear-gradient(180deg, var(--bg0), var(--bg1));
       min-height:100vh;
     }
 
     header{
-      position:sticky; top:0; z-index:30;
-      background:linear-gradient(180deg,var(--nav2),var(--nav));
+      position:sticky; top:0; z-index:50;
+      background: linear-gradient(180deg, var(--nav), var(--nav2));
       color:#fff;
       padding:14px 18px;
-      display:flex; align-items:center; justify-content:space-between;
-      box-shadow:0 8px 24px rgba(0,0,0,.25);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
     }
-    .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px;}
-    .badge{
-      display:inline-flex; align-items:center; gap:8px;
-      background:rgba(255,255,255,.10);
-      padding:7px 12px; border-radius:999px; font-size:12px;
-    }
-    .dot{width:9px;height:9px;border-radius:99px;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
-    .topRight{display:flex; gap:10px; align-items:center}
-    .btn{
-      border:0; cursor:pointer;
-      border-radius:12px;
-      padding:10px 14px;
-      font-weight:700;
-      color:#fff;
-      background:rgba(255,255,255,.10);
-      transition:.15s transform,.15s opacity,.15s background;
-    }
-    .btn:hover{transform:translateY(-1px); background:rgba(255,255,255,.14)}
-    .wrap{max-width:1240px; margin:18px auto; padding:0 18px 40px;}
-    .shell{
-      display:flex; gap:14px; align-items:flex-start;
-      margin-top:14px;
-    }
-    .navPills{
-      position:sticky; top:72px;
-      width:172px; flex:0 0 172px;
-      background:rgba(255,255,255,.55);
-      backdrop-filter: blur(12px);
-      border:1px solid var(--line);
-      border-radius:24px;
-      box-shadow:var(--shadow2);
-      padding:10px;
-    }
-    .pillBtn{
-      width:100%;
-      display:flex; align-items:center; justify-content:space-between;
-      gap:10px;
-      border-radius:18px;
-      padding:12px 12px;
-      border:1px solid transparent;
-      background:transparent;
-      cursor:pointer;
+    header .brand{
       font-weight:800;
-      color:#152033;
+      letter-spacing:.2px;
+      display:flex; gap:10px; align-items:center;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.10);
+      font-size:12px;
+      color:#e5e7eb;
+      border:1px solid rgba(255,255,255,.12);
+    }
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--accent2);display:inline-block;}
+
+    .wrap{
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    /* top nav tabs */
+    .topTabs{
+      display:flex; gap:10px; flex-wrap:wrap;
+      align-items:center;
+      margin: 8px 0 14px;
+    }
+    .tab{
+      cursor:pointer;
+      user-select:none;
+      padding:10px 14px;
+      border-radius:999px;
+      background: rgba(15,23,42,.06);
+      border:1px solid rgba(15,23,42,.08);
+      font-weight:800;
+      font-size:13px;
+      color: var(--ink);
       transition:.15s;
     }
-    .pillBtn:hover{background:rgba(37,99,235,.08)}
-    .pillBtn.active{
-      background:linear-gradient(180deg, rgba(37,99,235,.18), rgba(37,99,235,.10));
-      border-color:rgba(37,99,235,.18);
-      color:#0b1b3a;
+    .tab:hover{ transform: translateY(-1px); box-shadow: var(--shadow2); }
+    .tab.active{
+      background: linear-gradient(180deg, #111827, #0b1220);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.10);
     }
-    .pillTag{
-      font-size:11px;
-      padding:4px 8px;
+
+    /* filters bar */
+    .filterBar{
+      background: rgba(255,255,255,.72);
+      border:1px solid rgba(15,23,42,.08);
+      box-shadow: var(--shadow2);
+      border-radius: 18px;
+      padding: 12px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      backdrop-filter: blur(10px);
+    }
+    .filterBar input, .filterBar select{
+      border:1px solid rgba(15,23,42,.10);
+      background:#fff;
       border-radius:999px;
-      background:rgba(15,23,42,.06);
-      color:var(--muted);
-      font-weight:800;
-    }
-    .content{flex:1; min-width:0;}
-
-    .hero{
-      background:rgba(255,255,255,.65);
-      border:1px solid var(--line);
-      border-radius:28px;
-      box-shadow:var(--shadow2);
-      padding:22px 22px;
-      display:flex; justify-content:space-between; gap:14px; align-items:flex-start;
-      backdrop-filter: blur(12px);
-    }
-    .hero h1{margin:0 0 6px;font-size:26px;letter-spacing:.2px}
-    .hero p{margin:0;color:var(--muted);font-weight:650}
-    .filters{
-      margin-top:12px;
-      background:rgba(255,255,255,.65);
-      border:1px solid var(--line);
-      border-radius:24px;
-      box-shadow:var(--shadow2);
-      padding:12px;
-      backdrop-filter: blur(12px);
-      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
-    }
-    .input, select{
-      appearance:none;
-      border:1px solid rgba(15,23,42,.12);
-      background:rgba(255,255,255,.85);
-      border-radius:14px;
       padding:10px 12px;
-      outline:none;
       font-weight:700;
-      color:#0c1528;
-      min-width:180px;
+      font-size:13px;
+      outline:none;
+      min-width: 180px;
     }
-    .input{min-width:260px}
-    .mini{
-      min-width:150px;
-    }
-    .hint{
-      font-size:12px;color:var(--muted);font-weight:650;margin-left:auto
-    }
-
-    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
-    .grid3{display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-top:14px;}
-    @media (max-width: 980px){
-      .shell{flex-direction:column}
-      .navPills{position:relative; top:auto; width:100%; display:flex; gap:10px}
-      .pillBtn{width:auto; flex:1}
-      .grid2{grid-template-columns:1fr}
-      .grid3{grid-template-columns:repeat(2,1fr)}
-      .hint{width:100%; margin-left:0}
+    .filterBar .meta{
+      margin-left:auto;
+      color: var(--muted);
+      font-size:12px;
+      font-weight:700;
     }
 
+    /* cards */
     .card{
-      background:rgba(255,255,255,.70);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow2);
-      padding:16px;
+      background: rgba(255,255,255,.86);
+      border: 1px solid rgba(15,23,42,.08);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+      margin-top: 14px;
       backdrop-filter: blur(12px);
-      min-width:0;
+    }
+    .card h2{
+      margin:0;
+      font-size:22px;
+      letter-spacing:.2px;
+    }
+    .sub{
+      color: var(--muted);
+      font-size:13px;
+      font-weight:700;
+      margin-top:6px;
+    }
+
+    /* kpi rows */
+    .kpiRow{
+      display:grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap:12px;
+      margin-top: 14px;
+    }
+    @media (max-width:1100px){
+      .kpiRow{ grid-template-columns: repeat(2,1fr); }
     }
     .kpi{
-      display:flex; flex-direction:column; gap:6px;
-      padding:16px;
-      border-radius:16px;
-      border:1px solid rgba(15,23,42,.10);
-      background:rgba(255,255,255,.82);
-      box-shadow:0 10px 26px rgba(2, 12, 27, .06);
+      background: #fff;
+      border: 1px solid rgba(15,23,42,.08);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(2,6,23,.06);
       cursor:pointer;
-      transition:.15s transform,.15s border-color,.15s background;
-    }
-    .kpi:hover{transform:translateY(-2px); border-color:rgba(37,99,235,.22); background:rgba(255,255,255,.92)}
-    .kpi .t{font-size:12px;color:var(--muted);font-weight:850}
-    .kpi .v{font-size:28px;font-weight:900; letter-spacing:.2px}
-    .kpi .s{font-size:12px;color:var(--muted);font-weight:700}
-
-    .sectionTitle{
-      margin:14px 0 10px;
-      font-size:15px;
-      color:#0c1528;
-      font-weight:900;
-      display:flex; align-items:center; gap:10px;
-    }
-    .chip{
-      padding:6px 10px;
-      border-radius:999px;
-      background:rgba(37,99,235,.10);
-      border:1px solid rgba(37,99,235,.16);
-      color:#0b1b3a;
-      font-weight:900;
-      font-size:12px;
-    }
-
-    .cardsWrap{
-      display:grid;
-      grid-template-columns:repeat(6, 1fr);
-      gap:10px;
-    }
-    @media (max-width:1100px){ .cardsWrap{grid-template-columns:repeat(4,1fr)} }
-    @media (max-width:720px){ .cardsWrap{grid-template-columns:repeat(2,1fr)} }
-
-    .miniCard{
-      background:rgba(255,255,255,.85);
-      border:1px solid rgba(15,23,42,.10);
-      border-radius:16px;
-      padding:12px;
-      box-shadow:0 10px 26px rgba(2, 12, 27, .05);
-      cursor:pointer;
-      transition:.15s transform,.15s border-color;
-      min-height:64px;
-    }
-    .miniCard:hover{transform:translateY(-2px); border-color:rgba(37,99,235,.22)}
-    .miniCard .name{font-weight:900; font-size:13px; color:#0c1528; margin-bottom:6px; line-height:1.15}
-    .miniCard .count{font-weight:900; font-size:20px}
-    .miniCard .sub{font-size:11px;color:var(--muted);font-weight:750}
-
-    .tableWrap{
-      margin-top:10px;
-      border-radius:16px;
+      transition:.15s;
+      position:relative;
       overflow:hidden;
-      border:1px solid rgba(15,23,42,.10);
-      background:rgba(255,255,255,.82);
-      box-shadow:0 10px 26px rgba(2, 12, 27, .05);
+      min-height: 92px;
     }
-    table{width:100%; border-collapse:collapse;}
-    thead th{
-      position:sticky; top:0; z-index:2;
-      background:linear-gradient(180deg,#0f172a,#0b1220);
-      color:#fff;
-      text-align:left;
+    .kpi:hover{ transform: translateY(-2px); box-shadow: 0 12px 26px rgba(2,6,23,.09); }
+    .kpi .t{ font-size:12px; color:var(--muted); font-weight:900; }
+    .kpi .v{ font-size:28px; font-weight:1000; margin-top:6px; }
+    .kpi .hint{ font-size:12px; color:#64748b; font-weight:800; margin-top:8px; }
+    .kpi .spark{
+      position:absolute; right:-30px; top:-30px;
+      width:120px; height:120px;
+      border-radius:999px;
+      background: radial-gradient(circle at 40% 40%, rgba(37,99,235,.25), transparent 55%);
+      filter: blur(0px);
+    }
+
+    /* role tiles */
+    .tileGrid{
+      display:grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap:10px;
+      margin-top: 12px;
+    }
+    @media (max-width:1200px){ .tileGrid{ grid-template-columns: repeat(3,1fr);} }
+    @media (max-width:700px){ .tileGrid{ grid-template-columns: repeat(2,1fr);} }
+
+    .tile{
+      background:#fff;
+      border: 1px solid rgba(15,23,42,.08);
+      border-radius: 18px;
+      padding: 12px 12px;
+      box-shadow: 0 8px 18px rgba(2,6,23,.05);
+      cursor:pointer;
+      transition:.14s;
+      min-height: 70px;
+    }
+    .tile:hover{ transform: translateY(-2px); box-shadow: 0 12px 24px rgba(2,6,23,.09); }
+    .tile .name{ font-weight:950; font-size:13px; }
+    .tile .count{ color:var(--muted); font-weight:900; margin-top:6px; }
+
+    /* two charts row */
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media(max-width:1100px){ .grid2{ grid-template-columns: 1fr; } }
+
+    .chartBox{ height: 360px; }
+    .chartBox canvas{ width:100% !important; height:100% !important; }
+
+    /* team table */
+    .tableWrap{
+      width:100%;
+      overflow:auto;
+      border-radius: 16px;
+      border:1px solid rgba(15,23,42,.08);
+      background:#fff;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
       font-size:12px;
-      padding:12px 12px;
-      font-weight:900;
+    }
+    thead th{
+      position:sticky; top:0;
+      background: linear-gradient(180deg, #0b1220, #111827);
+      color:#fff;
+      padding:10px 10px;
+      font-weight:950;
       letter-spacing:.2px;
       white-space:nowrap;
     }
     tbody td{
-      padding:12px 12px;
-      border-bottom:1px solid rgba(15,23,42,.08);
-      font-weight:700;
-      color:#0c1528;
+      padding:9px 10px;
+      border-bottom:1px solid #edf2f7;
       vertical-align:top;
     }
-    tbody tr:hover{background:rgba(37,99,235,.05)}
+    tbody tr:hover{ background: #f7fbff; }
     .link{
-      color:#2563eb; font-weight:900; cursor:pointer; text-decoration:none;
+      color: var(--accent);
+      font-weight:950;
+      cursor:pointer;
     }
-    .nowrap{white-space:nowrap}
-    .muted{color:var(--muted); font-weight:750}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; font-weight:900}
 
-    /* Make 排班表 table easier to read */
-    .scrollY{max-height:66vh; overflow:auto;}
-    .wTeam{min-width:140px; white-space:nowrap;}
-    .wGroup{min-width:120px; white-space:nowrap;}
-    .wShift{min-width:130px; white-space:nowrap;}
-    .wName{min-width:210px;}
-    .wPos{min-width:120px; white-space:nowrap;}
-    .wID{min-width:120px; white-space:nowrap;}
-    .wCountry{min-width:90px; white-space:nowrap;}
-    .wMarket{min-width:160px; white-space:nowrap;}
-    .wLeader{min-width:130px; white-space:nowrap;}
+    /* compact table for less horizontal scroll */
+    .compact table{ font-size:11px; }
+    .compact tbody td{ padding:8px 8px; }
 
-    /* Modal */
+    /* cards view (no horizontal scroll) */
+    .cardsView{
+      display:grid;
+      grid-template-columns: repeat(3,1fr);
+      gap:10px;
+    }
+    @media(max-width:1100px){ .cardsView{ grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:700px){ .cardsView{ grid-template-columns: 1fr; } }
+
+    .empCard{
+      background:#fff;
+      border:1px solid rgba(15,23,42,.08);
+      border-radius:18px;
+      box-shadow: 0 10px 24px rgba(2,6,23,.06);
+      padding:12px;
+    }
+    .empCard .row1{
+      display:flex; justify-content:space-between; gap:10px;
+      align-items:flex-start;
+    }
+    .empCard .nm{
+      font-weight:1000;
+      font-size:14px;
+      line-height:1.2;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:900;
+      border:1px solid rgba(15,23,42,.10);
+      background:#f8fafc;
+      color:#0f172a;
+      white-space:nowrap;
+    }
+    .empCard .meta{
+      margin-top:8px;
+      color: var(--muted);
+      font-weight:800;
+      font-size:12px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:6px 10px;
+    }
+    .empCard .meta div{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .btnRow{
+      display:flex; gap:10px; flex-wrap:wrap;
+      margin-top: 10px;
+    }
+    .btn{
+      cursor:pointer;
+      user-select:none;
+      padding:9px 12px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid rgba(15,23,42,.12);
+      font-weight:900;
+      font-size:12px;
+    }
+    .btn.primary{
+      background: linear-gradient(180deg, #2563eb, #1d4ed8);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    /* modal */
     .modal{
-      position:fixed; inset:0; z-index:60;
-      background:rgba(2, 10, 22, .55);
+      position:fixed; inset:0;
+      background: rgba(2,6,23,.55);
       display:none;
       align-items:center;
       justify-content:center;
-      padding:16px;
+      z-index:200;
+      padding: 18px;
     }
-    .modal.show{display:flex}
-    .modalBox{
-      width:min(1120px, 96vw);
-      max-height:86vh;
+    .modal .box{
+      width: min(1400px, 98vw);
+      max-height: 92vh;
       overflow:auto;
-      background:rgba(255,255,255,.92);
-      border:1px solid rgba(255,255,255,.25);
-      border-radius:22px;
-      box-shadow:0 30px 70px rgba(0,0,0,.35);
-      backdrop-filter: blur(16px);
+      background: rgba(255,255,255,.95);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      border-radius: 22px;
+      padding: 16px;
+      backdrop-filter: blur(14px);
     }
-    .modalHead{
-      position:sticky; top:0; z-index:2;
-      padding:14px 16px;
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      border-bottom:1px solid rgba(15,23,42,.10);
-      background:rgba(255,255,255,.92);
+    .modal .head{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+      position:sticky; top:0;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(12px);
+      padding: 10px 6px 12px;
+      border-bottom: 1px solid rgba(15,23,42,.08);
+      z-index:2;
     }
-    .modalTitle{font-weight:950; font-size:16px}
+    .modal .head h3{
+      margin:0;
+      font-size:16px;
+      font-weight:1000;
+    }
     .x{
-      border:0; cursor:pointer;
-      width:40px;height:40px;border-radius:14px;
-      background:rgba(15,23,42,.06);
-      font-weight:950;
+      cursor:pointer;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.12);
+      background:#fff;
+      font-weight:1000;
     }
-    .modalBody{padding:14px 16px}
 
-    .toast{
-      margin-top:10px;
-      background:rgba(255,255,255,.70);
-      border:1px solid var(--line);
-      border-radius:18px;
-      padding:12px 14px;
-      box-shadow:var(--shadow2);
-      color:var(--muted);
-      font-weight:750;
+    /* sections visibility */
+    .page{ display:none; }
+    .page.active{ display:block; }
+
+    /* small helper text */
+    .note{
+      margin-top:8px;
+      color: var(--muted);
+      font-weight:800;
+      font-size:12px;
     }
   </style>
 </head>
@@ -318,896 +385,851 @@
 <body>
 <header>
   <div class="brand">
-    <span>HR System</span>
-    <span class="badge"><span class="dot"></span>Public view</span>
+    HR System
+    <span class="badge"><span class="dot"></span> Public view</span>
   </div>
-  <div class="topRight">
-    <button class="btn" id="btnReload">Reload</button>
-  </div>
+  <div class="badge">Google Sheet → opensheet</div>
 </header>
 
 <div class="wrap">
-  <div class="shell">
 
-    <div class="navPills">
-      <button class="pillBtn active" data-page="dash">
-        <span>Dashboard</span><span class="pillTag">统计</span>
-      </button>
-      <button class="pillBtn" data-page="emp">
-        <span>Employees</span><span class="pillTag">名单</span>
-      </button>
-      <button class="pillBtn" data-page="sch">
-        <span>排班表</span><span class="pillTag">Shift</span>
-      </button>
-    </div>
-
-    <div class="content">
-
-      <!-- GLOBAL FILTERS -->
-      <div class="filters">
-        <input id="q" class="input" placeholder="Search name / ID / team / group / position / country / market ...">
-        <select id="fShift" class="mini">
-          <option value="">All shifts</option>
-        </select>
-        <select id="fTeam" class="mini">
-          <option value="">All teams (cột F)</option>
-        </select>
-        <select id="fGroup" class="mini">
-          <option value="">All groups (组别 / cột E)</option>
-        </select>
-        <select id="fPos" class="mini" style="min-width:190px">
-          <option value="">All positions (岗位)</option>
-        </select>
-        <div class="hint" id="hint">Loading...</div>
-      </div>
-
-      <!-- DASHBOARD -->
-      <div id="page-dash">
-        <div class="hero">
-          <div>
-            <h1>统计总览</h1>
-            <p>按岗位 & 团队统计（点击卡片 / 图表可弹窗查看员工名单）</p>
-          </div>
-        </div>
-
-        <div class="grid3" style="grid-template-columns:repeat(5,1fr);">
-          <div class="kpi" id="kTotal">
-            <div class="t">总人数（去重）</div>
-            <div class="v" id="kTotalV">-</div>
-            <div class="s">按 ID 优先去重</div>
-          </div>
-          <div class="kpi" id="kOwner">
-            <div class="t">负责人</div>
-            <div class="v" id="kOwnerV">-</div>
-            <div class="s">点击查看名单 → 再点人看下属</div>
-          </div>
-          <div class="kpi" id="kOnsite">
-            <div class="t">现场培训</div>
-            <div class="v" id="kOnsiteV">-</div>
-            <div class="s">点击查看名单 → 再点人看下属</div>
-          </div>
-          <div class="kpi" id="kLeader">
-            <div class="t">线上组长</div>
-            <div class="v" id="kLeaderV">-</div>
-            <div class="s">点击查看名单 → 再点人看下属</div>
-          </div>
-          <div class="kpi" id="kTrainer">
-            <div class="t">线上培训</div>
-            <div class="v" id="kTrainerV">-</div>
-            <div class="s">点击查看名单 → 再点人看下属</div>
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div class="card">
-            <div class="sectionTitle">岗位分布 <span class="chip">点击图例 / 扇区弹出名单</span></div>
-            <canvas id="chartPos" height="170"></canvas>
-          </div>
-          <div class="card">
-            <div class="sectionTitle">团队人数（cột F）<span class="chip">点击柱子弹出该团队名单</span></div>
-            <canvas id="chartTeam" height="170"></canvas>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:14px">
-          <div class="sectionTitle">岗位统计（每个岗位一个卡片，点击查看员工）</div>
-          <div class="cardsWrap" id="posCards"></div>
-        </div>
-
-        <div class="card" style="margin-top:14px">
-          <div class="sectionTitle">团队统计（cột F）（每个团队一行，点击数字弹出员工）</div>
-          <div class="tableWrap">
-            <div class="scrollY" style="max-height:52vh">
-              <table>
-                <thead>
-                  <tr id="teamHeadRow"></tr>
-                </thead>
-                <tbody id="teamBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div class="toast">
-          提示：团队=Google Sheet <b>cột F</b>（团队），组别=Google Sheet <b>cột E</b>（组别），班次=Google Sheet <b>cột I</b>（班次/Shift），岗位=Google Sheet <b>cột K</b>（岗位），姓名=Google Sheet <b>cột L</b>（姓名），ID=Google Sheet <b>cột N</b>（ID）
-        </div>
-      </div>
-
-      <!-- EMPLOYEES -->
-      <div id="page-emp" style="display:none">
-        <div class="hero">
-          <div>
-            <h1>Employees</h1>
-            <p>完整员工名单（可搜索 + 筛选）。点击负责人/培训/组长名字可看其下属。</p>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:14px">
-          <div class="sectionTitle">员工名单</div>
-          <div class="tableWrap">
-            <div class="scrollY">
-              <table>
-                <thead>
-                  <tr>
-                    <th class="nowrap">负责人</th>
-                    <th class="nowrap">现场培训</th>
-                    <th class="nowrap">线上组长</th>
-                    <th class="nowrap">线上培训</th>
-                    <th class="wTeam">团队（cột F）</th>
-                    <th class="wGroup">组别（cột E）</th>
-                    <th class="wShift">班次（cột I）</th>
-                    <th class="wPos">岗位</th>
-                    <th class="wName">姓名</th>
-                    <th class="wID">ID</th>
-                    <th class="wCountry">国家</th>
-                    <th class="wMarket">盘口</th>
-                  </tr>
-                </thead>
-                <tbody id="empBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SCHEDULE -->
-      <div id="page-sch" style="display:none">
-        <div class="hero">
-          <div>
-            <h1>排班表</h1>
-            <p>按岗位 → 班次 分组展示（点击班次/数字/管理者可弹出名单）</p>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:14px">
-          <div class="sectionTitle">班次统计（会跟随当前筛选：团队/组别/岗位/搜索）</div>
-          <div class="grid3" style="grid-template-columns:repeat(3, 1fr);">
-            <div class="kpi" id="kDay">
-              <div class="t">白班 / Day</div>
-              <div class="v" id="kDayV">-</div>
-              <div class="s">点击弹出白班名单</div>
-            </div>
-            <div class="kpi" id="kNight">
-              <div class="t">夜班 / Night</div>
-              <div class="v" id="kNightV">-</div>
-              <div class="s">点击弹出夜班名单</div>
-            </div>
-            <div class="kpi" id="kMid">
-              <div class="t">中班 / 中班</div>
-              <div class="v" id="kMidV">-</div>
-              <div class="s">点击弹出中班名单</div>
-            </div>
-          </div>
-          <div style="margin-top:12px">
-            <canvas id="chartShift" height="90"></canvas>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:14px">
-          <div class="sectionTitle">排班明细（按岗位分组）</div>
-          <div id="schBlocks"></div>
-        </div>
-      </div>
-
-    </div>
+  <div class="topTabs">
+    <div class="tab active" data-page="dashboard">Dashboard</div>
+    <div class="tab" data-page="employees">Employees</div>
+    <div class="tab" data-page="schedule">排班表</div>
   </div>
+
+  <div class="filterBar" id="filterBar">
+    <input id="q" placeholder="Search name / ID / team / group / position / manager" />
+    <select id="shiftSel"></select>
+    <select id="teamSel"></select>
+    <select id="groupSel"></select>
+    <select id="posSel"></select>
+    <div class="meta" id="meta">Loading…</div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="page active" id="page-dashboard"></div>
+
+  <!-- Employees -->
+  <div class="page" id="page-employees"></div>
+
+  <!-- Schedule -->
+  <div class="page" id="page-schedule"></div>
+
 </div>
 
 <!-- MODAL -->
 <div class="modal" id="modal">
-  <div class="modalBox">
-    <div class="modalHead">
-      <div class="modalTitle" id="modalTitle">-</div>
-      <button class="x" id="btnClose">✕</button>
+  <div class="box">
+    <div class="head">
+      <h3 id="modalTitle">Title</h3>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn" id="modalBack" style="display:none;">← Back</button>
+        <button class="x" id="modalClose">Close</button>
+      </div>
     </div>
-    <div class="modalBody" id="modalBody"></div>
+    <div id="modalBody"></div>
   </div>
 </div>
 
 <script>
-/** =======================
- *  CONFIG: Google Sheet → opensheet
- *  Bạn đổi link này nếu sheet bạn đổi.
- *  ======================= */
+/* =========================================================
+   CONFIG
+   ========================================================= */
 const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
 
-/** =======================
- *  STATE
- *  ======================= */
+/*
+  Column mapping (by header names from your sheet):
+  - 负责人
+  - 现场培训
+  - 线上组长
+  - 线上培训
+  - 组别
+  - 团队   (IMPORTANT: col F)
+  - 姓名   (IMPORTANT: col G)
+  - ID
+  - 国家
+  - 岗位
+  - 盘口
+  - 班次   (IMPORTANT: col I in your sheet; but opensheet returns by header name)
+*/
+
 let RAW = [];
 let FILTERED = [];
+
 let charts = { pos:null, team:null, shift:null };
 
-/** =======================
- *  HELPERS
- *  ======================= */
-const $ = (id)=>document.getElementById(id);
+const els = {
+  pageDashboard: document.getElementById("page-dashboard"),
+  pageEmployees: document.getElementById("page-employees"),
+  pageSchedule: document.getElementById("page-schedule"),
 
-function s(v){ return (v??"").toString().trim(); }
-function pick(row, names){
-  for(const n of names){
-    const v = s(row?.[n]);
-    if(v) return v;
-  }
-  return "";
+  tabs: document.querySelectorAll(".tab"),
+
+  q: document.getElementById("q"),
+  shiftSel: document.getElementById("shiftSel"),
+  teamSel: document.getElementById("teamSel"),
+  groupSel: document.getElementById("groupSel"),
+  posSel: document.getElementById("posSel"),
+  meta: document.getElementById("meta"),
+
+  modal: document.getElementById("modal"),
+  modalTitle: document.getElementById("modalTitle"),
+  modalBody: document.getElementById("modalBody"),
+  modalClose: document.getElementById("modalClose"),
+  modalBack: document.getElementById("modalBack")
+};
+
+function s(v){ return (v ?? "").toString().trim(); }
+function norm(v){ return s(v).replace(/\s+/g," ").trim(); }
+function uniq(arr){ return [...new Set(arr.filter(Boolean))]; }
+function esc(str){
+  return (str??"").toString()
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 
-/** Field mapping (tự bắt theo header name trong sheet) */
-function mapRow(r){
-  // Theo ảnh sheet mới:
-  // 负责人(D), 现场培训组长(E), 线上组长(F), 线上培训(H), 团队(H?) / ảnh cuối: 组队(H), 班次(I), 盘口(J), 工作内容(K), 岗位(L), 姓名(M), 国家(N), ID(O)
-  // Nhưng opensheet dùng header của hàng 1, nên ta tìm theo tên cột tiếng Trung.
-  const owner = pick(r, ["负责人","負責人","Owner","负责人 "]);
-  const onsite = pick(r, ["现场培训","现场培训组长","現場培訓","現場培訓組長","Onsite","现场培训 "]);
-  const leader = pick(r, ["线上组长","線上組長","Online Leader","线上组长 "]);
-  const trainer = pick(r, ["线上培训","線上培訓","Online Trainer","线上培训 "]);
+/* =========================================================
+   NAV
+   ========================================================= */
+els.tabs.forEach(t=>{
+  t.addEventListener("click", ()=>{
+    els.tabs.forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    const p = t.dataset.page;
+    document.querySelectorAll(".page").forEach(pg=>pg.classList.remove("active"));
+    document.getElementById("page-"+p).classList.add("active");
+  });
+});
 
-  const group = pick(r, ["组别","組別","Group","组别 "]);            // cột E
-  const team  = pick(r, ["团队","團隊","Team","团队 "]);              // cột F (bạn nhấn mạnh)
-  const shift = pick(r, ["班次","Shift","班次 "]);                    // cột I (bạn mới thêm)
-  const market= pick(r, ["盘口","盤口","Market","盘口 "]);
-  const pos   = pick(r, ["岗位","職位","Position","岗位 "]);           // cột K
-  const name  = pick(r, ["姓名","Name","姓名 "]);                      // cột L
-  const country=pick(r, ["国家","國家","Country","国家 "]);            // cột M
-  const id    = pick(r, ["ID","工号","員工ID","员工ID","编号","編號","ID "]);
+/* =========================================================
+   MODAL + STACK NAV INSIDE MODAL
+   ========================================================= */
+let modalStack = [];
 
-  // fallback từ các sheet cũ bạn dùng (phòng trường hợp header khác)
-  const team2 = team || pick(r, ["团队（cột F）","团队(cột F)","团队来源","组队"]);
-  const group2 = group || pick(r, ["组别（cột E）","组别(cột E)"]);
+function openModal(title, html){
+  els.modalTitle.textContent = title;
+  els.modalBody.innerHTML = html;
+  els.modal.style.display="flex";
+  els.modalBack.style.display = modalStack.length ? "inline-flex" : "none";
+}
+function pushModal(title, html){
+  // push current
+  modalStack.push({ title: els.modalTitle.textContent, html: els.modalBody.innerHTML });
+  els.modalBack.style.display = "inline-flex";
+  openModal(title, html);
+}
+function closeModal(){
+  els.modal.style.display="none";
+  els.modalBody.innerHTML="";
+  els.modalTitle.textContent="";
+  modalStack = [];
+  els.modalBack.style.display = "none";
+}
+els.modalClose.onclick = closeModal;
+els.modal.onclick = (e)=>{ if(e.target === els.modal) closeModal(); };
+els.modalBack.onclick = ()=>{
+  const prev = modalStack.pop();
+  if(!prev){ els.modalBack.style.display="none"; return; }
+  openModal(prev.title, prev.html);
+  els.modalBack.style.display = modalStack.length ? "inline-flex" : "none";
+};
 
-  // Unique key: ưu tiên ID, nếu trống thì fallback
-  const ukey = id ? ("ID:"+id) : ("FALL:"+[name,country,pos,team2,group2].map(x=>s(x)).join("|"));
-
-  return {
-    owner, onsite, leader, trainer,
-    group: group2,
-    team: team2,
-    shift,
-    market,
-    pos,
-    name,
-    country,
-    id,
-    ukey,
-    _raw:r
-  };
+/* =========================================================
+   FILTERS
+   ========================================================= */
+function buildSelectOptions(selectEl, items, labelAll){
+  const opts = [`<option value="">${esc(labelAll)}</option>`]
+    .concat(items.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`));
+  selectEl.innerHTML = opts.join("");
 }
 
-function normalizeShift(v){
-  const x = s(v).toLowerCase();
-  if(!x) return "";
-  if(x.includes("day") || x.includes("白")) return "Day";
-  if(x.includes("night") || x.includes("夜")) return "Night";
-  if(x.includes("mid") || x.includes("中")) return "Mid";
-  // nếu custom, giữ nguyên
-  return s(v);
+function applyFilters(){
+  const q = norm(els.q.value).toLowerCase();
+  const shift = els.shiftSel.value;
+  const team  = els.teamSel.value;
+  const group = els.groupSel.value;
+  const pos   = els.posSel.value;
+
+  FILTERED = RAW.filter(r=>{
+    const 姓名 = norm(r["姓名"]);
+    const ID = norm(r["ID"]);
+    const 团队 = norm(r["团队"]);
+    const 组别 = norm(r["组别"]);
+    const 岗位 = norm(r["岗位"]);
+    const 班次 = norm(r["班次"]);
+
+    const 负责人 = norm(r["负责人"]);
+    const 现场培训 = norm(r["现场培训"]);
+    const 线上组长 = norm(r["线上组长"]);
+    const 线上培训 = norm(r["线上培训"]);
+
+    if(shift && 班次 !== shift) return false;
+    if(team && 团队 !== team) return false;
+    if(group && 组别 !== group) return false;
+    if(pos && 岗位 !== pos) return false;
+
+    if(q){
+      const hay = [
+        姓名, ID, 团队, 组别, 岗位, 班次,
+        负责人, 现场培训, 线上组长, 线上培训
+      ].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  els.meta.textContent = `Rows: ${RAW.length.toLocaleString()} • Filtered: ${FILTERED.length.toLocaleString()} • ${new Date().toLocaleString()}`;
+
+  renderDashboard();
+  renderEmployees();
+  renderSchedule();
 }
 
-function uniqCount(arr, keyFn){
+["input","change"].forEach(evt=>{
+  els.q.addEventListener(evt, applyFilters);
+  els.shiftSel.addEventListener(evt, applyFilters);
+  els.teamSel.addEventListener(evt, applyFilters);
+  els.groupSel.addEventListener(evt, applyFilters);
+  els.posSel.addEventListener(evt, applyFilters);
+});
+
+/* =========================================================
+   STATS HELPERS
+   ========================================================= */
+
+// Total unique people set = 姓名 + 线上组长 + 线上培训 (as you requested)
+function getTotalPeopleSet(rows){
   const set = new Set();
-  for(const it of arr){
-    const k = keyFn(it);
-    if(k) set.add(k);
-  }
-  return set.size;
+  rows.forEach(r=>{
+    const name = norm(r["姓名"]);
+    const leader = norm(r["线上组长"]);
+    const trainer = norm(r["线上培训"]);
+    if(name) set.add(name);
+    if(leader) set.add(leader);
+    if(trainer) set.add(trainer);
+  });
+  return set;
 }
 
-function groupBy(arr, keyFn){
+function getUniqueSetByField(rows, field){
+  const set = new Set();
+  rows.forEach(r=>{
+    const v = norm(r[field]);
+    if(v) set.add(v);
+  });
+  return set;
+}
+
+function groupBy(rows, field){
   const m = new Map();
-  for(const it of arr){
-    const k = keyFn(it) || "";
+  rows.forEach(r=>{
+    const k = norm(r[field]) || "未填写";
     if(!m.has(k)) m.set(k, []);
-    m.get(k).push(it);
-  }
+    m.get(k).push(r);
+  });
   return m;
 }
 
-function fmt(n){ return (n ?? 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
-
-function applyFilters(){
-  const q = s($("q").value).toLowerCase();
-  const fShift = s($("fShift").value);
-  const fTeam = s($("fTeam").value);
-  const fGroup = s($("fGroup").value);
-  const fPos = s($("fPos").value);
-
-  FILTERED = RAW.filter(r=>{
-    // normalize shift
-    const sh = normalizeShift(r.shift);
-    if(fShift && sh !== fShift) return false;
-    if(fTeam && r.team !== fTeam) return false;
-    if(fGroup && r.group !== fGroup) return false;
-    if(fPos && r.pos !== fPos) return false;
-
-    if(!q) return true;
-    const blob = [
-      r.owner,r.onsite,r.leader,r.trainer,
-      r.team,r.group,r.shift,r.pos,r.name,r.id,r.country,r.market
-    ].map(x=>s(x)).join(" ").toLowerCase();
-    return blob.includes(q);
+function countByUniqueName(rows){
+  // count distinct 姓名 within rows
+  const set = new Set();
+  rows.forEach(r=>{
+    const name = norm(r["姓名"]);
+    if(name) set.add(name);
   });
-
-  renderAll();
+  return set.size;
 }
 
-/** =======================
- *  MODAL & DRILLDOWN
- *  ======================= */
-function openModal(title, html){
-  $("modalTitle").innerText = title;
-  $("modalBody").innerHTML = html;
-  $("modal").classList.add("show");
-}
-$("btnClose").onclick = ()=>$("modal").classList.remove("show");
-$("modal").onclick = (e)=>{ if(e.target.id==="modal") $("modal").classList.remove("show"); };
-
-function renderPeopleTable(list, opts={}){
-  const cols = opts.cols || ["name","pos","id","country","team","group","shift","market"];
-  const head = {
-    name:"姓名", pos:"岗位", id:"ID", country:"国家", team:"团队", group:"组别", shift:"班次", market:"盘口"
-  };
-  const rows = list.map(r=>{
-    return `<tr>
-      ${cols.includes("name") ? `<td><span class="mono">${s(r.name)||"-"}</span></td>`:""}
-      ${cols.includes("pos") ? `<td class="nowrap">${s(r.pos)||"-"}</td>`:""}
-      ${cols.includes("id") ? `<td class="mono nowrap">${s(r.id)||"-"}</td>`:""}
-      ${cols.includes("country") ? `<td class="nowrap">${s(r.country)||"-"}</td>`:""}
-      ${cols.includes("team") ? `<td class="nowrap">${s(r.team)||"-"}</td>`:""}
-      ${cols.includes("group") ? `<td class="nowrap">${s(r.group)||"-"}</td>`:""}
-      ${cols.includes("shift") ? `<td class="nowrap">${s(r.shift)||"-"}</td>`:""}
-      ${cols.includes("market") ? `<td class="nowrap">${s(r.market)||"-"}</td>`:""}
-    </tr>`;
-  }).join("");
-
-  const thead = cols.map(c=>`<th>${head[c]||c}</th>`).join("");
+/* =========================================================
+   MODAL TABLE RENDER (full fields you requested)
+   显示：负责人 现场培训 线上组长 线上培训 组别 团队 姓名 ID 国家 岗位 盘口 班次
+   ========================================================= */
+function renderFullTable(rows, titleHint=""){
+  const cols = ["负责人","现场培训","线上组长","线上培训","组别","团队","班次","岗位","姓名","ID","国家","盘口"];
   return `
+    <div class="note">${esc(titleHint)}  Rows: <b>${rows.length.toLocaleString()}</b></div>
     <div class="tableWrap">
-      <div class="scrollY" style="max-height:62vh">
-        <table>
-          <thead><tr>${thead}</tr></thead>
-          <tbody>${rows || `<tr><td colspan="${cols.length}" class="muted">No data</td></tr>`}</tbody>
-        </table>
-      </div>
+      <table>
+        <thead>
+          <tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr>
+        </thead>
+        <tbody>
+          ${rows.map(r=>`
+            <tr>
+              ${cols.map(c=>`<td>${esc(norm(r[c]))}</td>`).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
     </div>
   `;
 }
 
-/**
- * Drilldown manager:
- * - level 1: show unique managers list (from a manager column)
- * - level 2: click a manager -> show subordinates rows where that manager == value in that column
- */
-function openManagerList(title, col){
-  // col is one of: owner / onsite / leader / trainer
-  const m = new Map();
-  for(const r of FILTERED){
-    const v = s(r[col]);
-    if(!v) continue;
-    if(!m.has(v)) m.set(v, new Set());
-    // unique managers counted by their name (not by employee ukey)
-    m.get(v).add(v);
-  }
-  const managers = [...m.keys()].sort((a,b)=>a.localeCompare(b,'zh'));
-  const cards = managers.map(name=>{
-    // subordinate count under current filters (unique people)
-    const subs = FILTERED.filter(r=>s(r[col])===name);
-    const subUnique = uniqCount(subs, x=>x.ukey);
-    return `
-      <div class="miniCard" onclick="window.__openSub('${escapeJs(title)}','${escapeJs(col)}','${escapeJs(name)}')">
-        <div class="name">${escapeHtml(name)}</div>
-        <div class="count">${fmt(subUnique)}</div>
-        <div class="sub">点击查看下属</div>
-      </div>
-    `;
-  }).join("");
-
-  openModal(`${title}（${managers.length} 人）`, `
-    <div class="sectionTitle">点击一个人 → 查看其管理的员工</div>
-    <div class="cardsWrap" style="grid-template-columns:repeat(5,1fr)">${cards || `<div class="muted">No data</div>`}</div>
-  `);
-}
-
-function openSubordinates(title, col, managerName){
-  const subs = FILTERED.filter(r=>s(r[col])===managerName);
-  // unique employees (by ukey)
-  const uniqMap = new Map();
-  for(const r of subs){
-    if(!r.ukey) continue;
-    if(!uniqMap.has(r.ukey)) uniqMap.set(r.ukey, r);
-  }
-  const list = [...uniqMap.values()].sort((a,b)=>s(a.name).localeCompare(s(b.name),'zh'));
-  openModal(`${title} • ${managerName}（下属 ${list.length}）`, renderPeopleTable(list));
-}
-
-function escapeHtml(str){
-  return (str??"").toString().replace(/[&<>"']/g, (m)=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[m]));
-}
-function escapeJs(str){
-  return (str??"").toString().replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/\n/g,"\\n");
-}
-window.__openSub = (title,col,name)=>openSubordinates(title,col,name);
-
-/** =======================
- *  RENDER: DASH
- *  ======================= */
-function renderKPIs(){
-  // Total unique people (prefer ID)
-  const total = uniqCount(FILTERED.filter(r=>s(r.name)||s(r.id)), r=>r.ukey);
-  $("kTotalV").innerText = fmt(total);
-
-  // Managers unique (by manager name, not by employee)
-  const ownerSet = new Set(FILTERED.map(r=>s(r.owner)).filter(Boolean));
-  const onsiteSet = new Set(FILTERED.map(r=>s(r.onsite)).filter(Boolean));
-  const leaderSet = new Set(FILTERED.map(r=>s(r.leader)).filter(Boolean));
-  const trainerSet = new Set(FILTERED.map(r=>s(r.trainer)).filter(Boolean));
-
-  $("kOwnerV").innerText = fmt(ownerSet.size);
-  $("kOnsiteV").innerText = fmt(onsiteSet.size);
-  $("kLeaderV").innerText = fmt(leaderSet.size);
-  $("kTrainerV").innerText = fmt(trainerSet.size);
-
-  $("kOwner").onclick = ()=>openManagerList("负责人", "owner");
-  $("kOnsite").onclick = ()=>openManagerList("现场培训", "onsite");
-  $("kLeader").onclick = ()=>openManagerList("线上组长", "leader");
-  $("kTrainer").onclick = ()=>openManagerList("线上培训", "trainer");
-
-  $("kTotal").onclick = ()=>{
-    // show all unique employees
-    const uniqMap = new Map();
-    for(const r of FILTERED){
-      if(!r.ukey) continue;
-      if(!uniqMap.has(r.ukey)) uniqMap.set(r.ukey, r);
-    }
-    const list = [...uniqMap.values()].sort((a,b)=>s(a.name).localeCompare(s(b.name),'zh'));
-    openModal(`总人数（去重）• ${list.length}`, renderPeopleTable(list));
-  };
-}
-
-function renderCharts(){
-  // Position distribution (unique employees)
-  const uniqByPos = new Map();
-  for(const r of FILTERED){
-    if(!r.ukey) continue;
-    const pos = s(r.pos) || "未填写岗位";
-    if(!uniqByPos.has(pos)) uniqByPos.set(pos, new Set());
-    uniqByPos.get(pos).add(r.ukey);
-  }
-  const posLabels = [...uniqByPos.keys()].sort((a,b)=>a.localeCompare(b,'zh'));
-  const posData = posLabels.map(k=>uniqByPos.get(k).size);
-
-  if(charts.pos) charts.pos.destroy();
-  charts.pos = new Chart($("chartPos"),{
-    type:"doughnut",
-    data:{ labels:posLabels, datasets:[{ data:posData }] },
-    options:{
-      plugins:{ legend:{ position:"top" } },
-      onClick:(evt, els)=>{
-        if(!els?.length) return;
-        const idx = els[0].index;
-        const pos = posLabels[idx];
-        openPositionModal(pos);
-      }
-    }
-  });
-
-  // Team distribution (team = cột F)
-  const uniqByTeam = new Map();
-  for(const r of FILTERED){
-    if(!r.ukey) continue;
-    const team = s(r.team) || "未填写团队";
-    if(!uniqByTeam.has(team)) uniqByTeam.set(team, new Set());
-    uniqByTeam.get(team).add(r.ukey);
-  }
-  const teamLabels = [...uniqByTeam.keys()].sort((a,b)=>a.localeCompare(b,'zh'));
-  const teamData = teamLabels.map(k=>uniqByTeam.get(k).size);
-
-  if(charts.team) charts.team.destroy();
-  charts.team = new Chart($("chartTeam"),{
-    type:"bar",
-    data:{ labels:teamLabels, datasets:[{ label:"人数", data:teamData }]},
-    options:{
-      plugins:{ legend:{ display:true } },
-      scales:{ x:{ ticks:{ maxRotation:60, minRotation:60 } } },
-      onClick:(evt, els)=>{
-        if(!els?.length) return;
-        const idx = els[0].index;
-        const team = teamLabels[idx];
-        openTeamModal(team);
-      }
-    }
-  });
-}
-
-function openPositionModal(pos){
-  const subs = FILTERED.filter(r=>(s(r.pos)||"未填写岗位")===pos);
-  const uniqMap = new Map();
-  for(const r of subs){
-    if(!r.ukey) continue;
-    if(!uniqMap.has(r.ukey)) uniqMap.set(r.ukey, r);
-  }
-  const list = [...uniqMap.values()].sort((a,b)=>s(a.name).localeCompare(s(b.name),'zh'));
-  openModal(`岗位：${pos}（${list.length}）`, renderPeopleTable(list));
-}
-
-function openTeamModal(team){
-  const subs = FILTERED.filter(r=>(s(r.team)||"未填写团队")===team);
-  const uniqMap = new Map();
-  for(const r of subs){
-    if(!r.ukey) continue;
-    if(!uniqMap.has(r.ukey)) uniqMap.set(r.ukey, r);
-  }
-  const list = [...uniqMap.values()].sort((a,b)=>s(a.name).localeCompare(s(b.name),'zh'));
-  openModal(`团队：${team}（${list.length}）`, renderPeopleTable(list));
-}
-
-function renderPosCards(){
-  const uniqByPos = new Map();
-  for(const r of FILTERED){
-    if(!r.ukey) continue;
-    const pos = s(r.pos) || "未填写岗位";
-    if(!uniqByPos.has(pos)) uniqByPos.set(pos, new Set());
-    uniqByPos.get(pos).add(r.ukey);
-  }
-  const items = [...uniqByPos.entries()]
-    .map(([name,set])=>({name,count:set.size}))
-    .sort((a,b)=>b.count-a.count);
-
-  $("posCards").innerHTML = items.map(it=>`
-    <div class="miniCard" onclick="window.__openPos('${escapeJs(it.name)}')">
-      <div class="name">${escapeHtml(it.name)}</div>
-      <div class="count">${fmt(it.count)}</div>
-      <div class="sub">点击查看员工</div>
+/* =========================================================
+   MANAGER → SUBORDINATES
+   You requested:
+   - Click KPI list -> show list of those people
+   - Click a person -> show all employees under their management scope
+   We implement scope as:
+     If manager came from:
+       负责人: show rows where 负责人 == manager
+       现场培训: rows where 现场培训 == manager
+       线上组长: rows where 线上组长 == manager
+       线上培训: rows where 线上培训 == manager
+   ========================================================= */
+function openManagerList(fieldLabel, rows){
+  const set = getUniqueSetByField(rows, fieldLabel);
+  const names = [...set].sort((a,b)=>a.localeCompare(b,"zh"));
+  const html = `
+    <div class="note">点击名字 → 查看该 ${esc(fieldLabel)} 管理的员工（从表里匹配同名字段）。</div>
+    <div class="tileGrid">
+      ${names.map(n=>{
+        const subs = rows.filter(r=>norm(r[fieldLabel])===n);
+        const c = countByUniqueName(subs);
+        return `
+          <div class="tile" onclick="openManagerSubs('${esc(fieldLabel)}','${esc(n)}')">
+            <div class="name">${esc(n)}</div>
+            <div class="count">下属（按姓名去重）: ${c}</div>
+          </div>
+        `;
+      }).join("")}
     </div>
-  `).join("") || `<div class="muted">No data</div>`;
-
-  window.__openPos = (pos)=>openPositionModal(pos);
+  `;
+  openModal(`${fieldLabel} 名单（${names.length}）`, html);
 }
 
-function renderTeamTable(){
-  // team stats by position (unique)
-  const allPositions = new Set(FILTERED.map(r=>s(r.pos)||"未填写岗位"));
-  const posList = [...allPositions].sort((a,b)=>a.localeCompare(b,'zh'));
-
-  // header
-  const head = [
-    `<th class="wTeam">团队（cột F）</th>`,
-    `<th class="nowrap">总人数</th>`,
-    ...posList.map(p=>`<th class="nowrap">${escapeHtml(p)}</th>`)
-  ].join("");
-  $("teamHeadRow").innerHTML = head;
-
-  // build team rows
-  const teams = groupBy(FILTERED, r=>s(r.team)||"未填写团队");
-  const teamItems = [...teams.entries()]
-    .map(([team,rows])=>{
-      const uniqAll = new Set();
-      const perPos = new Map(posList.map(p=>[p,new Set()]));
-      for(const r of rows){
-        if(!r.ukey) continue;
-        uniqAll.add(r.ukey);
-        const p = s(r.pos)||"未填写岗位";
-        if(!perPos.has(p)) perPos.set(p,new Set());
-        perPos.get(p).add(r.ukey);
-      }
-      return {
-        team,
-        total: uniqAll.size,
-        perPos: posList.map(p=>perPos.get(p)?.size||0)
-      };
-    })
-    .sort((a,b)=>b.total-a.total);
-
-  $("teamBody").innerHTML = teamItems.map(it=>{
-    const cells = it.perPos.map((n, idx)=>{
-      const pos = posList[idx];
-      if(n<=0) return `<td class="muted">0</td>`;
-      return `<td><a class="link" onclick="window.__openTeamPos('${escapeJs(it.team)}','${escapeJs(pos)}')">${fmt(n)}</a></td>`;
-    }).join("");
-
-    return `<tr>
-      <td class="wTeam"><a class="link" onclick="window.__openTeam('${escapeJs(it.team)}')">${escapeHtml(it.team)}</a></td>
-      <td><a class="link" onclick="window.__openTeam('${escapeJs(it.team)}')">${fmt(it.total)}</a></td>
-      ${cells}
-    </tr>`;
-  }).join("") || `<tr><td colspan="${2+posList.length}" class="muted">No data</td></tr>`;
-
-  window.__openTeam = (team)=>openTeamModal(team);
-  window.__openTeamPos = (team,pos)=>{
-    const subs = FILTERED.filter(r=>(s(r.team)||"未填写团队")===team && (s(r.pos)||"未填写岗位")===pos);
-    const uniqMap = new Map();
-    for(const r of subs){
-      if(!r.ukey) continue;
-      if(!uniqMap.has(r.ukey)) uniqMap.set(r.ukey, r);
-    }
-    const list = [...uniqMap.values()].sort((a,b)=>s(a.name).localeCompare(s(b.name),'zh'));
-    openModal(`团队：${team} • 岗位：${pos}（${list.length}）`, renderPeopleTable(list));
-  };
-}
-
-/** =======================
- *  RENDER: EMPLOYEES
- *  ======================= */
-function renderEmployees(){
-  const rows = FILTERED.map(r=>{
-    const owner = s(r.owner), onsite=s(r.onsite), leader=s(r.leader), trainer=s(r.trainer);
-    const ownerCell  = owner  ? `<a class="link" onclick="window.__mgr('负责人','owner','${escapeJs(owner)}')">${escapeHtml(owner)}</a>` : `<span class="muted">-</span>`;
-    const onsiteCell = onsite ? `<a class="link" onclick="window.__mgr('现场培训','onsite','${escapeJs(onsite)}')">${escapeHtml(onsite)}</a>` : `<span class="muted">-</span>`;
-    const leaderCell = leader ? `<a class="link" onclick="window.__mgr('线上组长','leader','${escapeJs(leader)}')">${escapeHtml(leader)}</a>` : `<span class="muted">-</span>`;
-    const trainerCell= trainer? `<a class="link" onclick="window.__mgr('线上培训','trainer','${escapeJs(trainer)}')">${escapeHtml(trainer)}</a>` : `<span class="muted">-</span>`;
-
-    return `<tr>
-      <td class="nowrap">${ownerCell}</td>
-      <td class="nowrap">${onsiteCell}</td>
-      <td class="nowrap">${leaderCell}</td>
-      <td class="nowrap">${trainerCell}</td>
-      <td class="wTeam">${escapeHtml(s(r.team)||"-")}</td>
-      <td class="wGroup">${escapeHtml(s(r.group)||"-")}</td>
-      <td class="wShift">${escapeHtml(s(r.shift)||"-")}</td>
-      <td class="wPos">${escapeHtml(s(r.pos)||"-")}</td>
-      <td class="wName"><span class="mono">${escapeHtml(s(r.name)||"-")}</span></td>
-      <td class="wID mono">${escapeHtml(s(r.id)||"-")}</td>
-      <td class="wCountry">${escapeHtml(s(r.country)||"-")}</td>
-      <td class="wMarket">${escapeHtml(s(r.market)||"-")}</td>
-    </tr>`;
-  }).join("");
-
-  $("empBody").innerHTML = rows || `<tr><td colspan="12" class="muted">No data</td></tr>`;
-
-  window.__mgr = (title,col,name)=>openSubordinates(title,col,name);
-}
-
-/** =======================
- *  RENDER: SCHEDULE
- *  ======================= */
-function renderSchedule(){
-  // shift KPI based on FILTERED
-  const uniqAll = new Set();
-  const setDay = new Set();
-  const setNight = new Set();
-  const setMid = new Set();
-
-  const dayRows=[], nightRows=[], midRows=[];
-  for(const r of FILTERED){
-    if(!r.ukey) continue;
-    uniqAll.add(r.ukey);
-    const sh = normalizeShift(r.shift);
-    if(sh==="Day"){ setDay.add(r.ukey); dayRows.push(r); }
-    else if(sh==="Night"){ setNight.add(r.ukey); nightRows.push(r); }
-    else if(sh==="Mid"){ setMid.add(r.ukey); midRows.push(r); }
-  }
-
-  $("kDayV").innerText = fmt(setDay.size);
-  $("kNightV").innerText = fmt(setNight.size);
-  $("kMidV").innerText = fmt(setMid.size);
-
-  $("kDay").onclick = ()=>openModal(`白班 / Day（${setDay.size}）`, renderPeopleTable(uniqueRows(dayRows)));
-  $("kNight").onclick = ()=>openModal(`夜班 / Night（${setNight.size}）`, renderPeopleTable(uniqueRows(nightRows)));
-  $("kMid").onclick = ()=>openModal(`中班 / 中班（${setMid.size}）`, renderPeopleTable(uniqueRows(midRows)));
-
-  // shift chart
-  if(charts.shift) charts.shift.destroy();
-  charts.shift = new Chart($("chartShift"),{
-    type:"bar",
-    data:{
-      labels:["Day","Night","Mid"],
-      datasets:[{ label:"人数（去重）", data:[setDay.size,setNight.size,setMid.size] }]
-    },
-    options:{
-      plugins:{ legend:{ display:true } },
-      scales:{ x:{ ticks:{ font:{ weight:"700" } } } }
-    }
-  });
-
-  // Blocks by position -> shift
-  const byPos = groupBy(FILTERED, r=>s(r.pos)||"未填写岗位");
-  const posItems = [...byPos.entries()]
-    .map(([pos,rows])=>{
-      const uniq = new Set();
-      for(const r of rows) if(r.ukey) uniq.add(r.ukey);
-      return {pos, rows, total:uniq.size};
-    })
-    .sort((a,b)=>b.total-a.total);
-
-  const html = posItems.map(it=>{
-    const rows = it.rows;
-    const day = uniqueRows(rows.filter(r=>normalizeShift(r.shift)==="Day"));
-    const night=uniqueRows(rows.filter(r=>normalizeShift(r.shift)==="Night"));
-    const mid=uniqueRows(rows.filter(r=>normalizeShift(r.shift)==="Mid"));
-
-    const card = (label, list)=>`
-      <div class="miniCard" style="min-height:auto" onclick="window.__openShift('${escapeJs(it.pos)}','${escapeJs(label)}')">
-        <div class="name">${label}</div>
-        <div class="count">${fmt(list.length)}</div>
-        <div class="sub">点击弹出名单</div>
-      </div>
-    `;
-
-    return `
-      <div class="card" style="margin-top:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-          <div class="sectionTitle" style="margin:0">
-            ${escapeHtml(it.pos)} <span class="chip">总人数 ${fmt(it.total)}</span>
-          </div>
-          <div class="muted">按班次统计（去重）</div>
-        </div>
-        <div class="cardsWrap" style="grid-template-columns:repeat(3,1fr); margin-top:10px">
-          ${card("Day", day)}
-          ${card("Night", night)}
-          ${card("Mid", mid)}
-        </div>
-
-        <div class="tableWrap" style="margin-top:10px">
-          <div class="scrollY" style="max-height:42vh">
-            <table>
-              <thead>
-                <tr>
-                  <th class="wLeader">负责人</th>
-                  <th class="wLeader">现场培训</th>
-                  <th class="wLeader">线上组长</th>
-                  <th class="wLeader">线上培训</th>
-                  <th class="wTeam">团队（cột F）</th>
-                  <th class="wGroup">组别</th>
-                  <th class="wShift">班次</th>
-                  <th class="wName">姓名</th>
-                  <th class="wID">ID</th>
-                  <th class="wCountry">国家</th>
-                  <th class="wMarket">盘口</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${uniqueRows(rows).slice(0, 60).map(r=>`
-                  <tr>
-                    <td class="nowrap">${mgrLink("负责人","owner", r.owner)}</td>
-                    <td class="nowrap">${mgrLink("现场培训","onsite", r.onsite)}</td>
-                    <td class="nowrap">${mgrLink("线上组长","leader", r.leader)}</td>
-                    <td class="nowrap">${mgrLink("线上培训","trainer", r.trainer)}</td>
-                    <td class="wTeam">${escapeHtml(s(r.team)||"-")}</td>
-                    <td class="wGroup">${escapeHtml(s(r.group)||"-")}</td>
-                    <td class="wShift">${escapeHtml(s(r.shift)||"-")}</td>
-                    <td class="wName"><span class="mono">${escapeHtml(s(r.name)||"-")}</span></td>
-                    <td class="wID mono">${escapeHtml(s(r.id)||"-")}</td>
-                    <td class="wCountry">${escapeHtml(s(r.country)||"-")}</td>
-                    <td class="wMarket">${escapeHtml(s(r.market)||"-")}</td>
-                  </tr>
-                `).join("")}
-                ${uniqueRows(rows).length>60 ? `<tr><td colspan="11" class="muted">只预览前 60 行（点击上面 Day/Night/Mid 卡片可弹出全部名单）</td></tr>` : ""}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  $("schBlocks").innerHTML = html || `<div class="muted">No data</div>`;
-
-  window.__openShift = (pos, sh)=>{
-    const list = FILTERED.filter(r=>(s(r.pos)||"未填写岗位")===pos && normalizeShift(r.shift)===sh);
-    openModal(`岗位：${pos} • 班次：${sh}（${uniqCount(list,x=>x.ukey)}）`, renderPeopleTable(uniqueRows(list)));
-  };
-}
-
-function mgrLink(title,col,val){
-  const v = s(val);
-  if(!v) return `<span class="muted">-</span>`;
-  return `<a class="link" onclick="window.__mgr('${escapeJs(title)}','${escapeJs(col)}','${escapeJs(v)}')">${escapeHtml(v)}</a>`;
-}
-
-function uniqueRows(rows){
-  const m = new Map();
-  for(const r of rows){
-    if(!r.ukey) continue;
-    if(!m.has(r.ukey)) m.set(r.ukey, r);
-  }
-  return [...m.values()].sort((a,b)=>s(a.name).localeCompare(s(b.name),'zh'));
-}
-
-/** =======================
- *  RENDER ALL
- *  ======================= */
-function renderAll(){
-  renderKPIs();
-  renderCharts();
-  renderPosCards();
-  renderTeamTable();
-  renderEmployees();
-  renderSchedule();
-  $("hint").innerText = `Rows: ${fmt(RAW.length)} • Filtered: ${fmt(FILTERED.length)} • ${new Date().toLocaleString()}`;
-}
-
-/** =======================
- *  LOAD DATA
- *  ======================= */
-async function load(){
-  $("hint").innerText = "Loading sheet...";
-  const res = await fetch(SHEET_API, { cache:"no-store" });
-  if(!res.ok) throw new Error("Sheet fetch failed: " + res.status);
-  const json = await res.json();
-  const mapped = json.map(mapRow);
-
-  // normalize shift (store original but use normalized for filter list)
-  RAW = mapped.map(r=>({ ...r, shift: r.shift || "" }));
-
-  // Fill filter dropdowns
-  const shifts = [...new Set(RAW.map(r=>normalizeShift(r.shift)).filter(Boolean))].sort();
-  const teams  = [...new Set(RAW.map(r=>s(r.team)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh'));
-  const groups = [...new Set(RAW.map(r=>s(r.group)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh'));
-  const pos    = [...new Set(RAW.map(r=>s(r.pos)||"未填写岗位"))].sort((a,b)=>a.localeCompare(b,'zh'));
-
-  $("fShift").innerHTML = `<option value="">All shifts</option>` + shifts.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
-  $("fTeam").innerHTML  = `<option value="">All teams (cột F)</option>` + teams.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
-  $("fGroup").innerHTML = `<option value="">All groups (组别 / cột E)</option>` + groups.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
-  $("fPos").innerHTML   = `<option value="">All positions (岗位)</option>` + pos.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
-
-  FILTERED = RAW.slice();
-  renderAll();
-}
-
-/** =======================
- *  EVENTS
- *  ======================= */
-["q","fShift","fTeam","fGroup","fPos"].forEach(id=>{
-  $(id).addEventListener("input", ()=>applyFilters());
-  $(id).addEventListener("change", ()=>applyFilters());
-});
-
-$("btnReload").onclick = async()=>{
-  try{
-    RAW=[]; FILTERED=[];
-    if(charts.pos) charts.pos.destroy();
-    if(charts.team) charts.team.destroy();
-    if(charts.shift) charts.shift.destroy();
-    await load();
-  }catch(e){
-    $("hint").innerText = "Reload error: " + e.message;
-  }
+window.openManagerSubs = function(fieldLabel, managerName){
+  const subs = FILTERED.filter(r=>norm(r[fieldLabel])===managerName);
+  pushModal(`${fieldLabel}：${managerName}（下属 ${countByUniqueName(subs)}）`, renderFullTable(subs, `${fieldLabel} = ${managerName}`));
 };
 
-// Page switch
-document.querySelectorAll(".pillBtn").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    document.querySelectorAll(".pillBtn").forEach(b=>b.classList.remove("active"));
-    btn.classList.add("active");
-    const page = btn.dataset.page;
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+function renderDashboard(){
+  const rows = FILTERED;
 
-    $("page-dash").style.display = (page==="dash") ? "" : "none";
-    $("page-emp").style.display  = (page==="emp")  ? "" : "none";
-    $("page-sch").style.display  = (page==="sch")  ? "" : "none";
+  const totalPeopleSet = getTotalPeopleSet(rows);
+  const totalPeople = totalPeopleSet.size;
+
+  const ownerSet  = getUniqueSetByField(rows,"负责人");
+  const onsiteSet = getUniqueSetByField(rows,"现场培训");
+  const leaderSet = getUniqueSetByField(rows,"线上组长");
+  const trainSet  = getUniqueSetByField(rows,"线上培训");
+
+  // Positions distribution (岗位) by unique 姓名
+  const posMap = groupBy(rows,"岗位");
+  const posLabels = [...posMap.keys()];
+  const posCounts = posLabels.map(k=>countByUniqueName(posMap.get(k)));
+
+  // Teams distribution (团队=col F) by unique 姓名
+  const teamMap = groupBy(rows,"团队");
+  const teamLabels = [...teamMap.keys()];
+  const teamCounts = teamLabels.map(k=>countByUniqueName(teamMap.get(k)));
+
+  // Team detail table: each team show total + each position count
+  const allPositions = uniq(rows.map(r=>norm(r["岗位"])||"未填写")).sort((a,b)=>a.localeCompare(b,"zh"));
+
+  const teamRows = [...teamMap.entries()]
+    .map(([team, list])=>{
+      const total = countByUniqueName(list);
+      const byPos = new Map();
+      allPositions.forEach(p=>byPos.set(p,0));
+      list.forEach(r=>{
+        const p = norm(r["岗位"])||"未填写";
+        byPos.set(p, (byPos.get(p)||0) + (norm(r["姓名"])?1:0));
+      });
+      // de-dup by 姓名 per position: do properly
+      const byPosSet = new Map();
+      allPositions.forEach(p=>byPosSet.set(p, new Set()));
+      list.forEach(r=>{
+        const p = norm(r["岗位"])||"未填写";
+        const nm = norm(r["姓名"]);
+        if(nm) byPosSet.get(p).add(nm);
+      });
+      const byPosFinal = allPositions.map(p=>byPosSet.get(p).size);
+
+      return { team, list, total, byPosFinal };
+    })
+    .sort((a,b)=>b.total-a.total);
+
+  // KPI click content
+  els.pageDashboard.innerHTML = `
+    <div class="card">
+      <h2>统计总览</h2>
+      <div class="sub">按岗位 & 团队统计（点击卡片/图表可弹窗查看员工名单）</div>
+
+      <div class="kpiRow">
+        <div class="kpi" onclick="openModal('总人数名单（去重逻辑：姓名+线上组长+线上培训）', '${esc(renderFullTable(rows,'去重统计不影响名单展示：这里展示筛选后的所有原始行'))}')">
+          <div class="spark"></div>
+          <div class="t">总人数（去重）</div>
+          <div class="v">${totalPeople.toLocaleString()}</div>
+          <div class="hint">姓名 + 线上组长 + 线上培训（unique）</div>
+        </div>
+
+        <div class="kpi" onclick="openManagerList('负责人', FILTERED)">
+          <div class="spark"></div>
+          <div class="t">负责人</div>
+          <div class="v">${ownerSet.size.toLocaleString()}</div>
+          <div class="hint">点击查看名单 → 再点人看下属</div>
+        </div>
+
+        <div class="kpi" onclick="openManagerList('现场培训', FILTERED)">
+          <div class="spark"></div>
+          <div class="t">现场培训</div>
+          <div class="v">${onsiteSet.size.toLocaleString()}</div>
+          <div class="hint">点击查看名单 → 再点人看下属</div>
+        </div>
+
+        <div class="kpi" onclick="openManagerList('线上组长', FILTERED)">
+          <div class="spark"></div>
+          <div class="t">线上组长</div>
+          <div class="v">${leaderSet.size.toLocaleString()}</div>
+          <div class="hint">点击查看名单 → 再点人看下属</div>
+        </div>
+
+        <div class="kpi" onclick="openManagerList('线上培训', FILTERED)">
+          <div class="spark"></div>
+          <div class="t">线上培训</div>
+          <div class="v">${trainSet.size.toLocaleString()}</div>
+          <div class="hint">点击查看名单 → 再点人看下属</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div>
+            <div style="font-weight:1000; font-size:16px;">岗位分布</div>
+            <div class="note">点击图例或柱子 → 弹出该岗位员工名单</div>
+          </div>
+          <button class="btn" onclick="openModal('岗位统计（按姓名去重）', '${esc(renderTeamOrPosSummary("岗位","岗位"))}')">查看汇总</button>
+        </div>
+        <div class="chartBox"><canvas id="chartPos"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div>
+            <div style="font-weight:1000; font-size:16px;">团队人数（cột F：团队）</div>
+            <div class="note">点击柱子 → 弹出该团队员工名单</div>
+          </div>
+          <button class="btn" onclick="openModal('团队统计（按姓名去重）', '${esc(renderTeamOrPosSummary("团队","团队"))}')">查看汇总</button>
+        </div>
+        <div class="chartBox"><canvas id="chartTeam"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div>
+          <div style="font-weight:1000; font-size:16px;">团队统计表（cột F）</div>
+          <div class="note">点击任意数字 → 弹窗查看对应员工名单</div>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>团队</th>
+              <th>总人数</th>
+              ${allPositions.map(p=>`<th>${esc(p)}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${teamRows.map(tr=>{
+              const cells = tr.byPosFinal.map((n,idx)=>{
+                const pos = allPositions[idx];
+                return `<td class="link" onclick="openTeamPos('${esc(tr.team)}','${esc(pos)}')">${n}</td>`;
+              }).join("");
+              return `
+                <tr>
+                  <td class="link" onclick="openTeam('${esc(tr.team)}')">${esc(tr.team)}</td>
+                  <td class="link" onclick="openTeam('${esc(tr.team)}')">${tr.total}</td>
+                  ${cells}
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // build charts after DOM created
+  buildPosChart(posLabels, posCounts);
+  buildTeamChart(teamLabels, teamCounts);
+}
+
+function renderTeamOrPosSummary(fieldLabel, fieldName){
+  const m = groupBy(FILTERED, fieldName);
+  const rows = [...m.entries()]
+    .map(([k,list])=>({k, c: countByUniqueName(list)}))
+    .sort((a,b)=>b.c-a.c);
+
+  return `
+    <div class="tableWrap">
+      <table>
+        <thead><tr><th>${esc(fieldLabel)}</th><th>人数（按姓名去重）</th></tr></thead>
+        <tbody>
+          ${rows.map(r=>`
+            <tr>
+              <td class="link" onclick="${fieldName==='团队' ? `openTeam('${esc(r.k)}')` : `openPos('${esc(r.k)}')`}">${esc(r.k)}</td>
+              <td>${r.c}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function buildPosChart(labels, values){
+  const ctx = document.getElementById("chartPos");
+  if(!ctx) return;
+  if(charts.pos) charts.pos.destroy();
+
+  charts.pos = new Chart(ctx, {
+    type:"doughnut",
+    data:{ labels, datasets:[{ data: values }]},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:"top", labels:{ boxWidth:18, font:{ size:11, weight:"700" } } }
+      },
+      onClick: (evt, elements)=>{
+        if(!elements?.length) return;
+        const idx = elements[0].index;
+        openPos(labels[idx]);
+      }
+    }
   });
-});
+}
 
-window.__mgr = (title,col,name)=>openSubordinates(title,col,name);
+function buildTeamChart(labels, values){
+  const ctx = document.getElementById("chartTeam");
+  if(!ctx) return;
+  if(charts.team) charts.team.destroy();
 
-// boot
-(async()=>{
-  try{
-    await load();
-  }catch(e){
-    $("hint").innerText = "Load error: " + e.message + "  (检查 opensheet link / Sheet 名称是否正确)";
+  charts.team = new Chart(ctx, {
+    type:"bar",
+    data:{ labels, datasets:[{ label:"人数（按姓名去重）", data: values }] },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      scales:{
+        x:{ ticks:{ font:{ size:10, weight:"700" }, maxRotation:60, minRotation:60 } },
+        y:{ ticks:{ font:{ size:10, weight:"700" } } }
+      },
+      plugins:{ legend:{ display:false } },
+      onClick: (evt, elements)=>{
+        if(!elements?.length) return;
+        const idx = elements[0].index;
+        openTeam(labels[idx]);
+      }
+    }
+  });
+}
+
+window.openPos = function(pos){
+  const rows = FILTERED.filter(r=> (norm(r["岗位"])||"未填写") === pos );
+  openModal(`${pos} 员工名单（${countByUniqueName(rows)}）`, renderFullTable(rows, `岗位 = ${pos}`));
+};
+
+window.openTeam = function(team){
+  const rows = FILTERED.filter(r=> (norm(r["团队"])||"未填写") === team );
+  openModal(`${team} 员工名单（${countByUniqueName(rows)}）`, renderFullTable(rows, `团队(cột F) = ${team}`));
+};
+
+window.openTeamPos = function(team, pos){
+  const rows = FILTERED.filter(r=> (norm(r["团队"])||"未填写")===team && (norm(r["岗位"])||"未填写")===pos );
+  openModal(`${team} · ${pos}（${countByUniqueName(rows)}）`, renderFullTable(rows, `团队 = ${team} 且 岗位 = ${pos}`));
+};
+
+/* =========================================================
+   EMPLOYEES PAGE
+   - Provide two modes: Table (scroll) and Cards (no horizontal scroll)
+   ========================================================= */
+let empViewMode = "cards"; // default to avoid horizontal scroll
+
+function renderEmployees(){
+  const rows = FILTERED;
+
+  const header = `
+    <div class="card">
+      <h2>Employees</h2>
+      <div class="sub">支持筛选/搜索。默认 Cards 视图避免横向滚动。</div>
+      <div class="btnRow">
+        <button class="btn ${empViewMode==='cards'?'primary':''}" onclick="setEmpView('cards')">Cards view（不横滚）</button>
+        <button class="btn ${empViewMode==='table'?'primary':''}" onclick="setEmpView('table')">Table view（完整列）</button>
+        <button class="btn" onclick="openModal('Employees（完整表）', renderFullTable(FILTERED,'筛选后的完整员工表'))">弹窗全屏查看</button>
+      </div>
+    </div>
+  `;
+
+  let body = "";
+  if(empViewMode==="cards"){
+    body = `
+      <div class="card">
+        <div class="cardsView">
+          ${rows.map(r=>{
+            const nm = norm(r["姓名"]);
+            const pos = norm(r["岗位"])||"未填写";
+            const team = norm(r["团队"])||"未填写";
+            const grp = norm(r["组别"])||"未填写";
+            const shift = norm(r["班次"])||"";
+            const id = norm(r["ID"])||"";
+            const country = norm(r["国家"])||"";
+            const pan = norm(r["盘口"])||"";
+            const owner = norm(r["负责人"])||"";
+            const onsite = norm(r["现场培训"])||"";
+            const leader = norm(r["线上组长"])||"";
+            const trainer = norm(r["线上培训"])||"";
+            return `
+              <div class="empCard">
+                <div class="row1">
+                  <div>
+                    <div class="nm">${esc(nm||"(未填写姓名)")}</div>
+                    <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap;">
+                      <span class="pill">${esc(pos)}</span>
+                      <span class="pill">团队: ${esc(team)}</span>
+                      <span class="pill">组别: ${esc(grp)}</span>
+                      ${shift ? `<span class="pill">班次: ${esc(shift)}</span>` : ``}
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div class="pill">${esc(id||"No ID")}</div>
+                    <div style="margin-top:8px; color:var(--muted); font-weight:900; font-size:12px;">${esc(country)}</div>
+                  </div>
+                </div>
+                <div class="meta">
+                  <div>负责人: <span class="link" onclick="openManagerSubs('负责人','${esc(owner)}')">${esc(owner||"-")}</span></div>
+                  <div>现场培训: <span class="link" onclick="openManagerSubs('现场培训','${esc(onsite)}')">${esc(onsite||"-")}</span></div>
+                  <div>线上组长: <span class="link" onclick="openManagerSubs('线上组长','${esc(leader)}')">${esc(leader||"-")}</span></div>
+                  <div>线上培训: <span class="link" onclick="openManagerSubs('线上培训','${esc(trainer)}')">${esc(trainer||"-")}</span></div>
+                  <div style="grid-column:1 / -1;">盘口: ${esc(pan||"-")}</div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }else{
+    body = `
+      <div class="card compact">
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>姓名</th><th>ID</th><th>岗位</th><th>团队(cột F)</th><th>组别</th><th>班次(cột I)</th>
+                <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th><th>国家</th><th>盘口</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r=>{
+                const owner = norm(r["负责人"]);
+                const onsite = norm(r["现场培训"]);
+                const leader = norm(r["线上组长"]);
+                const trainer = norm(r["线上培训"]);
+                return `
+                  <tr>
+                    <td>${esc(norm(r["姓名"]))}</td>
+                    <td>${esc(norm(r["ID"]))}</td>
+                    <td class="link" onclick="openPos('${esc(norm(r["岗位"])||"未填写")}')">${esc(norm(r["岗位"])||"未填写")}</td>
+                    <td class="link" onclick="openTeam('${esc(norm(r["团队"])||"未填写")}')">${esc(norm(r["团队"])||"未填写")}</td>
+                    <td>${esc(norm(r["组别"]))}</td>
+                    <td>${esc(norm(r["班次"]))}</td>
+                    <td class="link" onclick="openManagerSubs('负责人','${esc(owner)}')">${esc(owner)}</td>
+                    <td class="link" onclick="openManagerSubs('现场培训','${esc(onsite)}')">${esc(onsite)}</td>
+                    <td class="link" onclick="openManagerSubs('线上组长','${esc(leader)}')">${esc(leader)}</td>
+                    <td class="link" onclick="openManagerSubs('线上培训','${esc(trainer)}')">${esc(trainer)}</td>
+                    <td>${esc(norm(r["国家"]))}</td>
+                    <td>${esc(norm(r["盘口"]))}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
   }
-})();
+
+  els.pageEmployees.innerHTML = header + body;
+}
+
+window.setEmpView = function(mode){
+  empViewMode = mode;
+  renderEmployees();
+};
+
+/* =========================================================
+   SCHEDULE PAGE（排班表）
+   - Shift stats based on 班次(cột I) UNIQUE
+   - Also chart of shift distribution
+   - List all employees (filtered) without showing only 18
+   ========================================================= */
+function renderSchedule(){
+  const rows = FILTERED;
+
+  // shift unique from 班次
+  const shiftMap = groupBy(rows,"班次");
+  const shiftLabels = [...shiftMap.keys()];
+  const shiftCounts = shiftLabels.map(k=>countByUniqueName(shiftMap.get(k)));
+
+  // summary cards
+  const shiftCards = shiftLabels
+    .map((k,idx)=>({k, c: shiftCounts[idx]}))
+    .sort((a,b)=>b.c-a.c)
+    .map(x=>`
+      <div class="kpi" style="min-height:86px" onclick="openShift('${esc(x.k)}')">
+        <div class="spark"></div>
+        <div class="t">班次</div>
+        <div class="v" style="font-size:24px">${esc(x.k)}</div>
+        <div class="hint">${x.c} 人（按姓名去重）</div>
+      </div>
+    `).join("");
+
+  els.pageSchedule.innerHTML = `
+    <div class="card">
+      <h2>排班表</h2>
+      <div class="sub">按岗位 → 班次 分组展示（班次来自 Google Sheet cột I：班次）。点击班次卡片可弹窗查看名单。</div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:1000; font-size:16px;">班次统计（unique by 班次）</div>
+      <div class="note">提示：你说 “中班会有多个时间段”，所以必须从 cột I（班次）取 unique，这里已按你要求。</div>
+
+      <div class="kpiRow" style="grid-template-columns:repeat(3,1fr)">${shiftCards}</div>
+
+      <div class="chartBox" style="margin-top:14px"><canvas id="chartShift"></canvas></div>
+    </div>
+
+    <div class="card compact">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:1000; font-size:16px;">排班明细（全部人员，不限制 18）</div>
+          <div class="note">如果你不想横向滚动：建议用 Employees 的 Cards view；这里提供 compact table 看更多行。</div>
+        </div>
+        <button class="btn" onclick="openModal('排班明细（弹窗全屏）', renderFullTable(FILTERED,'排班明细：筛选后的所有行'))">弹窗全屏查看</button>
+      </div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th>
+              <th>团队(cột F)</th><th>组别</th><th>班次(cột I)</th><th>岗位</th><th>姓名</th><th>ID</th><th>国家</th><th>盘口</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r=>{
+              const owner = norm(r["负责人"]);
+              const onsite = norm(r["现场培训"]);
+              const leader = norm(r["线上组长"]);
+              const trainer = norm(r["线上培训"]);
+              return `
+                <tr>
+                  <td class="link" onclick="openManagerSubs('负责人','${esc(owner)}')">${esc(owner)}</td>
+                  <td class="link" onclick="openManagerSubs('现场培训','${esc(onsite)}')">${esc(onsite)}</td>
+                  <td class="link" onclick="openManagerSubs('线上组长','${esc(leader)}')">${esc(leader)}</td>
+                  <td class="link" onclick="openManagerSubs('线上培训','${esc(trainer)}')">${esc(trainer)}</td>
+                  <td class="link" onclick="openTeam('${esc(norm(r["团队"])||"未填写")}')">${esc(norm(r["团队"])||"未填写")}</td>
+                  <td>${esc(norm(r["组别"]))}</td>
+                  <td>${esc(norm(r["班次"]))}</td>
+                  <td class="link" onclick="openPos('${esc(norm(r["岗位"])||"未填写")}')">${esc(norm(r["岗位"])||"未填写")}</td>
+                  <td>${esc(norm(r["姓名"]))}</td>
+                  <td>${esc(norm(r["ID"]))}</td>
+                  <td>${esc(norm(r["国家"]))}</td>
+                  <td>${esc(norm(r["盘口"]))}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  buildShiftChart(shiftLabels, shiftCounts);
+}
+
+window.openShift = function(shift){
+  const rows = FILTERED.filter(r=> (norm(r["班次"])||"未填写") === shift );
+  openModal(`班次：${shift}（${countByUniqueName(rows)}）`, renderFullTable(rows, `班次(cột I) = ${shift}`));
+};
+
+function buildShiftChart(labels, values){
+  const ctx = document.getElementById("chartShift");
+  if(!ctx) return;
+  if(charts.shift) charts.shift.destroy();
+
+  charts.shift = new Chart(ctx, {
+    type:"bar",
+    data:{ labels, datasets:[{ label:"人数（按姓名去重）", data: values }] },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ ticks:{ font:{ size:10, weight:"700" }, maxRotation:45, minRotation:45 } },
+        y:{ ticks:{ font:{ size:10, weight:"700" } } }
+      },
+      onClick: (evt, elements)=>{
+        if(!elements?.length) return;
+        const idx = elements[0].index;
+        openShift(labels[idx]);
+      }
+    }
+  });
+}
+
+/* =========================================================
+   LOAD
+   ========================================================= */
+async function load(){
+  els.meta.textContent = "Loading data from Google Sheet…";
+  const res = await fetch(SHEET_API, { cache:"no-store" });
+  const data = await res.json();
+
+  // Normalize & keep only needed columns; still keep any extra for safety
+  RAW = data.map(r=>({
+    ...r,
+    "负责人": norm(r["负责人"]),
+    "现场培训": norm(r["现场培训"]),
+    "线上组长": norm(r["线上组长"]),
+    "线上培训": norm(r["线上培训"]),
+    "组别": norm(r["组别"]),
+    "团队": norm(r["团队"]),   // MUST be column F in your sheet, header = 团队
+    "姓名": norm(r["姓名"]),   // column G header = 姓名
+    "ID": norm(r["ID"]),
+    "国家": norm(r["国家"]),
+    "岗位": norm(r["岗位"]),
+    "盘口": norm(r["盘口"]),
+    "班次": norm(r["班次"])
+  }));
+
+  // Build filter options from RAW
+  const shifts = uniq(RAW.map(r=>r["班次"]||"").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+  const teams  = uniq(RAW.map(r=>r["团队"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+  const groups = uniq(RAW.map(r=>r["组别"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+  const poss   = uniq(RAW.map(r=>r["岗位"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+
+  buildSelectOptions(els.shiftSel, shifts, "All shifts（班次 cột I）");
+  buildSelectOptions(els.teamSel, teams, "All teams（团队 cột F）");
+  buildSelectOptions(els.groupSel, groups, "All groups（组别 cột E）");
+  buildSelectOptions(els.posSel, poss, "All positions（岗位）");
+
+  applyFilters();
+}
+
+load();
 </script>
 </body>
 </html>
