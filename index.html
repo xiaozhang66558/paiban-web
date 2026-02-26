@@ -4,13 +4,11 @@
 <meta charset="UTF-8" />
 <title>HR System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
 body{margin:0;background:#f3f4f6}
-
 header{
   background:#0f172a;
   color:#fff;
@@ -19,13 +17,11 @@ header{
   justify-content:space-between;
   align-items:center
 }
-
 .container{
-  max-width:1200px;
+  max-width:1300px;
   margin:20px auto;
   padding:0 20px
 }
-
 .card{
   background:#fff;
   border-radius:16px;
@@ -33,48 +29,40 @@ header{
   box-shadow:0 2px 10px rgba(0,0,0,.06);
   margin-bottom:20px;
 }
-
 .kpi{
   display:grid;
   grid-template-columns:repeat(4,1fr);
   gap:15px;
   margin:20px 0
 }
-
 .kpiBox{
   background:#fff;
   border-radius:16px;
   padding:15px;
   box-shadow:0 2px 10px rgba(0,0,0,.06)
 }
-
 .kpiBox h3{margin:0;font-size:22px}
-
 .grid{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:20px
 }
-
 table{
   width:100%;
   border-collapse:collapse;
   margin-top:15px
 }
-
 th{
   background:#0f172a;
   color:#fff;
   padding:10px;
   text-align:center;
 }
-
 td{
   padding:8px;
   border-bottom:1px solid #eee;
   text-align:center;
 }
-
 td.clickable{
   color:#2563eb;
   cursor:pointer;
@@ -93,14 +81,14 @@ td.clickable{
 
   <div class="card">
     <h2>统计总览</h2>
-    <div style="color:#6b7280">按团队统计（点击人数查看员工）</div>
+    <div style="color:#6b7280">按团队统计（点击数字查看员工）</div>
   </div>
 
   <div class="kpi">
     <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
-    <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
-    <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
-    <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
+    <div class="kpiBox"><div>岗位种类</div><h3 id="kPosition">0</h3></div>
+    <div class="kpiBox"><div>团队数量</div><h3 id="kTeam">0</h3></div>
+    <div class="kpiBox"><div>出款人数</div><h3 id="kWD">0</h3></div>
   </div>
 
   <div class="grid">
@@ -120,10 +108,7 @@ td.clickable{
       <thead>
         <tr>
           <th>团队</th>
-          <th>出款人数</th>
-          <th>客服人数</th>
-          <th>查单人数</th>
-          <th>总人数</th>
+          <th>人数</th>
         </tr>
       </thead>
       <tbody id="tbodyStats"></tbody>
@@ -158,16 +143,18 @@ let chart1, chart2;
 
 async function loadData(){
   const res = await fetch(sheetAPI);
-  rawData = await res.json();
+  const data = await res.json();
 
-  // 只保留 A-M 列
-  rawData = rawData.map(r=>({
-    team: r["团队统计"] || "",
+  rawData = data.map(r=>({
+    team: r["团队"] || r["团队统计"] || r["F"] || "",
     name: r["姓名"] || "",
-    position: r["岗位"] || "",
-    id: r["ID"] || "",
+    id: r["ID"] || r["G"] || "",
+    position: r["岗位"] || r["K"] || "",
     country: r["国家"] || ""
   }));
+
+  // 删除 ID 为空的
+  rawData = rawData.filter(r=>r.id && r.id.trim()!=="")
 
   renderDashboard();
 }
@@ -175,43 +162,36 @@ async function loadData(){
 function renderDashboard(){
 
   const total = rawData.length;
-  const wd = rawData.filter(r=>r.position==="出款").length;
-  const cs = rawData.filter(r=>r.position==="客服").length;
-  const dp = rawData.filter(r=>r.position==="查单").length;
-
   kTotal.innerText = total;
-  kWD.innerText = wd;
-  kCS.innerText = cs;
-  kDP.innerText = dp;
 
-  // ===== 团队统计 =====
+  const positions = [...new Set(rawData.map(r=>r.position))];
+  kPosition.innerText = positions.length;
+
   const teams = [...new Set(rawData.map(r=>r.team))];
+  kTeam.innerText = teams.length;
+
+  const wd = rawData.filter(r=>r.position==="出款").length;
+  kWD.innerText = wd;
 
   tbodyStats.innerHTML = teams.map(t=>{
-    const teamData = rawData.filter(r=>r.team===t);
-    const wdCount = teamData.filter(r=>r.position==="出款").length;
-    const csCount = teamData.filter(r=>r.position==="客服").length;
-    const dpCount = teamData.filter(r=>r.position==="查单").length;
-
+    const count = rawData.filter(r=>r.team===t).length;
     return `
     <tr>
       <td>${t}</td>
-      <td class="clickable" onclick="showEmployees('${t}','出款')">${wdCount}</td>
-      <td class="clickable" onclick="showEmployees('${t}','客服')">${csCount}</td>
-      <td class="clickable" onclick="showEmployees('${t}','查单')">${dpCount}</td>
-      <td class="clickable" onclick="showEmployees('${t}','全部')">${teamData.length}</td>
+      <td class="clickable" onclick="showTeam('${t}')">${count}</td>
     </tr>`;
   }).join("");
 
-  // ===== 图表 =====
   if(chart1) chart1.destroy();
   if(chart2) chart2.destroy();
 
   chart1 = new Chart(chartPosition,{
     type:"doughnut",
     data:{
-      labels:["出款","客服","查单"],
-      datasets:[{data:[wd,cs,dp]}]
+      labels:positions,
+      datasets:[{
+        data:positions.map(p=>rawData.filter(r=>r.position===p).length)
+      }]
     }
   });
 
@@ -228,16 +208,11 @@ function renderDashboard(){
 
 }
 
-function showEmployees(team, position){
-
-  let filtered = rawData.filter(r=>r.team===team);
-
-  if(position!=="全部"){
-    filtered = filtered.filter(r=>r.position===position);
-  }
+function showTeam(team){
+  const filtered = rawData.filter(r=>r.team===team);
 
   employeeSection.style.display="block";
-  employeeTitle.innerText = team + " - " + position + " 员工名单";
+  employeeTitle.innerText = team + " 员工名单";
 
   employeeList.innerHTML = filtered.map(r=>`
     <tr>
@@ -247,7 +222,6 @@ function showEmployees(team, position){
       <td>${r.country}</td>
     </tr>
   `).join("");
-
 }
 
 loadData();
