@@ -170,71 +170,57 @@ td{
 const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
 const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
 
-const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
-  auth:{persistSession:true}
-});
+const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let USERS=[],TEAMS=[];
 let chart1,chart2;
-let isLoggedIn=false;
 
-/* ===== SESSION CHECK ===== */
-(async()=>{
-  const {data:{session}}=await supa.auth.getSession();
-  if(session){
-    setLoggedIn();
-  }else{
-    setLoggedOut();
-  }
-})();
-
-/* ===== LOGIN BUTTON ===== */
-btnLogin.onclick=()=>loginModal.classList.remove("hidden");
-
-/* ===== LOGIN ACTION ===== */
-doLogin.onclick=async()=>{
-  loginMsg.innerText="";
-
-  const {error}=await supa.auth.signInWithPassword({
-    email:loginEmail.value.trim(),
-    password:loginPass.value
-  });
-
-  if(error){
-    loginMsg.innerText=error.message;
-    return;
-  }
-
-  setLoggedIn();
-};
-
-/* ===== LOGOUT ===== */
-btnLogout.onclick=async()=>{
-  await supa.auth.signOut();
-  setLoggedOut();
-};
-
-/* ===== STATE ===== */
-function setLoggedIn(){
-  isLoggedIn=true;
-  loginModal.classList.add("hidden");
-  roleBadge.innerText="Logged in";
-  btnLogin.classList.add("hidden");
-  btnLogout.classList.remove("hidden");
-  loadData();
-}
-
-function setLoggedOut(){
-  isLoggedIn=false;
+/* ===== UI STATE ===== */
+function showLogin(){
+  loginModal.classList.remove("hidden");
   roleBadge.innerText="Not logged in";
   btnLogin.classList.remove("hidden");
   btnLogout.classList.add("hidden");
   clearDashboard();
 }
 
+function showDashboard(){
+  loginModal.classList.add("hidden");
+  roleBadge.innerText="Logged in";
+  btnLogin.classList.add("hidden");
+  btnLogout.classList.remove("hidden");
+}
+
+/* ===== LOGIN ===== */
+btnLogin.onclick=()=>loginModal.classList.remove("hidden");
+
+doLogin.onclick=async()=>{
+  loginMsg.innerText="";
+  const {error}=await supa.auth.signInWithPassword({
+    email:loginEmail.value.trim(),
+    password:loginPass.value
+  });
+  if(error){
+    loginMsg.innerText=error.message;
+    return;
+  }
+  showDashboard();
+  await loadData();
+};
+
+/* ===== LOGOUT ===== */
+btnLogout.onclick=async()=>{
+  await supa.auth.signOut();
+  showLogin();
+};
+
 /* ===== LOAD DATA ===== */
 async function loadData(){
-  if(!isLoggedIn) return;
+  const {data:{user}}=await supa.auth.getUser();
+  if(!user){
+    showLogin();
+    return;
+  }
 
   const usersRes=await supa.from("users").select("*");
   const teamsRes=await supa.from("teams").select("*");
@@ -256,10 +242,8 @@ function clearDashboard(){
   if(chart2) chart2.destroy();
 }
 
-/* ===== DASHBOARD ===== */
+/* ===== RENDER ===== */
 function renderDashboard(){
-  if(!isLoggedIn) return;
-
   kTotal.innerText=USERS.length;
 
   const cs=USERS.filter(u=>u.position_name==="客服").length;
@@ -295,6 +279,17 @@ function renderDashboard(){
     }
   });
 }
+
+/* ===== INITIAL CHECK ===== */
+(async()=>{
+  const {data:{session}}=await supa.auth.getSession();
+  if(session){
+    showDashboard();
+    await loadData();
+  }else{
+    showLogin();
+  }
+})();
 </script>
 
 </body>
