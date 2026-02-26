@@ -1,316 +1,731 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8" />
-<title>HR System</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <title>HR System - SaaS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-<style>
-*{box-sizing:border-box;font-family:Segoe UI,Arial}
-body{margin:0;background:#f3f4f6}
+  <style>
+    *{box-sizing:border-box;font-family:Segoe UI,Arial}
+    body{margin:0;background:#f3f4f6;color:#111}
+    header{
+      position:sticky;top:0;z-index:10;
+      background:linear-gradient(180deg,#0b1222,#0f172a);
+      color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between
+    }
+    header .left{display:flex;gap:10px;align-items:center}
+    .badge{background:rgba(255,255,255,.12);padding:4px 10px;border-radius:999px;font-size:12px}
+    .btn{border:0;border-radius:12px;padding:9px 14px;cursor:pointer}
+    .btn.primary{background:#2563eb;color:#fff}
+    .btn.dark{background:#111827;color:#fff}
+    .btn.ghost{background:rgba(255,255,255,.12);color:#fff}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .wrap{max-width:1280px;margin:16px auto;padding:0 16px}
+    .card{background:#fff;border-radius:18px;box-shadow:0 10px 26px rgba(15,23,42,.08);padding:16px}
+    .muted{color:#6b7280;font-size:13px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 14px;border-radius:999px;background:#e5e7eb;cursor:pointer;user-select:none}
+    .tab.active{background:#0f172a;color:#fff}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input,select{padding:10px 12px;border:1px solid #d1d5db;border-radius:12px;outline:none;background:#fff}
+    input:focus,select:focus{border-color:#2563eb}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:980px){.grid{grid-template-columns:1.2fr .8fr}}
+    .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(min-width:900px){.kpi{grid-template-columns:repeat(4,1fr)}}
+    .kpi .box{background:#fff;border-radius:16px;box-shadow:0 6px 18px rgba(15,23,42,.07);padding:12px}
+    .kpi .num{font-size:24px;font-weight:800}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    th,td{border-bottom:1px solid #eee;padding:10px 8px;text-align:center;font-size:14px;white-space:nowrap}
+    th{background:#0f172a;color:#fff;position:sticky;top:58px;z-index:2}
+    td:first-child,th:first-child{text-align:left}
+    .hidden{display:none !important}
+    .pill{display:inline-block;padding:3px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px}
+    .pill.red{background:#fee2e2;color:#991b1b}
+    .clickable{cursor:pointer}
+    .clickable:hover{background:#f8fafc}
 
-header{
-  background:#0f172a;
-  color:#fff;
-  padding:16px 24px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center
-}
-
-.badge{
-  background:#1e293b;
-  padding:6px 12px;
-  border-radius:999px;
-  font-size:12px
-}
-
-button{
-  padding:8px 14px;
-  border-radius:10px;
-  border:0;
-  cursor:pointer
-}
-
-.btn-primary{background:#2563eb;color:#fff}
-.btn-dark{background:#1e293b;color:#fff}
-
-.container{
-  max-width:1200px;
-  margin:20px auto;
-  padding:0 20px
-}
-
-.card{
-  background:#fff;
-  border-radius:16px;
-  padding:20px;
-  box-shadow:0 2px 10px rgba(0,0,0,.06);
-  margin-bottom:20px
-}
-
-.kpi{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:15px;
-  margin-bottom:20px
-}
-
-.kpiBox{
-  background:#fff;
-  border-radius:16px;
-  padding:15px;
-  box-shadow:0 2px 10px rgba(0,0,0,.06)
-}
-
-.kpiBox h3{margin:0;font-size:22px}
-
-.grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px
-}
-
-table{
-  width:100%;
-  border-collapse:collapse
-}
-
-th{
-  background:#0f172a;
-  color:#fff;
-  padding:10px
-}
-
-td{
-  padding:8px;
-  border-bottom:1px solid #eee
-}
-
-.hidden{display:none}
-
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:999
-}
-
-.modal-box{
-  background:#fff;
-  padding:20px;
-  border-radius:16px;
-  width:300px
-}
-
-.modal-box input{
-  width:100%;
-  padding:8px;
-  margin-bottom:10px
-}
-</style>
+    /* Modal */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+    .modal.show{display:flex}
+    .panel{width:min(900px,100%);background:#fff;border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.25);padding:16px}
+    .panel h3{margin:0 0 8px}
+    .split{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:860px){.split{grid-template-columns:1fr 1fr}}
+    .debug{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;white-space:pre-wrap;background:#0b1020;color:#d1d5db;padding:10px;border-radius:12px;max-height:180px;overflow:auto}
+  </style>
 </head>
 
 <body>
-
 <header>
-  <div style="display:flex;gap:10px;align-items:center">
+  <div class="left">
     <strong>HR System</strong>
     <span id="roleBadge" class="badge">Not logged in</span>
+    <span id="teamBadge" class="badge hidden"></span>
   </div>
-  <div>
-    <button id="btnLogin" class="btn-primary">Login</button>
-    <button id="btnLogout" class="btn-dark hidden">Logout</button>
+  <div class="row">
+    <button id="btnLogin" class="btn ghost">Login</button>
+    <button id="btnLogout" class="btn ghost hidden">Logout</button>
   </div>
 </header>
 
-<div class="container hidden" id="dashboard">
-
-  <div class="card">
-    <h2>统计总览</h2>
-    <div style="color:#6b7280">按团队统计</div>
+<div class="wrap">
+  <div class="tabs card">
+    <div class="tab active" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="employees">Employees</div>
   </div>
 
-  <div class="kpi">
-    <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
-    <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
-    <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
-    <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
-  </div>
-
-  <div class="grid">
+  <!-- DASHBOARD -->
+  <div id="viewDashboard" class="grid">
     <div class="card">
-      <h3>岗位分布</h3>
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h2 style="margin:0">团队统计总览</h2>
+          <div class="muted">Admin 全部数据 / Leader 仅自己团队（按状态 & 团队过滤）</div>
+        </div>
+        <div class="row">
+          <select id="filterStatus">
+            <option value="在职">在职</option>
+            <option value="离职">离职</option>
+            <option value="ALL">全部</option>
+          </select>
+          <select id="filterTeam"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi">
+      <div class="box"><div class="muted">总人数</div><div id="kpiTotal" class="num">0</div></div>
+      <div class="box"><div class="muted">客服人数</div><div id="kpiCS" class="num">0</div></div>
+      <div class="box"><div class="muted">出款人数</div><div id="kpiWD" class="num">0</div></div>
+      <div class="box"><div class="muted">查单人数</div><div id="kpiDP" class="num">0</div></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px">岗位分布（饼图）</h3>
       <canvas id="chartPosition"></canvas>
     </div>
+
     <div class="card">
-      <h3>团队人数</h3>
+      <h3 style="margin:0 0 10px">团队人数（柱状图）</h3>
       <canvas id="chartTeam"></canvas>
+    </div>
+
+    <!-- Pivot table like your screenshot -->
+    <div class="card" style="grid-column:1/-1">
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <div>
+          <h3 style="margin:0 0 6px">团队统计表（可点击查看员工）</h3>
+          <div class="muted">点击任意数字 → 弹窗显示对应团队 & 岗位员工名单</div>
+        </div>
+        <div class="muted" id="dataHint"></div>
+      </div>
+
+      <div style="overflow:auto;border-radius:12px;margin-top:10px">
+        <table>
+          <thead>
+            <tr>
+              <th>团队统计</th>
+              <th>现场培训</th>
+              <th>线上培训</th>
+              <th>出款人数</th>
+              <th>客服人数</th>
+              <th>查单人数</th>
+              <th>财务人数</th>
+              <th>质检人数</th>
+              <th>彩金人数</th>
+              <th>其他岗位</th>
+              <th>总人数</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyPivot"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <div class="card">
-    <h3>详细统计表</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>团队</th>
-          <th>人数</th>
-        </tr>
-      </thead>
-      <tbody id="tbodyStats"></tbody>
-    </table>
-  </div>
+  <!-- EMPLOYEES -->
+  <div id="viewEmployees" class="card hidden">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <h2 style="margin:0">Employees</h2>
+        <div class="muted">列表展示（受权限限制：Admin 全部 / Leader 自己团队）</div>
+      </div>
+      <div class="row">
+        <input id="searchEmp" placeholder="搜索姓名..." />
+      </div>
+    </div>
 
+    <div style="overflow:auto;border-radius:12px;margin-top:12px">
+      <table>
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>团队</th>
+            <th>岗位</th>
+            <th>状态</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyEmp"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
-<div id="loginModal" class="modal">
-  <div class="modal-box">
-    <h3>Login</h3>
-    <input id="loginEmail" placeholder="Email">
-    <input id="loginPass" type="password" placeholder="Password">
-    <button id="doLogin" class="btn-primary" style="width:100%">Login</button>
-    <div id="loginMsg" style="color:red;margin-top:8px"></div>
+<!-- LOGIN MODAL -->
+<div id="modalLogin" class="modal">
+  <div class="panel" style="width:min(520px,100%)">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div>
+        <h3>Login</h3>
+        <div class="muted">Supabase Email/Password</div>
+      </div>
+      <button id="btnCloseLogin" class="btn dark">Close</button>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <input id="loginEmail" placeholder="Email" style="flex:1" autocomplete="username" />
+      <input id="loginPass" placeholder="Password" type="password" style="flex:1" autocomplete="current-password" />
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <button id="btnDoLogin" class="btn primary">Login</button>
+      <span id="loginMsg" class="muted"></span>
+    </div>
+
+    <div style="margin-top:10px">
+      <div class="muted">Debug:</div>
+      <div id="debugBox" class="debug"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DRILLDOWN MODAL -->
+<div id="modalDrill" class="modal">
+  <div class="panel">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div>
+        <h3 id="drillTitle">Employees</h3>
+        <div id="drillSub" class="muted"></div>
+      </div>
+      <button id="btnCloseDrill" class="btn dark">Close</button>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <input id="drillSearch" placeholder="Search name..." style="flex:1" />
+      <span class="pill" id="drillCount">0</span>
+    </div>
+
+    <div style="overflow:auto;border-radius:12px;margin-top:10px;max-height:55vh">
+      <table>
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>团队</th>
+            <th>岗位</th>
+            <th>状态</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyDrill"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
 <script>
-const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
-const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
+  // ====== CONFIG (your project) ======
+  const SUPABASE_URL = "https://mxeqccecqkyllwvbylej.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
 
-const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-let USERS=[],TEAMS=[];
-let chart1,chart2;
-
-/* ===== UI CONTROL ===== */
-
-function showLogin(){
-  loginModal.style.display="flex";
-  dashboard.classList.add("hidden");
-  roleBadge.innerText="Not logged in";
-  btnLogin.classList.remove("hidden");
-  btnLogout.classList.add("hidden");
-}
-
-function showDashboard(){
-  loginModal.style.display="none";
-  dashboard.classList.remove("hidden");
-  roleBadge.innerText="Logged in";
-  btnLogin.classList.add("hidden");
-  btnLogout.classList.remove("hidden");
-}
-
-/* ===== LOGIN ===== */
-
-doLogin.onclick=async()=>{
-  loginMsg.innerText="";
-  const {error}=await supa.auth.signInWithPassword({
-    email:loginEmail.value.trim(),
-    password:loginPass.value
+  const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
 
-  if(error){
-    loginMsg.innerText="Invalid login credentials";
-    return;
+  // ====== UI ======
+  const roleBadge = document.getElementById("roleBadge");
+  const teamBadge = document.getElementById("teamBadge");
+  const btnLogin = document.getElementById("btnLogin");
+  const btnLogout = document.getElementById("btnLogout");
+
+  const modalLogin = document.getElementById("modalLogin");
+  const btnCloseLogin = document.getElementById("btnCloseLogin");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPass = document.getElementById("loginPass");
+  const btnDoLogin = document.getElementById("btnDoLogin");
+  const loginMsg = document.getElementById("loginMsg");
+  const debugBox = document.getElementById("debugBox");
+
+  const modalDrill = document.getElementById("modalDrill");
+  const btnCloseDrill = document.getElementById("btnCloseDrill");
+  const drillTitle = document.getElementById("drillTitle");
+  const drillSub = document.getElementById("drillSub");
+  const drillSearch = document.getElementById("drillSearch");
+  const drillCount = document.getElementById("drillCount");
+  const tbodyDrill = document.getElementById("tbodyDrill");
+
+  const filterStatus = document.getElementById("filterStatus");
+  const filterTeam = document.getElementById("filterTeam");
+
+  const kpiTotal = document.getElementById("kpiTotal");
+  const kpiCS = document.getElementById("kpiCS");
+  const kpiWD = document.getElementById("kpiWD");
+  const kpiDP = document.getElementById("kpiDP");
+
+  const tbodyPivot = document.getElementById("tbodyPivot");
+  const dataHint = document.getElementById("dataHint");
+
+  const tabs = [...document.querySelectorAll(".tab")];
+  const viewDashboard = document.getElementById("viewDashboard");
+  const viewEmployees = document.getElementById("viewEmployees");
+
+  const searchEmp = document.getElementById("searchEmp");
+  const tbodyEmp = document.getElementById("tbodyEmp");
+
+  // ====== STATE ======
+  let sessionUser = null;
+  let me = null; // profiles row
+  let TEAMS = [];
+  let POSITIONS = [];
+  let USERS = [];
+  let chartPos = null;
+  let chartTeam = null;
+
+  // Pivot columns you want (like screenshot)
+  const COLS = [
+    { key: "现场培训", label:"现场培训" },
+    { key: "线上培训", label:"线上培训" },
+    { key: "出款", label:"出款人数" },
+    { key: "客服", label:"客服人数" },
+    { key: "查单", label:"查单人数" },
+    { key: "财务", label:"财务人数" },
+    { key: "质检", label:"质检人数" },
+    { key: "彩金", label:"彩金人数" },
+    { key: "其他岗位", label:"其他岗位" },
+    { key: "TOTAL", label:"总人数" },
+  ];
+
+  // ====== HELPERS ======
+  const safeText = (x)=> (x ?? "").toString();
+  function openModal(el){ el.classList.add("show"); }
+  function closeModal(el){ el.classList.remove("show"); }
+
+  function logDebug(...args){
+    const line = args.map(a=>{
+      try { return typeof a === "string" ? a : JSON.stringify(a, null, 2); }
+      catch { return String(a); }
+    }).join(" ");
+    debugBox.textContent = (debugBox.textContent + "\n" + line).trim();
+    debugBox.scrollTop = debugBox.scrollHeight;
+    console.log(...args);
   }
 
-  showDashboard();
-  await loadData();
-};
-
-/* ===== LOGOUT ===== */
-
-btnLogout.onclick=async()=>{
-  await supa.auth.signOut();
-  showLogin();
-};
-
-/* ===== INITIAL CHECK ===== */
-
-(async()=>{
-  const {data:{session}}=await supa.auth.getSession();
-  if(session){
-    showDashboard();
-    await loadData();
-  }else{
-    showLogin();
+  function showTab(name){
+    tabs.forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
+    viewDashboard.classList.toggle("hidden", name!=="dashboard");
+    viewEmployees.classList.toggle("hidden", name!=="employees");
   }
-})();
 
-/* ================= GOOGLE SHEET LOAD ================= */
+  function teamNameById(id){
+    return TEAMS.find(t=>t.id===id)?.team_name ?? "未分组";
+  }
+  function posNameById(id){
+    return POSITIONS.find(p=>p.id===id)?.position_name ?? "其他岗位";
+  }
 
-async function loadData(){
+  function isAdmin(){ return me?.role === "admin"; }
+  function isLeader(){ return me?.role === "leader"; }
 
-  const sheetAPI =
-  "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
+  // ====== AUTH UI (fix “treo modal”) ======
+  function setAuthUI(){
+    if(!sessionUser){
+      roleBadge.textContent = "Not logged in";
+      teamBadge.classList.add("hidden");
+      btnLogin.classList.remove("hidden");
+      btnLogout.classList.add("hidden");
+      // IMPORTANT: hide data when not logged in
+      USERS = [];
+      renderAllEmpty();
+      return;
+    }
 
-  const res = await fetch(sheetAPI);
-  const sheetData = await res.json();
+    btnLogin.classList.add("hidden");
+    btnLogout.classList.remove("hidden");
+    roleBadge.textContent = `Logged in`;
+  }
 
-  USERS = sheetData.map(row => ({
-    name: row["姓名"] || "",
-    team_name: row["团队"] || "",
-    position_name: row["岗位"] || ""
-  }));
+  function renderAllEmpty(){
+    kpiTotal.textContent="0"; kpiCS.textContent="0"; kpiWD.textContent="0"; kpiDP.textContent="0";
+    tbodyPivot.innerHTML = "";
+    tbodyEmp.innerHTML = "";
+    dataHint.textContent = "请先登录";
+    if(chartPos){ chartPos.destroy(); chartPos=null; }
+    if(chartTeam){ chartTeam.destroy(); chartTeam=null; }
+  }
 
-  const teamNames = [...new Set(USERS.map(u => u.team_name))];
+  // ====== LOAD PROFILE (role/team) ======
+  async function loadMyProfile(){
+    // profiles.id = auth.users.id
+    const { data, error } = await supa.from("profiles").select("*").eq("id", sessionUser.id).maybeSingle();
+    if(error){ logDebug("profiles error:", error); return null; }
+    if(!data){
+      // create default staff profile if missing
+      const ins = await supa.from("profiles").insert({ id: sessionUser.id, role: "staff" }).select("*").single();
+      if(ins.error){ logDebug("profiles insert error:", ins.error); return null; }
+      return ins.data;
+    }
+    return data;
+  }
 
-  TEAMS = teamNames.map(t => ({
-    id: t,
-    team_name: t
-  }));
+  // ====== LOAD MASTER DATA ======
+  async function loadMaster(){
+    const t = await supa.from("teams").select("*").order("team_name");
+    const p = await supa.from("positions").select("*").order("position_name");
+    if(t.error) logDebug("teams error:", t.error);
+    if(p.error) logDebug("positions error:", p.error);
+    TEAMS = t.data || [];
+    POSITIONS = p.data || [];
+  }
 
-  renderDashboard();
-}
+  function fillFilters(){
+    // team filter
+    filterTeam.innerHTML = `<option value="ALL">全部团队</option>` +
+      TEAMS.map(t=>`<option value="${t.id}">${t.team_name}</option>`).join("");
 
-/* ===== RENDER ===== */
+    // leader locked
+    if(isLeader() && me?.team_id){
+      filterTeam.value = me.team_id;
+      filterTeam.disabled = true;
+      const tname = teamNameById(me.team_id);
+      teamBadge.textContent = `Team: ${tname}`;
+      teamBadge.classList.remove("hidden");
+    } else {
+      filterTeam.disabled = false;
+      teamBadge.classList.add("hidden");
+    }
 
-function renderDashboard(){
-  kTotal.innerText=USERS.length;
+    // show role
+    roleBadge.textContent = `Role: ${me?.role || "staff"}`;
+  }
 
-  const cs=USERS.filter(u=>u.position_name==="客服").length;
-  const wd=USERS.filter(u=>u.position_name==="出款").length;
-  const dp=USERS.filter(u=>u.position_name==="查单").length;
+  // ====== LOAD USERS (respect role + filters) ======
+  async function loadUsers(){
+    let q = supa.from("users").select("*").order("name");
+    const status = filterStatus.value;
+    const team = filterTeam.value;
 
-  kCS.innerText=cs;
-  kWD.innerText=wd;
-  kDP.innerText=dp;
+    if(status !== "ALL") q = q.eq("status", status);
 
-  tbodyStats.innerHTML=TEAMS.map(t=>{
-    const count=USERS.filter(u=>u.team_name===t.team_name).length;
-    return `<tr><td>${t.team_name}</td><td>${count}</td></tr>`;
-  }).join("");
+    if(isLeader() && me?.team_id){
+      q = q.eq("team_id", me.team_id);
+    }else{
+      if(team !== "ALL") q = q.eq("team_id", team);
+    }
 
-  if(chart1) chart1.destroy();
-  if(chart2) chart2.destroy();
+    const { data, error } = await q;
+    if(error){
+      logDebug("users error:", error);
+      USERS = [];
+      return;
+    }
+    USERS = data || [];
+  }
 
-  chart1=new Chart(chartPosition,{
-    type:"doughnut",
-    data:{
-      labels:["客服","出款","查单"],
-      datasets:[{data:[cs,wd,dp]}]
+  // ====== BUILD PIVOT ======
+  function buildPivot(){
+    // teamName -> counts
+    const pivot = new Map();
+
+    function ensure(teamId){
+      const name = teamNameById(teamId);
+      if(!pivot.has(teamId)){
+        pivot.set(teamId, {
+          teamId, teamName: name,
+          "现场培训":0, "线上培训":0,
+          "出款":0,"客服":0,"查单":0,"财务":0,"质检":0,"彩金":0,"其他岗位":0,
+          TOTAL:0
+        });
+      }
+      return pivot.get(teamId);
+    }
+
+    for(const u of USERS){
+      const row = ensure(u.team_id);
+      row.TOTAL++;
+
+      const posName = posNameById(u.position_id);
+      const key = ["出款","客服","查单","财务","质检","彩金"].includes(posName) ? posName : "其他岗位";
+      row[key]++;
+
+      // OPTIONAL training counting:
+      // if your users table has column training_type = "现场培训" / "线上培训"
+      // or boolean flags. If not exist => always 0 (safe)
+      const tt = safeText(u.training_type).trim();
+      if(tt === "现场培训") row["现场培训"]++;
+      if(tt === "线上培训") row["线上培训"]++;
+    }
+
+    return [...pivot.values()].sort((a,b)=>b.TOTAL-a.TOTAL);
+  }
+
+  function renderPivot(){
+    const rows = buildPivot();
+    dataHint.textContent = `Loaded: ${USERS.length} users / ${rows.length} teams`;
+
+    tbodyPivot.innerHTML = rows.map(r=>{
+      // every number cell will be clickable to drill down
+      const cell = (colKey)=>{
+        const v = r[colKey] ?? 0;
+        const dataset = `data-team="${r.teamId}" data-col="${colKey}"`;
+        return `<td class="clickable" ${dataset}><strong>${v}</strong></td>`;
+      };
+
+      return `
+        <tr>
+          <td><strong>${r.teamName}</strong></td>
+          ${cell("现场培训")}
+          ${cell("线上培训")}
+          ${cell("出款")}
+          ${cell("客服")}
+          ${cell("查单")}
+          ${cell("财务")}
+          ${cell("质检")}
+          ${cell("彩金")}
+          ${cell("其他岗位")}
+          ${cell("TOTAL")}
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // ====== CHARTS + KPI ======
+  function renderChartsAndKpi(){
+    kpiTotal.textContent = USERS.length;
+
+    const countByPos = { "客服":0,"出款":0,"查单":0,"财务":0,"质检":0,"彩金":0,"其他岗位":0 };
+    const countByTeam = new Map();
+
+    for(const u of USERS){
+      const team = teamNameById(u.team_id);
+      const pos = posNameById(u.position_id);
+      const pk = ["出款","客服","查单","财务","质检","彩金"].includes(pos) ? pos : "其他岗位";
+
+      countByPos[pk] = (countByPos[pk]||0)+1;
+      countByTeam.set(team, (countByTeam.get(team)||0)+1);
+    }
+
+    kpiCS.textContent = countByPos["客服"]||0;
+    kpiWD.textContent = countByPos["出款"]||0;
+    kpiDP.textContent = countByPos["查单"]||0;
+
+    // chart pos
+    const posLabels = Object.keys(countByPos);
+    const posValues = posLabels.map(k=>countByPos[k]||0);
+
+    if(chartPos) chartPos.destroy();
+    chartPos = new Chart(document.getElementById("chartPosition"), {
+      type:"doughnut",
+      data:{ labels: posLabels, datasets:[{ data: posValues }]},
+      options:{ responsive:true, plugins:{ legend:{ position:"bottom" } } }
+    });
+
+    // chart team
+    const teamLabels = [...countByTeam.keys()];
+    const teamValues = teamLabels.map(k=>countByTeam.get(k));
+
+    if(chartTeam) chartTeam.destroy();
+    chartTeam = new Chart(document.getElementById("chartTeam"), {
+      type:"bar",
+      data:{ labels: teamLabels, datasets:[{ data: teamValues }]},
+      options:{ responsive:true, plugins:{ legend:{ display:false } } }
+    });
+  }
+
+  // ====== EMPLOYEES LIST ======
+  function renderEmployees(){
+    const q = safeText(searchEmp.value).trim().toLowerCase();
+    const data = q ? USERS.filter(u=>safeText(u.name).toLowerCase().includes(q)) : USERS;
+
+    tbodyEmp.innerHTML = data.map(u=>{
+      const s = u.status === "在职" ? `<span class="pill">${u.status}</span>` : `<span class="pill red">${u.status}</span>`;
+      return `
+        <tr>
+          <td><strong>${safeText(u.name)}</strong></td>
+          <td>${teamNameById(u.team_id)}</td>
+          <td>${posNameById(u.position_id)}</td>
+          <td>${s}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // ====== DRILLDOWN (click pivot cell) ======
+  function drillEmployees(teamId, colKey){
+    const teamName = teamNameById(teamId);
+
+    let filtered = USERS.filter(u=>u.team_id === teamId);
+
+    let title = teamName;
+    let sub = "";
+
+    if(colKey === "TOTAL"){
+      sub = "全部岗位";
+    } else if(colKey === "现场培训" || colKey === "线上培训"){
+      sub = `培训类型：${colKey}`;
+      filtered = filtered.filter(u=>safeText(u.training_type).trim() === colKey);
+    } else if(colKey === "其他岗位"){
+      sub = "岗位：其他岗位";
+      filtered = filtered.filter(u=>{
+        const p = posNameById(u.position_id);
+        return !["出款","客服","查单","财务","质检","彩金"].includes(p);
+      });
+    } else {
+      sub = `岗位：${colKey}`;
+      filtered = filtered.filter(u=>posNameById(u.position_id) === colKey);
+    }
+
+    drillTitle.textContent = `员工名单 - ${title}`;
+    drillSub.textContent = sub;
+
+    function renderDrill(){
+      const qq = safeText(drillSearch.value).trim().toLowerCase();
+      const list = qq ? filtered.filter(u=>safeText(u.name).toLowerCase().includes(qq)) : filtered;
+
+      drillCount.textContent = list.length;
+
+      tbodyDrill.innerHTML = list.map(u=>{
+        const s = u.status === "在职" ? `<span class="pill">${u.status}</span>` : `<span class="pill red">${u.status}</span>`;
+        return `
+          <tr>
+            <td><strong>${safeText(u.name)}</strong></td>
+            <td>${teamNameById(u.team_id)}</td>
+            <td>${posNameById(u.position_id)}</td>
+            <td>${s}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    drillSearch.value = "";
+    drillSearch.oninput = renderDrill;
+
+    renderDrill();
+    openModal(modalDrill);
+  }
+
+  // ====== MAIN REFRESH ======
+  async function refreshAll(){
+    if(!sessionUser){
+      renderAllEmpty();
+      return;
+    }
+
+    await loadMaster();
+    me = await loadMyProfile();
+    fillFilters();
+    await loadUsers();
+    renderChartsAndKpi();
+    renderPivot();
+    renderEmployees();
+  }
+
+  // ====== EVENTS ======
+  tabs.forEach(t=>{
+    t.onclick = ()=> showTab(t.dataset.tab);
+  });
+
+  btnLogin.onclick = ()=>{
+    loginMsg.textContent = "";
+    debugBox.textContent = "";
+    openModal(modalLogin);
+  };
+  btnCloseLogin.onclick = ()=> closeModal(modalLogin);
+
+  btnDoLogin.onclick = async ()=>{
+    loginMsg.textContent = "Logging in...";
+    btnDoLogin.disabled = true;
+
+    try{
+      const email = loginEmail.value.trim();
+      const password = loginPass.value;
+
+      logDebug("signInWithPassword:", { email });
+
+      const { data, error } = await supa.auth.signInWithPassword({ email, password });
+
+      if(error){
+        loginMsg.textContent = error.message;
+        logDebug("login error:", error);
+        return;
+      }
+
+      logDebug("login ok");
+      // IMPORTANT: do NOT keep modal; close now, and auth state change will refresh
+      closeModal(modalLogin);
+      loginMsg.textContent = "";
+    } finally{
+      btnDoLogin.disabled = false;
+    }
+  };
+
+  btnLogout.onclick = async ()=>{
+    await supa.auth.signOut();
+    sessionUser = null;
+    me = null;
+    setAuthUI();
+    closeModal(modalLogin);
+    closeModal(modalDrill);
+  };
+
+  btnCloseDrill.onclick = ()=> closeModal(modalDrill);
+
+  filterStatus.onchange = async ()=>{ await loadUsers(); renderChartsAndKpi(); renderPivot(); renderEmployees(); };
+  filterTeam.onchange = async ()=>{ await loadUsers(); renderChartsAndKpi(); renderPivot(); renderEmployees(); };
+  searchEmp.oninput = ()=> renderEmployees();
+
+  // click pivot cell -> drilldown
+  tbodyPivot.onclick = (e)=>{
+    const td = e.target.closest("td");
+    if(!td) return;
+    const teamId = td.getAttribute("data-team");
+    const col = td.getAttribute("data-col");
+    if(!teamId || !col) return;
+    drillEmployees(teamId, col);
+  };
+
+  // ====== INIT (fix “show data before login”) ======
+  async function boot(){
+    // always start hidden data
+    renderAllEmpty();
+
+    const { data } = await supa.auth.getSession();
+    sessionUser = data?.session?.user || null;
+    setAuthUI();
+
+    if(!sessionUser){
+      // ensure login modal is closed by default (only open when user click Login)
+      closeModal(modalLogin);
+      return;
+    }
+    await refreshAll();
+  }
+
+  supa.auth.onAuthStateChange(async (_event, session)=>{
+    sessionUser = session?.user || null;
+    setAuthUI();
+
+    if(sessionUser){
+      closeModal(modalLogin); // IMPORTANT: auto close modal on login
+      await refreshAll();
+    }else{
+      renderAllEmpty();
     }
   });
 
-  chart2=new Chart(chartTeam,{
-    type:"bar",
-    data:{
-      labels:TEAMS.map(t=>t.team_name),
-      datasets:[{
-        label:"人数",
-        data:TEAMS.map(t=>USERS.filter(u=>u.team_name===t.team_name).length)
-      }]
-    }
-  });
-}
+  boot();
+  showTab("dashboard");
 </script>
-
 </body>
 </html>
