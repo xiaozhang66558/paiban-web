@@ -244,14 +244,28 @@ btnLogout.onclick=async()=>{
   }
 })();
 
-/* ===== LOAD DATA ===== */
+/* ================= GOOGLE SHEET LOAD ================= */
 
 async function loadData(){
-  const usersRes=await supa.from("users").select("*");
-  const teamsRes=await supa.from("teams").select("*");
 
-  USERS=usersRes.data||[];
-  TEAMS=teamsRes.data||[];
+  const sheetAPI =
+  "https://opensheet.elk.sh/2PACX-1vRvLVqRNfym_H6vz_JrMx3EkLiFsojlO0HoXerolpdotmLUrkvUFS5AQdwrXhknrwFVW7tM-LUYLKLw/Sheet1";
+
+  const res = await fetch(sheetAPI);
+  const sheetData = await res.json();
+
+  USERS = sheetData.map(row => ({
+    name: row["姓名"] || "",
+    team_name: row["团队"] || "",
+    position_name: row["岗位"] || ""
+  }));
+
+  const teamNames = [...new Set(USERS.map(u => u.team_name))];
+
+  TEAMS = teamNames.map(t => ({
+    id: t,
+    team_name: t
+  }));
 
   renderDashboard();
 }
@@ -270,7 +284,7 @@ function renderDashboard(){
   kDP.innerText=dp;
 
   tbodyStats.innerHTML=TEAMS.map(t=>{
-    const count=USERS.filter(u=>u.team_id===t.id).length;
+    const count=USERS.filter(u=>u.team_name===t.team_name).length;
     return `<tr><td>${t.team_name}</td><td>${count}</td></tr>`;
   }).join("");
 
@@ -291,7 +305,7 @@ function renderDashboard(){
       labels:TEAMS.map(t=>t.team_name),
       datasets:[{
         label:"人数",
-        data:TEAMS.map(t=>USERS.filter(u=>u.team_id===t.id).length)
+        data:TEAMS.map(t=>USERS.filter(u=>u.team_name===t.team_name).length)
       }]
     }
   });
