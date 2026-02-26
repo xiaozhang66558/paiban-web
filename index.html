@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>HR SaaS Stable</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8" />
+<title>HR System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
-body{margin:0;background:#f1f5f9}
+body{margin:0;background:#f3f4f6}
 header{
   background:#0f172a;
   color:#fff;
@@ -27,47 +27,91 @@ header{
 }
 button{
   padding:8px 14px;
-  border-radius:8px;
+  border-radius:10px;
   border:0;
-  cursor:pointer;
-  font-weight:600
+  cursor:pointer
 }
 .btn-primary{background:#2563eb;color:#fff}
-.btn-dark{background:#111827;color:#fff}
+.btn-dark{background:#1e293b;color:#fff}
 .container{
-  max-width:1100px;
-  margin:30px auto;
+  max-width:1200px;
+  margin:20px auto;
   padding:0 20px
+}
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:20px
+}
+.tab{
+  padding:8px 16px;
+  background:#e5e7eb;
+  border-radius:999px;
+  cursor:pointer
+}
+.tab.active{
+  background:#0f172a;
+  color:#fff
 }
 .card{
   background:#fff;
   border-radius:16px;
   padding:20px;
-  box-shadow:0 4px 20px rgba(0,0,0,.06);
-  margin-bottom:20px
+  box-shadow:0 2px 10px rgba(0,0,0,.06)
+}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px
+}
+.kpi{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
+  margin:20px 0
+}
+.kpiBox{
+  background:#fff;
+  border-radius:16px;
+  padding:15px;
+  box-shadow:0 2px 10px rgba(0,0,0,.06)
+}
+.kpiBox h3{margin:0;font-size:22px}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px
+}
+th{
+  background:#0f172a;
+  color:#fff;
+  padding:10px
+}
+td{
+  padding:8px;
+  border-bottom:1px solid #eee
 }
 .hidden{display:none}
 
-/* Modal */
+/* Login modal */
 .modal{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.45);
+  background:rgba(0,0,0,.4);
   display:flex;
   align-items:center;
   justify-content:center;
-  z-index:999
 }
 .modal-box{
   background:#fff;
-  padding:25px;
+  padding:20px;
   border-radius:16px;
-  width:320px
+  width:300px;
 }
 .modal-box input{
   width:100%;
   padding:8px;
-  margin-bottom:10px
+  margin-bottom:10px;
 }
 </style>
 </head>
@@ -76,23 +120,59 @@ button{
 
 <header>
   <div style="display:flex;gap:10px;align-items:center">
-    <strong>HR SaaS</strong>
-    <span id="roleBadge" class="badge">Checking...</span>
+    <strong>HR System</strong>
+    <span id="roleBadge" class="badge">Not logged in</span>
   </div>
   <div>
-    <button id="btnLogin" class="btn-primary hidden">Login</button>
+    <button id="btnLogin" class="btn-primary">Login</button>
     <button id="btnLogout" class="btn-dark hidden">Logout</button>
   </div>
 </header>
 
 <div class="container">
-  <div class="card">
-    <h2>Dashboard</h2>
-    <div id="statusText">Loading...</div>
+
+  <div class="tabs">
+    <div class="tab active">Dashboard</div>
   </div>
 
-  <div class="card">
-    <canvas id="chart" height="100"></canvas>
+  <div id="dashboard">
+
+    <div class="card">
+      <h2>统计总览</h2>
+      <div style="color:#6b7280">按团队统计（管理员全局）</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
+      <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
+      <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
+      <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>岗位分布（饼图）</h3>
+        <canvas id="chartPosition"></canvas>
+      </div>
+      <div class="card">
+        <h3>团队人数（柱状图）</h3>
+        <canvas id="chartTeam"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <h3>详细统计表</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>团队</th>
+            <th>人数</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyStats"></tbody>
+      </table>
+    </div>
+
   </div>
 </div>
 
@@ -108,100 +188,113 @@ button{
 </div>
 
 <script>
-/* ====== CONFIG ====== */
-const SUPABASE_URL = "https://mxeqccecqkyllwvbylej.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
+const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
 
-/* ====== INIT ====== */
-const supa = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  { auth:{ persistSession:true } }
-);
+const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{persistSession:true}
+});
 
-let chart;
+let USERS=[],TEAMS=[];
+let chart1,chart2;
 
-/* ====== CHECK SESSION ON LOAD ====== */
-(async()=>{
-  const {data:{session}} = await supa.auth.getSession();
+/* ================= LOGIN ================= */
 
-  if(session){
-    setLoggedIn(session.user.email);
-  }else{
-    setLoggedOut();
-  }
-})();
+btnLogin.onclick=()=>loginModal.classList.remove("hidden");
 
-/* ====== LOGIN BUTTON ====== */
-btnLogin.onclick = ()=>{
-  loginModal.classList.remove("hidden");
-};
-
-/* ====== LOGIN ACTION ====== */
-doLogin.onclick = async ()=>{
-  loginMsg.innerText = "";
-
-  const {error,data} = await supa.auth.signInWithPassword({
-    email: loginEmail.value.trim(),
-    password: loginPass.value
+doLogin.onclick=async()=>{
+  loginMsg.innerText="";
+  const {error}=await supa.auth.signInWithPassword({
+    email:loginEmail.value.trim(),
+    password:loginPass.value
   });
 
   if(error){
-    loginMsg.innerText = error.message;
+    loginMsg.innerText=error.message;
     return;
   }
 
-  loginModal.classList.add("hidden");
-  setLoggedIn(data.user.email);
+  await init();
 };
 
-/* ====== LOGOUT ====== */
-btnLogout.onclick = async ()=>{
+btnLogout.onclick=async()=>{
   await supa.auth.signOut();
-  setLoggedOut();
-};
-
-/* ====== STATE FUNCTIONS ====== */
-function setLoggedIn(email){
-  roleBadge.innerText = "Logged in";
-  btnLogin.classList.add("hidden");
-  btnLogout.classList.remove("hidden");
-  statusText.innerText = "Welcome: " + email;
-
-  renderChart();
-}
-
-function setLoggedOut(){
-  roleBadge.innerText = "Not logged in";
+  USERS=[];
+  TEAMS=[];
+  roleBadge.innerText="Not logged in";
   btnLogin.classList.remove("hidden");
   btnLogout.classList.add("hidden");
-  statusText.innerText = "Please login.";
+  loginModal.classList.add("hidden");
+};
+
+/* ================= INIT ================= */
+
+async function init(){
+  const {data:{user}}=await supa.auth.getUser();
+  if(!user)return;
+
+  // 🔥 QUAN TRỌNG: LUÔN ĐÓNG MODAL
   loginModal.classList.add("hidden");
 
-  if(chart){
-    chart.destroy();
-  }
+  roleBadge.innerText="Logged in";
+  btnLogin.classList.add("hidden");
+  btnLogout.classList.remove("hidden");
+
+  USERS=(await supa.from("users").select("*")).data||[];
+  TEAMS=(await supa.from("teams").select("*")).data||[];
+
+  renderDashboard();
 }
 
-/* ====== DASHBOARD SAMPLE ====== */
-function renderChart(){
-  const ctx = document.getElementById("chart");
+/* ================= DASHBOARD ================= */
 
-  if(chart){
-    chart.destroy();
-  }
+function renderDashboard(){
+  kTotal.innerText=USERS.length;
 
-  chart = new Chart(ctx,{
+  const cs=USERS.filter(u=>u.position_name==="客服").length;
+  const wd=USERS.filter(u=>u.position_name==="出款").length;
+  const dp=USERS.filter(u=>u.position_name==="查单").length;
+
+  kCS.innerText=cs;
+  kWD.innerText=wd;
+  kDP.innerText=dp;
+
+  tbodyStats.innerHTML=TEAMS.map(t=>{
+    const count=USERS.filter(u=>u.team_id===t.id).length;
+    return `<tr><td>${t.team_name}</td><td>${count}</td></tr>`;
+  }).join("");
+
+  if(chart1) chart1.destroy();
+  if(chart2) chart2.destroy();
+
+  chart1=new Chart(chartPosition,{
+    type:"doughnut",
+    data:{
+      labels:["客服","出款","查单"],
+      datasets:[{data:[cs,wd,dp]}]
+    }
+  });
+
+  chart2=new Chart(chartTeam,{
     type:"bar",
     data:{
-      labels:["Team A","Team B","Team C"],
+      labels:TEAMS.map(t=>t.team_name),
       datasets:[{
-        label:"Employees",
-        data:[5,3,7]
+        label:"人数",
+        data:TEAMS.map(t=>USERS.filter(u=>u.team_id===t.id).length)
       }]
     }
   });
 }
+
+/* ================= AUTO LOGIN ================= */
+
+(async()=>{
+  const {data:{session}}=await supa.auth.getSession();
+  if(session){
+    await init();
+  }
+})();
 </script>
 
 </body>
