@@ -1,80 +1,159 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>HR System</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{margin:0;background:#f3f4f6;font-family:Segoe UI}
-header{background:#0f172a;color:#fff;padding:14px 20px;display:flex;justify-content:space-between}
-.badge{background:#1e293b;padding:6px 12px;border-radius:999px;font-size:12px}
-.container{max-width:1300px;margin:20px auto;padding:0 20px;display:none}
-.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 4px 15px rgba(0,0,0,.06)}
-table{width:100%;border-collapse:collapse}
-th{background:#0f172a;color:#fff;padding:10px}
-td{padding:8px;border-bottom:1px solid #eee;text-align:center}
-td:first-child{text-align:left}
-.clickable{cursor:pointer;font-weight:bold;color:#2563eb}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center}
-.panel{background:#fff;border-radius:16px;padding:20px;width:700px;max-height:80vh;overflow:auto}
-.loginModal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
-.loginBox{background:#fff;padding:20px;border-radius:16px;width:300px}
-.loginBox input{width:100%;padding:8px;margin-bottom:10px}
-button{padding:8px 12px;border:0;border-radius:8px;cursor:pointer}
+*{box-sizing:border-box;font-family:Segoe UI,Arial}
+body{margin:0;background:#f3f4f6}
+header{
+  background:#0f172a;
+  color:#fff;
+  padding:16px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center
+}
+.badge{
+  background:#1e293b;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12px
+}
+button{
+  padding:8px 14px;
+  border-radius:10px;
+  border:0;
+  cursor:pointer
+}
 .btn-primary{background:#2563eb;color:#fff}
 .btn-dark{background:#1e293b;color:#fff}
+.container{
+  max-width:1200px;
+  margin:20px auto;
+  padding:0 20px;
+  display:none;
+}
+.card{
+  background:#fff;
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.06);
+  margin-bottom:20px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px
+}
+th{
+  background:#0f172a;
+  color:#fff;
+  padding:10px
+}
+td{
+  padding:8px;
+  border-bottom:1px solid #eee;
+  text-align:center
+}
+td:first-child{text-align:left}
+.hidden{display:none}
+.clickable{cursor:pointer;font-weight:bold;color:#2563eb}
+
+/* Login modal */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.modal-box{
+  background:#fff;
+  padding:20px;
+  border-radius:16px;
+  width:300px;
+}
+.modal-box input{
+  width:100%;
+  padding:8px;
+  margin-bottom:10px;
+}
+
+/* Employee detail modal */
+.empModal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.empBox{
+  background:#fff;
+  padding:20px;
+  border-radius:16px;
+  width:700px;
+  max-height:80vh;
+  overflow:auto;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div>HR System</div>
-  <div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <strong>HR System</strong>
     <span id="roleBadge" class="badge">Not logged in</span>
-    <button id="logoutBtn" class="btn-dark" style="display:none">Logout</button>
+  </div>
+  <div>
+    <button id="btnLogout" class="btn-dark hidden">Logout</button>
   </div>
 </header>
 
 <div class="container" id="mainApp">
 
-<div class="card">
-<h2>团队统计表（点击数字查看员工）</h2>
-<table>
-<thead>
-<tr>
-<th>团队</th>
-<th>出款人数</th>
-<th>客服人数</th>
-<th>查单人数</th>
-<th>总人数</th>
-</tr>
-</thead>
-<tbody id="tbody"></tbody>
-</table>
-</div>
+  <div class="card">
+    <h2>团队统计表（点击数字查看员工）</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>团队</th>
+          <th>出款人数</th>
+          <th>客服人数</th>
+          <th>查单人数</th>
+          <th>总人数</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyStats"></tbody>
+    </table>
+  </div>
 
 </div>
 
 <!-- LOGIN -->
-<div id="loginModal" class="loginModal">
-  <div class="loginBox">
+<div id="loginModal" class="modal">
+  <div class="modal-box">
     <h3>Login</h3>
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-    <button class="btn-primary" style="width:100%" onclick="login()">Login</button>
+    <input id="loginEmail" placeholder="Email">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button id="doLogin" class="btn-primary" style="width:100%">Login</button>
     <div id="loginMsg" style="color:red;margin-top:8px"></div>
   </div>
 </div>
 
 <!-- EMPLOYEE MODAL -->
-<div id="modal" class="modal">
-  <div class="panel">
-    <h3 id="modalTitle"></h3>
+<div id="empModal" class="empModal">
+  <div class="empBox">
+    <h3 id="empTitle"></h3>
     <table>
       <thead>
         <tr>
@@ -83,14 +162,15 @@ button{padding:8px 12px;border:0;border-radius:8px;cursor:pointer}
           <th>团队</th>
         </tr>
       </thead>
-      <tbody id="modalBody"></tbody>
+      <tbody id="empBody"></tbody>
     </table>
     <br>
-    <button onclick="closeModal()">Close</button>
+    <button onclick="closeEmp()">Close</button>
   </div>
 </div>
 
 <script>
+
 const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
 const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
 
@@ -113,8 +193,8 @@ async function checkSession(){
 
 async function login(){
   const {error}=await supa.auth.signInWithPassword({
-    email:email.value,
-    password:password.value
+    email:loginEmail.value,
+    password:loginPass.value
   });
 
   if(error){
@@ -134,7 +214,7 @@ function showApp(){
   loginModal.style.display="none";
   mainApp.style.display="block";
   roleBadge.innerText="Logged in";
-  logoutBtn.style.display="inline-block";
+  btnLogout.classList.remove("hidden");
   loadSheet();
 }
 
@@ -144,37 +224,47 @@ function showLogin(){
   roleBadge.innerText="Not logged in";
 }
 
-logoutBtn.onclick=logout;
+doLogin.onclick=login;
+btnLogout.onclick=logout;
 
-/* ================= GOOGLE SHEET ================= */
+/* ================= GOOGLE SHEET LOAD ================= */
 
 async function loadSheet(){
   const res=await fetch(SHEET_URL);
   const text=await res.text();
-  const rows=text.split("\n").map(r=>r.split(","));
 
-  const headers=rows[0];
+  const rows=text.split(/\r?\n/)
+    .map(r=>r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g));
+
+  if(!rows || rows.length<2) return;
+
+  const headers=rows[0].map(h=>h.replace(/"/g,'').trim());
 
   const nameIndex=headers.indexOf("姓名");
   const teamIndex=headers.indexOf("团队");
   const positionIndex=headers.indexOf("岗位");
 
+  if(nameIndex===-1 || teamIndex===-1 || positionIndex===-1){
+    console.error("Header mismatch:",headers);
+    return;
+  }
+
   EMPLOYEES=rows.slice(1).map(r=>({
-    name:r[nameIndex],
-    team:r[teamIndex],
-    position:r[positionIndex]
+    name:r[nameIndex]?.replace(/"/g,'').trim(),
+    team:r[teamIndex]?.replace(/"/g,'').trim(),
+    position:r[positionIndex]?.replace(/"/g,'').trim()
   })).filter(e=>e.name);
 
-  renderTable();
+  renderStats();
 }
 
-/* ================= TABLE ================= */
+/* ================= STATS ================= */
 
-function renderTable(){
+function renderStats(){
 
   const teams=[...new Set(EMPLOYEES.map(e=>e.team))];
 
-  tbody.innerHTML=teams.map(team=>{
+  tbodyStats.innerHTML=teams.map(team=>{
     const teamUsers=EMPLOYEES.filter(e=>e.team===team);
 
     const wd=teamUsers.filter(e=>e.position==="出款").length;
@@ -182,30 +272,27 @@ function renderTable(){
     const dp=teamUsers.filter(e=>e.position==="查单").length;
 
     return `
-    <tr>
-      <td><b>${team}</b></td>
-      <td class="clickable" onclick="showUsers('${team}','出款')">${wd}</td>
-      <td class="clickable" onclick="showUsers('${team}','客服')">${cs}</td>
-      <td class="clickable" onclick="showUsers('${team}','查单')">${dp}</td>
-      <td class="clickable" onclick="showUsers('${team}','ALL')">${teamUsers.length}</td>
-    </tr>
+      <tr>
+        <td><b>${team}</b></td>
+        <td class="clickable" onclick="showEmp('${team}','出款')">${wd}</td>
+        <td class="clickable" onclick="showEmp('${team}','客服')">${cs}</td>
+        <td class="clickable" onclick="showEmp('${team}','查单')">${dp}</td>
+        <td class="clickable" onclick="showEmp('${team}','ALL')">${teamUsers.length}</td>
+      </tr>
     `;
   }).join("");
 }
 
 /* ================= CLICK ================= */
 
-function showUsers(team,position){
-
+function showEmp(team,pos){
   let list=EMPLOYEES.filter(e=>e.team===team);
-
-  if(position!=="ALL"){
-    list=list.filter(e=>e.position===position);
+  if(pos!=="ALL"){
+    list=list.filter(e=>e.position===pos);
   }
 
-  modalTitle.innerText=`${team} - ${position}`;
-
-  modalBody.innerHTML=list.map(e=>`
+  empTitle.innerText=`${team} - ${pos}`;
+  empBody.innerHTML=list.map(e=>`
     <tr>
       <td>${e.name}</td>
       <td>${e.position}</td>
@@ -213,11 +300,11 @@ function showUsers(team,position){
     </tr>
   `).join("");
 
-  modal.style.display="flex";
+  empModal.style.display="flex";
 }
 
-function closeModal(){
-  modal.style.display="none";
+function closeEmp(){
+  empModal.style.display="none";
 }
 
 /* ================= INIT ================= */
