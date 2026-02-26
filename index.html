@@ -6,14 +6,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{font-family:Arial;margin:0;background:#f4f6f9}
 header{background:#111827;color:#fff;padding:14px 18px;display:flex;justify-content:space-between}
 button{padding:8px 12px;border:0;border-radius:8px;cursor:pointer}
 .card{background:#fff;margin:20px;padding:20px;border-radius:12px}
-input{padding:8px;width:100%;margin-bottom:10px}
+input,select{padding:8px;margin:5px 0;width:100%}
 .hidden{display:none}
+nav button{margin-right:8px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+td,th{border-bottom:1px solid #ddd;padding:8px}
+th{background:#111827;color:#fff}
 </style>
 </head>
 
@@ -29,11 +34,21 @@ input{padding:8px;width:100%;margin-bottom:10px}
 </header>
 
 <div class="card">
-  <h3>Dashboard</h3>
-  <div id="dashboardContent">Please login</div>
+<nav>
+  <button onclick="showTab('dashboard')">Dashboard</button>
+  <button onclick="showTab('employees')">Employees</button>
+  <button onclick="showTab('teams')">Teams</button>
+  <button onclick="showTab('positions')">Positions</button>
+  <button onclick="showTab('shifts')">Shifts</button>
+</nav>
 </div>
 
-<!-- LOGIN MODAL -->
+<div id="dashboard" class="card"></div>
+<div id="employees" class="card hidden"></div>
+<div id="teams" class="card hidden"></div>
+<div id="positions" class="card hidden"></div>
+<div id="shifts" class="card hidden"></div>
+
 <div id="loginBox" class="card hidden">
   <h3>Login</h3>
   <input id="email" placeholder="Email">
@@ -48,95 +63,116 @@ const SUPABASE_KEY = "sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
 
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let me = null;
+let me=null;
+let USERS=[], TEAMS=[], POSITIONS=[], SHIFTS=[];
 
-/* ================= LOGIN ================= */
+function showTab(id){
+  ["dashboard","employees","teams","positions","shifts"]
+  .forEach(t=>document.getElementById(t).classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+}
 
-document.getElementById("btnLogin").onclick = ()=>{
+document.getElementById("btnLogin").onclick=()=>{
   document.getElementById("loginBox").classList.remove("hidden");
 };
 
-document.getElementById("doLogin").onclick = async ()=>{
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  document.getElementById("msg").innerText = "Logging in...";
-
-  const { error } = await supa.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if(error){
-    document.getElementById("msg").innerText = error.message;
-    return;
-  }
-
-  document.getElementById("loginBox").classList.add("hidden");
-  await refreshUser();
-};
-
-/* ================= LOGOUT ================= */
-
-document.getElementById("btnLogout").onclick = async ()=>{
+document.getElementById("btnLogout").onclick=async()=>{
   await supa.auth.signOut();
-  me = null;
-  updateUI();
+  location.reload();
 };
 
-/* ================= LOAD USER ================= */
+document.getElementById("doLogin").onclick=async()=>{
+  const {error}=await supa.auth.signInWithPassword({
+    email:email.value,
+    password:password.value
+  });
+  if(error){msg.innerText=error.message;return;}
+  loginBox.classList.add("hidden");
+  await init();
+};
 
-async function refreshUser(){
-  const { data:{ user } } = await supa.auth.getUser();
-  if(!user){
-    me = null;
-    updateUI();
-    return;
-  }
+async function init(){
+  const {data:{user}}=await supa.auth.getUser();
+  if(!user){updateUI();return;}
 
-  let { data: profile } = await supa
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+  let {data:profile}=await supa.from("profiles")
+  .select("*").eq("id",user.id).maybeSingle();
 
   if(!profile){
-    const { data } = await supa
-      .from("profiles")
-      .insert({ id:user.id, role:"staff" })
-      .select()
-      .single();
-    profile = data;
+    const {data}=await supa.from("profiles")
+    .insert({id:user.id,role:"staff"}).select().single();
+    profile=data;
   }
 
-  me = profile;
+  me=profile;
+  await loadAll();
   updateUI();
 }
 
-/* ================= UI ================= */
+async function loadAll(){
+  USERS=(await supa.from("users").select("*")).data||[];
+  TEAMS=(await supa.from("teams").select("*")).data||[];
+  POSITIONS=(await supa.from("positions").select("*")).data||[];
+  SHIFTS=(await supa.from("shift_schedule").select("*")).data||[];
+  renderAll();
+}
 
 function updateUI(){
   if(!me){
-    document.getElementById("roleText").innerText = "Not logged in";
-    document.getElementById("btnLogin").classList.remove("hidden");
-    document.getElementById("btnLogout").classList.add("hidden");
-    document.getElementById("dashboardContent").innerText = "Please login";
+    roleText.innerText="Not logged in";
+    btnLogin.classList.remove("hidden");
+    btnLogout.classList.add("hidden");
     return;
   }
-
-  document.getElementById("roleText").innerText = "Role: " + me.role;
-  document.getElementById("btnLogin").classList.add("hidden");
-  document.getElementById("btnLogout").classList.remove("hidden");
-  document.getElementById("dashboardContent").innerText = "Login success!";
+  roleText.innerText="Role: "+me.role;
+  btnLogin.classList.add("hidden");
+  btnLogout.classList.remove("hidden");
 }
 
-/* ================= INIT ================= */
+function renderAll(){
+  renderDashboard();
+  renderEmployees();
+  renderTeams();
+  renderPositions();
+  renderShifts();
+}
 
-(async ()=>{
-  const { data:{ session } } = await supa.auth.getSession();
-  if(session){
-    await refreshUser();
-  }
+function renderDashboard(){
+  dashboard.innerHTML="<h3>Total Employees: "+USERS.length+"</h3><canvas id='chart'></canvas>";
+  const ctx=document.getElementById("chart");
+  new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:TEAMS.map(t=>t.team_name),
+      datasets:[{
+        label:"Employees",
+        data:TEAMS.map(t=>USERS.filter(u=>u.team_id===t.id).length)
+      }]
+    }
+  });
+}
+
+function renderEmployees(){
+  employees.innerHTML="<h3>Employees</h3><table><tr><th>Name</th><th>Country</th></tr>"+
+  USERS.map(u=>"<tr><td>"+u.name+"</td><td>"+(u.country||"")+"</td></tr>").join("")+
+  "</table>";
+}
+
+function renderTeams(){
+  teams.innerHTML="<h3>Teams</h3>"+TEAMS.map(t=>"<div>"+t.team_name+"</div>").join("");
+}
+
+function renderPositions(){
+  positions.innerHTML="<h3>Positions</h3>"+POSITIONS.map(p=>"<div>"+p.position_name+"</div>").join("");
+}
+
+function renderShifts(){
+  shifts.innerHTML="<h3>Shifts</h3>"+SHIFTS.map(s=>"<div>"+s.shift_date+" - "+s.shift_type+"</div>").join("");
+}
+
+(async()=>{
+  const {data:{session}}=await supa.auth.getSession();
+  if(session) await init();
 })();
 </script>
 
