@@ -2,312 +2,353 @@
 <html>
 <head>
 <meta charset="UTF-8"/>
-<title>HR Dashboard</title>
+<title>Enterprise HR Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
-body{margin:0;background:#f3f4f6}
-header{background:#0f172a;color:#fff;padding:16px 24px}
-.container{max-width:1600px;margin:20px auto;padding:0 20px}
-.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:20px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.kpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:15px;margin-top:15px}
-.kpiBox{background:#fff;border-radius:12px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,.05);cursor:pointer}
-.kpiBox:hover{background:#eef2ff}
-
-.teamRow{background:#fff;border-radius:14px;padding:15px;box-shadow:0 2px 10px rgba(0,0,0,.05);margin-bottom:15px}
-.teamTitle{font-weight:800;margin-bottom:10px;font-size:16px}
-.teamStats{display:flex;flex-wrap:wrap;gap:10px}
-.teamStatBox{
-  background:#f3f4f6;padding:8px 12px;border-radius:10px;cursor:pointer;
-  border:1px solid #eef2f7;
+body{margin:0;background:#f1f5f9}
+header{
+  background:linear-gradient(90deg,#0f172a,#1e293b);
+  color:#fff;padding:18px 30px;
+  font-size:20px;font-weight:700;
 }
-.teamStatBox:hover{background:#dbeafe}
-.teamStatBox b{font-weight:800}
+.container{max-width:1700px;margin:25px auto;padding:0 25px}
 
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center}
-.modal-box{background:#fff;width:95%;max-width:1500px;max-height:85vh;overflow:auto;padding:18px 20px;border-radius:14px}
-.modal-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.closeBtn{cursor:pointer;font-weight:900;color:#ef4444}
-.modal-sub{color:#6b7280;font-size:12px;margin-top:6px}
+.card{
+  background:#fff;border-radius:18px;padding:22px;
+  box-shadow:0 4px 20px rgba(0,0,0,.06);
+  margin-bottom:22px;
+}
 
-table{width:100%;border-collapse:collapse;margin-top:14px}
-th{background:#0f172a;color:#fff;padding:10px;position:sticky;top:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+
+.kpiGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:16px;margin-top:16px
+}
+
+.kpiBox{
+  background:#fff;border-radius:14px;padding:18px;
+  box-shadow:0 3px 12px rgba(0,0,0,.05);
+  cursor:pointer;
+  transition:.2s;
+}
+.kpiBox:hover{transform:translateY(-3px);background:#eef2ff}
+
+.teamRow{
+  background:#fff;border-radius:16px;padding:18px;
+  box-shadow:0 3px 14px rgba(0,0,0,.05);
+  margin-bottom:18px
+}
+
+.teamTitle{font-weight:800;margin-bottom:12px;font-size:17px}
+
+.teamStats{display:flex;flex-wrap:wrap;gap:10px}
+
+.statChip{
+  background:#f3f4f6;padding:8px 14px;
+  border-radius:12px;cursor:pointer;
+  font-size:14px;
+  transition:.15s;
+}
+.statChip:hover{background:#dbeafe}
+.statChip b{font-weight:800}
+
+.modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.55);
+  display:none;justify-content:center;align-items:center
+}
+
+.modalBox{
+  background:#fff;width:97%;max-width:1650px;
+  max-height:90vh;overflow:auto;
+  border-radius:18px;padding:20px 24px;
+}
+
+.modalHeader{
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+.closeBtn{cursor:pointer;color:#ef4444;font-weight:800}
+
+.toolbar{
+  display:flex;gap:10px;margin-top:14px;flex-wrap:wrap
+}
+
+input,select{
+  padding:8px 12px;border-radius:8px;
+  border:1px solid #ddd;font-size:14px
+}
+
+button{
+  padding:8px 14px;border:none;border-radius:8px;
+  background:#2563eb;color:#fff;cursor:pointer
+}
+
+button:hover{background:#1d4ed8}
+
+table{
+  width:100%;border-collapse:collapse;margin-top:14px
+}
+th{
+  background:#0f172a;color:#fff;padding:10px;
+  position:sticky;top:0
+}
 td{padding:8px;border-bottom:1px solid #eee;text-align:center}
-.small{font-size:12px;color:#6b7280}
+
+.small{font-size:12px;color:#64748b;margin-top:6px}
 </style>
 </head>
 
 <body>
-<header><strong>HR System</strong></header>
+<header>🏢 Enterprise HR Dashboard</header>
 
 <div class="container">
 
-  <!-- 2 charts on top -->
-  <div class="grid">
-    <div class="card">
-      <h3>岗位分布（cột K）</h3>
-      <canvas id="chartPosition"></canvas>
-      <div class="small">点击饼图扇区可弹出员工名单</div>
-    </div>
-    <div class="card">
-      <h3>团队人数（cột F）</h3>
-      <canvas id="chartTeam"></canvas>
-      <div class="small">点击柱子可弹出该团队员工名单</div>
-    </div>
-  </div>
+<!-- TOP CHARTS -->
+<div class="grid">
+<div class="card">
+<h3>岗位分布 (cột K)</h3>
+<canvas id="chartPosition"></canvas>
+<div class="small">点击扇区查看员工</div>
+</div>
 
-  <!-- position summary cards -->
-  <div class="card">
-    <h3>总人数: <span id="kTotal">0</span></h3>
-    <div class="small">点击职位卡片弹出该职位员工名单</div>
-    <div id="positionCards" class="kpi"></div>
-  </div>
+<div class="card">
+<h3>团队人数 (cột F)</h3>
+<canvas id="chartTeam"></canvas>
+<div class="small">点击柱子查看团队</div>
+</div>
+</div>
 
-  <!-- team summary -->
-  <div class="card">
-    <h3>团队统计（真正用 cột F）</h3>
-    <div class="small">每个团队会显示：总人数 + 每个岗位人数；点击任意数字弹出名单</div>
-    <div id="teamCards"></div>
-  </div>
+<!-- KPI -->
+<div class="card">
+<h3>总人数: <span id="totalCount">0</span></h3>
+<div id="positionCards" class="kpiGrid"></div>
+</div>
+
+<!-- TEAM STATS -->
+<div class="card">
+<h3>团队统计（真正使用 cột F）</h3>
+<div id="teamCards"></div>
+</div>
 
 </div>
 
-<!-- modal -->
+<!-- MODAL -->
 <div class="modal" id="modal">
-  <div class="modal-box">
-    <div class="modal-top">
-      <div>
-        <h3 id="modalTitle" style="margin:0"></h3>
-        <div id="modalSub" class="modal-sub"></div>
-      </div>
-      <div class="closeBtn" onclick="closeModal()">关闭 ✖</div>
-    </div>
+<div class="modalBox">
 
-    <table>
-      <thead>
-        <tr>
-          <th>负责人</th>
-          <th>现场培训</th>
-          <th>线上组长</th>
-          <th>线上培训</th>
-          <th>组别(E)</th>
-          <th>团队(F)</th>
-          <th>姓名</th>
-          <th>ID</th>
-          <th>国家</th>
-          <th>岗位(K)</th>
-          <th>盘口</th>
-        </tr>
-      </thead>
-      <tbody id="modalBody"></tbody>
-    </table>
-  </div>
+<div class="modalHeader">
+<h3 id="modalTitle"></h3>
+<div class="closeBtn" onclick="closeModal()">关闭 ✖</div>
+</div>
+
+<div class="toolbar">
+<input id="searchInput" placeholder="搜索 姓名 / ID"/>
+<select id="countryFilter"></select>
+<button onclick="exportCSV()">导出 CSV</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>负责人</th>
+<th>现场培训</th>
+<th>线上组长</th>
+<th>线上培训</th>
+<th>组别</th>
+<th>团队</th>
+<th>姓名</th>
+<th>ID</th>
+<th>国家</th>
+<th>岗位</th>
+<th>盘口</th>
+</tr>
+</thead>
+<tbody id="modalBody"></tbody>
+</table>
+
+</div>
 </div>
 
 <script>
 const sheetAPI =
-  "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
+"https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
 
-let rawData = [];
-let chart1, chart2;
+let data = [];
+let filteredData = [];
 
-const $ = (id)=>document.getElementById(id);
+function norm(v){return String(v??"").trim()}
 
-function norm(s){ return String(s ?? "").trim(); }
+async function load(){
+const res = await fetch(sheetAPI);
+const raw = await res.json();
 
-function getUnique(list){
-  return [...new Set(list.map(norm).filter(Boolean))];
+let map = new Map();
+
+raw.forEach(r=>{
+let id = norm(r["ID"]);
+if(!id) return;
+if(!map.has(id)){
+map.set(id,{
+leader:norm(r["负责人"]),
+onsite:norm(r["现场培训"]),
+onlineLead:norm(r["线上组长"]),
+onlineTrain:norm(r["线上培训"]),
+group:norm(r["组别"]),
+team:norm(r["团队"]), // 🔥 cột F đúng
+name:norm(r["姓名"]),
+id:id,
+country:norm(r["国家"]),
+position:norm(r["岗位"]),
+market:norm(r["盘口"])
+});
+}
+});
+
+data=[...map.values()];
+render();
 }
 
-function groupCount(arr, keyFn){
-  const m = new Map();
-  for(const x of arr){
-    const k = norm(keyFn(x));
-    if(!k) continue;
-    m.set(k, (m.get(k)||0)+1);
-  }
-  return m; // Map
+function render(){
+document.getElementById("totalCount").innerText=data.length;
+
+let posMap=groupBy(data,"position");
+let teamMap=groupBy(data,"team");
+
+renderPositionCards(posMap);
+renderTeamCards(teamMap);
+renderCharts(posMap,teamMap);
 }
 
-function makeRowHtml(r){
-  return `<tr>
-    <td>${escapeHtml(r.leader)}</td>
-    <td>${escapeHtml(r.onsite)}</td>
-    <td>${escapeHtml(r.onlineLead)}</td>
-    <td>${escapeHtml(r.onlineTrain)}</td>
-    <td>${escapeHtml(r.group)}</td>
-    <td>${escapeHtml(r.team)}</td>
-    <td>${escapeHtml(r.name)}</td>
-    <td>${escapeHtml(r.id)}</td>
-    <td>${escapeHtml(r.country)}</td>
-    <td>${escapeHtml(r.position)}</td>
-    <td>${escapeHtml(r.market)}</td>
-  </tr>`;
+function groupBy(arr,key){
+let m={};
+arr.forEach(x=>{
+let k=norm(x[key]);
+if(!k)return;
+m[k]=(m[k]||0)+1;
+});
+return m;
 }
 
-function escapeHtml(str){
-  return String(str ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+function renderPositionCards(map){
+let div=document.getElementById("positionCards");
+div.innerHTML="";
+Object.entries(map).forEach(([k,v])=>{
+div.innerHTML+=`
+<div class="kpiBox" onclick="openModal({position:'${k}'})">
+<b>${k}</b><br>${v} 人
+</div>`;
+});
 }
 
-async function loadData(){
-  const res = await fetch(sheetAPI);
-  const data = await res.json();
+function renderTeamCards(map){
+let div=document.getElementById("teamCards");
+div.innerHTML="";
+Object.keys(map).forEach(team=>{
+let teamData=data.filter(x=>x.team===team);
+let posMap=groupBy(teamData,"position");
 
-  // Map đúng theo header của opensheet (cột A-M)
-  rawData = data.map(r => ({
-    leader:     norm(r["负责人"]),
-    onsite:     norm(r["现场培训"]),
-    onlineLead: norm(r["线上组长"]),
-    onlineTrain:norm(r["线上培训"]),
-    group:      norm(r["组别"]),    // cột E
-    team:       norm(r["团队"]),    // ✅ cột F
-    name:       norm(r["姓名"]),
-    id:         norm(r["ID"]),      // cột G
-    country:    norm(r["国家"]),
-    position:   norm(r["岗位"]),    // cột K
-    market:     norm(r["盘口"])
-  }));
+let chips=`<div class="statChip" onclick="openModal({team:'${team}'})"><b>总人数</b> ${teamData.length}</div>`;
 
-  // tổng người: bỏ row không có ID; và chống trùng theo ID (cột G)
-  const uniq = new Map();
-  for(const r of rawData){
-    if(!r.id) continue;
-    if(!uniq.has(r.id)) uniq.set(r.id, r);
-  }
-  rawData = [...uniq.values()];
+Object.entries(posMap).forEach(([p,c])=>{
+chips+=`<div class="statChip" onclick="openModal({team:'${team}',position:'${p}'})"><b>${p}</b> ${c}</div>`;
+});
 
-  renderAll();
+div.innerHTML+=`
+<div class="teamRow">
+<div class="teamTitle">${team}</div>
+<div class="teamStats">${chips}</div>
+</div>`;
+});
 }
 
-function renderAll(){
-  $("kTotal").innerText = rawData.length;
+function renderCharts(posMap,teamMap){
+new Chart(document.getElementById("chartPosition"),{
+type:"doughnut",
+data:{labels:Object.keys(posMap),datasets:[{data:Object.values(posMap)}]},
+options:{onClick:(e,el)=>{if(!el.length)return;openModal({position:Object.keys(posMap)[el[0].index]})}}
+});
 
-  const positions = getUnique(rawData.map(r=>r.position));
-  const teams = getUnique(rawData.map(r=>r.team));
-
-  // KPI cards by position
-  $("positionCards").innerHTML = positions.map(p=>{
-    const count = rawData.filter(r=>r.position===p).length;
-    return `<div class="kpiBox" onclick="openModal('岗位：${escapeHtml(p)}', {position:'${escapeJs(p)}'})">
-      <strong>${escapeHtml(p)}</strong>
-      <div style="margin-top:6px;font-weight:800">${count} 人</div>
-    </div>`;
-  }).join("");
-
-  // charts
-  renderCharts(positions, teams);
-
-  // team cards with breakdown by position
-  renderTeamCards(teams, positions);
+new Chart(document.getElementById("chartTeam"),{
+type:"bar",
+data:{labels:Object.keys(teamMap),datasets:[{label:"人数",data:Object.values(teamMap)}]},
+options:{onClick:(e,el)=>{if(!el.length)return;openModal({team:Object.keys(teamMap)[el[0].index]})}}
+});
 }
 
-function renderCharts(positions, teams){
-  if(chart1) chart1.destroy();
-  if(chart2) chart2.destroy();
+function openModal(filter){
+document.getElementById("modal").style.display="flex";
 
-  const posCounts = positions.map(p=>rawData.filter(r=>r.position===p).length);
-  chart1 = new Chart($("chartPosition"),{
-    type:"doughnut",
-    data:{ labels:positions, datasets:[{ data:posCounts }] },
-    options:{
-      onClick:(evt, elements)=>{
-        if(!elements?.length) return;
-        const idx = elements[0].index;
-        const p = positions[idx];
-        openModal(`岗位：${p}`, {position:p});
-      }
-    }
-  });
+filteredData=data;
+if(filter.team) filteredData=filteredData.filter(x=>x.team===filter.team);
+if(filter.position) filteredData=filteredData.filter(x=>x.position===filter.position);
 
-  const teamCounts = teams.map(t=>rawData.filter(r=>r.team===t).length);
-  chart2 = new Chart($("chartTeam"),{
-    type:"bar",
-    data:{ labels:teams, datasets:[{ label:"人数", data:teamCounts }] },
-    options:{
-      onClick:(evt, elements)=>{
-        if(!elements?.length) return;
-        const idx = elements[0].index;
-        const t = teams[idx];
-        openModal(`团队：${t}`, {team:t});
-      }
-    }
-  });
+document.getElementById("modalTitle").innerText=
+(filter.team||"")+" "+(filter.position||"");
+
+renderModalTable(filteredData);
+renderCountryFilter();
 }
 
-function renderTeamCards(teams, positions){
-  const html = teams.map(team=>{
-    const teamData = rawData.filter(r=>r.team===team);
-    const posMap = groupCount(teamData, r=>r.position); // Map position -> count
-
-    // tạo chip cho từng岗位 (chỉ hiển thị cái >0)
-    const chips = [];
-
-    // 总人数 chip
-    chips.push(`
-      <div class="teamStatBox" onclick="openModal('团队：${escapeHtml(team)}', {team:'${escapeJs(team)}'})">
-        <b>总人数</b> ${teamData.length}
-      </div>
-    `);
-
-    // chi tiết theo岗位
-    // sắp theo count giảm dần để dễ nhìn
-    const posList = [...posMap.entries()].sort((a,b)=>b[1]-a[1]);
-    for(const [pos, cnt] of posList){
-      chips.push(`
-        <div class="teamStatBox"
-          onclick="openModal('团队：${escapeHtml(team)} / 岗位：${escapeHtml(pos)}', {team:'${escapeJs(team)}', position:'${escapeJs(pos)}'})">
-          <b>${escapeHtml(pos)}</b> ${cnt}
-        </div>
-      `);
-    }
-
-    return `
-      <div class="teamRow">
-        <div class="teamTitle">${escapeHtml(team)}</div>
-        <div class="teamStats">${chips.join("")}</div>
-      </div>
-    `;
-  }).join("");
-
-  $("teamCards").innerHTML = html;
+function renderModalTable(arr){
+let tbody=document.getElementById("modalBody");
+tbody.innerHTML=arr.map(r=>`
+<tr>
+<td>${r.leader}</td>
+<td>${r.onsite}</td>
+<td>${r.onlineLead}</td>
+<td>${r.onlineTrain}</td>
+<td>${r.group}</td>
+<td>${r.team}</td>
+<td>${r.name}</td>
+<td>${r.id}</td>
+<td>${r.country}</td>
+<td>${r.position}</td>
+<td>${r.market}</td>
+</tr>
+`).join("");
 }
 
-function openModal(title, filter){
-  $("modal").style.display = "flex";
-  $("modalTitle").innerText = title;
+function renderCountryFilter(){
+let sel=document.getElementById("countryFilter");
+let countries=[...new Set(filteredData.map(x=>x.country).filter(Boolean))];
+sel.innerHTML=`<option value="">全部国家</option>`+
+countries.map(c=>`<option>${c}</option>`).join("");
+sel.onchange=()=>{
+let val=sel.value;
+let arr=filteredData;
+if(val) arr=arr.filter(x=>x.country===val);
+renderModalTable(arr);
+};
+}
 
-  const team = filter?.team ? norm(filter.team) : "";
-  const position = filter?.position ? norm(filter.position) : "";
+document.getElementById("searchInput").oninput=(e)=>{
+let val=e.target.value.toLowerCase();
+let arr=filteredData.filter(x=>
+x.name.toLowerCase().includes(val)||
+x.id.toLowerCase().includes(val)
+);
+renderModalTable(arr);
+};
 
-  let list = rawData.slice();
-
-  if(team) list = list.filter(r=>r.team===team);
-  if(position) list = list.filter(r=>r.position===position);
-
-  $("modalSub").innerText = `共 ${list.length} 人`;
-
-  $("modalBody").innerHTML = list.map(makeRowHtml).join("");
+function exportCSV(){
+let rows=filteredData.map(x=>Object.values(x).join(",")).join("\n");
+let blob=new Blob([rows],{type:"text/csv"});
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="员工名单.csv";
+a.click();
 }
 
 function closeModal(){
-  $("modal").style.display = "none";
+document.getElementById("modal").style.display="none";
 }
 
-function escapeJs(str){
-  return String(str ?? "")
-    .replaceAll("\\","\\\\")
-    .replaceAll("'","\\'")
-    .replaceAll("\n","\\n");
-}
-
-loadData();
+load();
 </script>
 </body>
 </html>
