@@ -108,7 +108,6 @@
       display:flex;justify-content:space-between;align-items:center;gap:10px;
     }
 
-    /* Position cards */
     .chipsGrid{
       display:grid;
       grid-template-columns:repeat(6,1fr);
@@ -125,7 +124,6 @@
     .chipCard .name{font-weight:900;font-size:13px;line-height:1.2}
     .chipCard .cnt{font-weight:900;font-size:18px;margin-top:6px;color:var(--primary)}
 
-    /* Team cards (horizontal stats) */
     .teamList{display:flex;flex-direction:column;gap:12px}
     .teamCard{
       background:#fff;border:1px solid rgba(15,23,42,.06);
@@ -146,7 +144,6 @@
     .pill:hover{filter:brightness(.98)}
     .pill.gray{background:#f1f5f9;border-color:rgba(15,23,42,.10)}
 
-    /* Tables */
     .tableWrap{overflow:auto;border-radius:16px;border:1px solid rgba(15,23,42,.08)}
     table{width:100%;border-collapse:collapse;background:#fff}
     thead th{
@@ -160,7 +157,6 @@
 
     .hidden{display:none !important}
 
-    /* Modal */
     .modal{
       position:fixed;inset:0;z-index:999;
       background:rgba(2,6,23,.55);
@@ -190,7 +186,6 @@
     .modalBody{padding:14px 16px;overflow:auto}
     .modalFilters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 
-    /* Roster layout */
     .posBlock{
       background:#fff;border:1px solid rgba(15,23,42,.06);
       border-radius:18px;box-shadow:var(--shadow2);
@@ -236,7 +231,7 @@
     <div class="tabs">
       <div class="tab active" data-page="dashboard">Dashboard</div>
       <div class="tab" data-page="employees">Employees</div>
-      <div class="tab" data-page="roster">排版表</div>
+      <div class="tab" data-page="roster">排班表</div>
     </div>
 
     <div class="actions">
@@ -260,7 +255,7 @@
   </div>
 
   <div class="hint">
-    数据来源：Google Sheet（OpenSheet JSON）。已按你要求：团队=Google Sheet **cột F**；岗位=（图上）岗位列；ID=ID列；姓名=姓名列；国家=国家列。
+    班次已更新：现在优先读取你新加的 **cột I（班次）**（如果表头是“班次/Shift/班次次”等会自动识别）。
   </div>
 
   <!-- DASHBOARD -->
@@ -274,7 +269,7 @@
       <div class="kpi">
         <div class="label">总人数（去重）</div>
         <div class="value" id="kTotal">-</div>
-        <div class="small">规则：ID 不为空 +（姓名/组别等兜底）去重</div>
+        <div class="small">规则：ID 不为空优先，用 ID 去重；无 ID 用 (姓名+团队+岗位+国家) 去重</div>
       </div>
       <div class="kpi">
         <div class="label">出款人数</div>
@@ -293,7 +288,6 @@
       </div>
     </div>
 
-    <!-- Charts ON TOP (as you requested) -->
     <div class="grid2">
       <div class="card chartBox">
         <div class="sectionTitle">岗位分布（点击扇区弹出名单）</div>
@@ -307,7 +301,6 @@
 
     <div style="height:14px"></div>
 
-    <!-- Position cards (each position one card) -->
     <div class="card">
       <div class="sectionTitle">岗位统计（每个岗位一个卡片，点击查看员工）</div>
       <div class="chipsGrid" id="posCards"></div>
@@ -315,7 +308,6 @@
 
     <div style="height:14px"></div>
 
-    <!-- Team cards (each team one block, horizontal pills) -->
     <div class="card">
       <div class="sectionTitle">
         <span>团队统计（真正用 cột F）</span>
@@ -356,8 +348,8 @@
   <!-- ROSTER -->
   <section id="page-roster" class="hidden">
     <div class="card">
-      <div class="sectionTitle">排版表（按岗位分组 → 再按班次 Day / Night / 中班）</div>
-      <div class="sub">每个岗位下面会分 3 个班次块；点击人数可以弹窗看详细名单</div>
+      <div class="sectionTitle">排班表（按岗位分组 → 再按班次 Day / Night / 中班）</div>
+      <div class="sub">✅ 现在这里会显示 **全部人员**（不再只显示 18 人）</div>
     </div>
 
     <div style="height:14px"></div>
@@ -366,7 +358,7 @@
 
 </div>
 
-<!-- MODAL (employee list) -->
+<!-- MODAL -->
 <div id="modal" class="modal hidden">
   <div class="modalBox">
     <div class="modalTop">
@@ -416,28 +408,25 @@
 
 <script>
 /** =========================
- *  CONFIG (CHANGE ONLY THIS)
- *  =========================
- *  你给过 opensheet 链接（JSON），继续用:
- *  https://opensheet.elk.sh/<SPREADSHEET_ID>/<SHEET_TAB_NAME>
- */
+ *  CONFIG
+ *  ========================= */
 const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
-// 如果你要用“排版表”那个 sheet tab，把上面最后的 团队填表 改成 你的 sheet 名（例如：排版表）
 
 /** =========================
- *  Column resolver (auto)
+ *  Header resolver
  *  ========================= */
 const KEYMAP = {
-  shift: ["班次","shift","Shift"],
+  // now: prefer column I header "班次"
+  shift: ["班次","班次次","shift","Shift","shifts","班別","班次（I）"],
   owner: ["负责人","負責人","owner"],
   onsiteLeader: ["现场培训组长","現场培训组长","现场培训","Onsite Leader"],
-  onlineLeader: ["线上组长","线上组長","线上组长","Online Leader"],
+  onlineLeader: ["线上组长","线上组長","Online Leader"],
   onlineTrainer: ["线上培训","線上培訓","Online Training"],
-  // IMPORTANT: team must be cột F (你要求). 在你截图里 team/团队 是“组队/团队/团队统计/组别”之一
-  team: ["团队","組隊","组队","组别","組別","团队统计","Team"],
+  // IMPORTANT: team = cột F
+  team: ["团队","组队","組隊","组别","組別","Team"],
   plate: ["盘口","盤口","plate"],
   work: ["工作内容","工作內容","work"],
-  position: ["岗位","职位","職位","position","岗位种类"],
+  position: ["岗位","职位","職位","position"],
   name: ["姓名","名字","name","Name"],
   country: ["国家","國家","country","Country"],
   id: ["ID","Id","id","员工ID","员工编号","編號"]
@@ -449,22 +438,16 @@ function pickKey(obj, candidates){
     const idx = keys.findIndex(k => k === c || k.replace(/\s+/g,"") === c.replace(/\s+/g,""));
     if(idx >= 0) return Object.keys(obj)[idx];
   }
-  // fuzzy contains
   for(const c of candidates){
     const idx = keys.findIndex(k => k.includes(c) || k.replace(/\s+/g,"").includes(c.replace(/\s+/g,"")));
     if(idx >= 0) return Object.keys(obj)[idx];
   }
   return null;
 }
-
-function norm(v){
-  return (v ?? "").toString().trim();
-}
-
+function norm(v){ return (v ?? "").toString().trim(); }
 function normShift(v){
   const s = norm(v);
   if(!s) return "";
-  // normalize to 3 buckets when possible
   if(/夜|Night/i.test(s)) return "夜班";
   if(/白|Day/i.test(s)) return "白班";
   if(/中|12:30/i.test(s)) return "中班";
@@ -475,10 +458,9 @@ function normShift(v){
  *  State
  *  ========================= */
 let RAW = [];
-let ROWS = []; // normalized rows
+let ROWS = [];
 let chartPos = null;
 let chartTeam = null;
-
 const el = (id)=>document.getElementById(id);
 
 /** =========================
@@ -489,14 +471,14 @@ async function loadData(){
   if(!r.ok) throw new Error("Fetch failed: " + r.status);
   const data = await r.json();
   RAW = Array.isArray(data) ? data : [];
-  // normalize columns by auto-matching headers
+
   ROWS = RAW.map(o=>{
     const kShift = pickKey(o, KEYMAP.shift);
     const kOwner = pickKey(o, KEYMAP.owner);
     const kOnsite = pickKey(o, KEYMAP.onsiteLeader);
     const kOnlineLead = pickKey(o, KEYMAP.onlineLeader);
     const kOnlineTrain = pickKey(o, KEYMAP.onlineTrainer);
-    const kTeam = pickKey(o, KEYMAP.team); // IMPORTANT (team/cột F)
+    const kTeam = pickKey(o, KEYMAP.team);        // cột F
     const kPlate = pickKey(o, KEYMAP.plate);
     const kWork = pickKey(o, KEYMAP.work);
     const kPos = pickKey(o, KEYMAP.position);
@@ -504,7 +486,7 @@ async function loadData(){
     const kCountry = pickKey(o, KEYMAP.country);
     const kId = pickKey(o, KEYMAP.id);
 
-    const row = {
+    return {
       shift: normShift(o[kShift]),
       owner: norm(o[kOwner]),
       onsiteLeader: norm(o[kOnsite]),
@@ -519,14 +501,10 @@ async function loadData(){
       id: norm(o[kId]),
       __raw: o
     };
-
-    return row;
   });
 
-  // remove empty rows (no name and no id)
   ROWS = ROWS.filter(r => r.name || r.id || r.team || r.position);
 
-  // fill filters
   fillFilters();
 }
 
@@ -534,23 +512,18 @@ async function loadData(){
  *  Dedup + metrics
  *  ========================= */
 function personKey(r){
-  // Prefer ID if exists; else fallback to a composite
   if(r.id) return "ID::" + r.id;
-  // fallback: name + team + position (avoid duplicates)
   return "NK::" + [r.name, r.team, r.position, r.country].map(norm).join("|");
 }
-
 function dedupRows(rows){
   const map = new Map();
   for(const r of rows){
-    // skip if ID empty AND name empty
     if(!r.id && !r.name) continue;
     const k = personKey(r);
     if(!map.has(k)) map.set(k, r);
   }
   return [...map.values()];
 }
-
 function countBy(rows, keyFn){
   const m = new Map();
   for(const r of rows){
@@ -562,7 +535,7 @@ function countBy(rows, keyFn){
 }
 
 /** =========================
- *  Global filters (top)
+ *  Global filters
  *  ========================= */
 function applyGlobalFilters(rows){
   const q = norm(el("globalSearch").value).toLowerCase();
@@ -575,54 +548,40 @@ function applyGlobalFilters(rows){
     if(fTeam && r.team !== fTeam) return false;
     if(fPos && r.position !== fPos) return false;
     if(!q) return true;
-    const hay = [r.name,r.id,r.team,r.position,r.country,r.owner,r.plate,r.work].join(" ").toLowerCase();
+    const hay = [r.name,r.id,r.team,r.position,r.country,r.owner,r.plate,r.work,r.shift].join(" ").toLowerCase();
     return hay.includes(q);
   });
 }
 
 function fillFilters(){
-  // Team
   const teams = [...new Set(ROWS.map(r=>r.team).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"zh"));
-  const teamSel = el("filterTeam");
-  teamSel.innerHTML = `<option value="">All teams</option>` + teams.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+  el("filterTeam").innerHTML = `<option value="">All teams</option>` + teams.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
 
-  // Position
   const poss = [...new Set(ROWS.map(r=>r.position).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"zh"));
-  const posSel = el("filterPos");
-  posSel.innerHTML = `<option value="">All positions</option>` + poss.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+  el("filterPos").innerHTML = `<option value="">All positions</option>` + poss.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
 }
 
 /** =========================
- *  Render: Dashboard
+ *  Dashboard render
  *  ========================= */
 function renderDashboard(){
   const filtered = applyGlobalFilters(ROWS);
   const uniquePeople = dedupRows(filtered);
 
-  // KPIs
-  const total = uniquePeople.length;
-  el("kTotal").innerText = total.toLocaleString();
+  el("kTotal").innerText = uniquePeople.length.toLocaleString();
+  el("kCS").innerText = uniquePeople.filter(r=>r.position==="客服").length.toLocaleString();
+  el("kWD").innerText = uniquePeople.filter(r=>r.position==="出款").length.toLocaleString();
+  el("kDP").innerText = uniquePeople.filter(r=>r.position==="查单").length.toLocaleString();
 
-  const cs = uniquePeople.filter(r=>r.position==="客服").length;
-  const wd = uniquePeople.filter(r=>r.position==="出款").length;
-  const dp = uniquePeople.filter(r=>r.position==="查单").length;
-  el("kCS").innerText = cs.toLocaleString();
-  el("kWD").innerText = wd.toLocaleString();
-  el("kDP").innerText = dp.toLocaleString();
-
-  // Position distribution
   const posMap = countBy(uniquePeople, r=>r.position);
   const posEntries = [...posMap.entries()].sort((a,b)=>b[1]-a[1]);
   renderPosCards(posEntries, uniquePeople);
   renderPosChart(posEntries, uniquePeople);
 
-  // Team distribution (IMPORTANT: team = cột F)
-  const teamMap = countBy(uniquePeople, r=>r.team);
+  const teamMap = countBy(uniquePeople, r=>r.team); // cột F
   const teamEntries = [...teamMap.entries()].sort((a,b)=>b[1]-a[1]);
   renderTeamChart(teamEntries, uniquePeople);
-
-  // Team cards with per-position pills
-  renderTeamCards(uniquePeople, teamEntries, posEntries.map(x=>x[0]).filter(Boolean));
+  renderTeamCards(uniquePeople, teamEntries);
 }
 
 function renderPosCards(posEntries, uniquePeople){
@@ -649,29 +608,15 @@ function renderPosChart(posEntries, uniquePeople){
   if(chartPos) chartPos.destroy();
   chartPos = new Chart(el("chartPosition"), {
     type:"doughnut",
-    data:{
-      labels,
-      datasets:[{data:values}]
-    },
+    data:{ labels, datasets:[{data:values}] },
     options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{
-        legend:{position:"top"},
-        tooltip:{callbacks:{
-          label:(ctx)=> `${ctx.label}: ${ctx.raw}`
-        }}
-      },
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:"top"} },
       onClick:(evt, elements)=>{
         if(!elements?.length) return;
-        const idx = elements[0].index;
-        const pos = labels[idx];
+        const pos = labels[elements[0].index];
         const rows = uniquePeople.filter(r=>r.position===pos);
-        openModal({
-          title:`${pos} 员工名单`,
-          sub:`岗位：${pos}｜人数：${rows.length}`,
-          rows
-        });
+        openModal({ title:`${pos} 员工名单`, sub:`岗位：${pos}｜人数：${rows.length}`, rows });
       }
     }
   });
@@ -684,33 +629,22 @@ function renderTeamChart(teamEntries, uniquePeople){
   if(chartTeam) chartTeam.destroy();
   chartTeam = new Chart(el("chartTeam"), {
     type:"bar",
-    data:{
-      labels,
-      datasets:[{label:"人数", data:values}]
-    },
+    data:{ labels, datasets:[{label:"人数", data:values}] },
     options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{legend:{display:true}},
-      scales:{
-        x:{ticks:{autoSkip:true,maxRotation:60,minRotation:60}}
-      },
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true} },
+      scales:{ x:{ticks:{autoSkip:true,maxRotation:60,minRotation:60}} },
       onClick:(evt, elements)=>{
         if(!elements?.length) return;
-        const idx = elements[0].index;
-        const team = labels[idx];
+        const team = labels[elements[0].index];
         const rows = uniquePeople.filter(r=>r.team===team);
-        openModal({
-          title:`${team} 员工名单`,
-          sub:`团队（cột F）：${team}｜人数：${rows.length}`,
-          rows
-        });
+        openModal({ title:`${team} 员工名单`, sub:`团队（cột F）：${team}｜人数：${rows.length}`, rows });
       }
     }
   });
 }
 
-function renderTeamCards(uniquePeople, teamEntries, allPositions){
+function renderTeamCards(uniquePeople, teamEntries){
   const wrap = el("teamCards");
   wrap.innerHTML = "";
 
@@ -718,7 +652,6 @@ function renderTeamCards(uniquePeople, teamEntries, allPositions){
     if(!team) continue;
     const rowsTeam = uniquePeople.filter(r=>r.team===team);
 
-    // counts per position in this team
     const perPos = countBy(rowsTeam, r=>r.position);
     const perPosEntries = [...perPos.entries()].filter(x=>x[0]).sort((a,b)=>b[1]-a[1]);
 
@@ -729,13 +662,12 @@ function renderTeamCards(uniquePeople, teamEntries, allPositions){
         <div class="teamName">${escapeHtml(team)}</div>
         <div class="sub">点击数字弹窗</div>
       </div>
-      <div class="pillRow" id="pills-${cssSafe(team)}"></div>
+      <div class="pillRow"></div>
     `;
     wrap.appendChild(card);
 
     const pillRow = card.querySelector(".pillRow");
 
-    // Total pill
     const pTotal = document.createElement("div");
     pTotal.className = "pill gray";
     pTotal.innerText = `总人数 ${rowsTeam.length}`;
@@ -746,7 +678,6 @@ function renderTeamCards(uniquePeople, teamEntries, allPositions){
     });
     pillRow.appendChild(pTotal);
 
-    // each position pill
     for(const [pos,cnt] of perPosEntries){
       const p = document.createElement("div");
       p.className = "pill";
@@ -762,14 +693,13 @@ function renderTeamCards(uniquePeople, teamEntries, allPositions){
 }
 
 /** =========================
- *  Render: Employees tab
+ *  Employees render
  *  ========================= */
 function renderEmployees(){
   const filtered = applyGlobalFilters(ROWS);
   const uniquePeople = dedupRows(filtered);
 
-  const tbody = el("empTbody");
-  tbody.innerHTML = uniquePeople.map(r=>`
+  el("empTbody").innerHTML = uniquePeople.map(r=>`
     <tr>
       <td>${escapeHtml(r.shift)}</td>
       <td>${escapeHtml(r.owner)}</td>
@@ -788,9 +718,7 @@ function renderEmployees(){
 }
 
 /** =========================
- *  Render: 排版表 (Roster)
- *  - Group by position
- *  - Show shift blocks (白班/夜班/中班)
+ *  排班表 render (NO 18 LIMIT)
  *  ========================= */
 function renderRoster(){
   const filtered = applyGlobalFilters(ROWS);
@@ -802,7 +730,6 @@ function renderRoster(){
     if(!posMap.has(pos)) posMap.set(pos, []);
     posMap.get(pos).push(r);
   }
-
   const posEntries = [...posMap.entries()].sort((a,b)=> b[1].length - a[1].length);
 
   const root = el("rosterBlocks");
@@ -848,9 +775,7 @@ function renderRoster(){
           <tbody>
             ${list
               .sort((a,b)=> (a.team||"").localeCompare(b.team||"","zh"))
-              .slice(0, 18)
               .map(r=>rowHtml(r)).join("")}
-            ${list.length>18 ? `<tr><td colspan="12" style="color:#64748b;font-weight:800">仅预览前 18 条，点击上面“人数”弹窗查看全部</td></tr>` : ""}
           </tbody>
         </table>
       </div>
@@ -858,7 +783,6 @@ function renderRoster(){
     root.appendChild(block);
   }
 
-  // bind shift pills
   root.querySelectorAll('[data-click="shift"]').forEach(node=>{
     node.addEventListener("click", ()=>{
       const pos = node.getAttribute("data-pos");
@@ -877,7 +801,6 @@ function renderRoster(){
  *  Modal
  *  ========================= */
 let MODAL_ROWS = [];
-
 function openModal({title, sub, rows}){
   MODAL_ROWS = rows || [];
   el("modalTitle").innerText = title || "员工名单";
@@ -887,7 +810,6 @@ function openModal({title, sub, rows}){
   renderModalRows();
   el("modal").classList.remove("hidden");
 }
-
 function renderModalRows(){
   const q = norm(el("modalSearch").value).toLowerCase();
   const s = norm(el("modalShift").value);
@@ -897,10 +819,8 @@ function renderModalRows(){
     const hay = [r.shift,r.owner,r.onsiteLeader,r.onlineLeader,r.onlineTrainer,r.team,r.position,r.name,r.id,r.country,r.plate,r.work].join(" ").toLowerCase();
     return hay.includes(q);
   });
-
   el("modalTbody").innerHTML = rows.map(r=>rowHtml(r)).join("");
 }
-
 function rowHtml(r){
   return `
     <tr>
@@ -924,19 +844,16 @@ function rowHtml(r){
  *  Navigation
  *  ========================= */
 function showPage(name){
-  const pages = ["dashboard","employees","roster"];
-  for(const p of pages){
+  ["dashboard","employees","roster"].forEach(p=>{
     el(`page-${p}`).classList.toggle("hidden", p!==name);
-  }
+  });
   document.querySelectorAll(".tab").forEach(t=>{
     t.classList.toggle("active", t.dataset.page===name);
   });
-  // render on demand
   if(name==="dashboard") renderDashboard();
   if(name==="employees") renderEmployees();
   if(name==="roster") renderRoster();
 }
-
 document.querySelectorAll(".tab").forEach(t=>{
   t.addEventListener("click", ()=>showPage(t.dataset.page));
 });
@@ -951,13 +868,10 @@ el("modal").addEventListener("click", (e)=>{
 el("modalSearch").addEventListener("input", renderModalRows);
 el("modalShift").addEventListener("change", renderModalRows);
 
-el("btnReload").onclick = async()=>{
-  await boot();
-};
+el("btnReload").onclick = async()=>{ await boot(); };
 
 ["globalSearch","filterShift","filterTeam","filterPos"].forEach(id=>{
   el(id).addEventListener("input", ()=> {
-    // rerender current page quickly
     const active = document.querySelector(".tab.active")?.dataset?.page || "dashboard";
     showPage(active);
   });
@@ -979,13 +893,11 @@ function escapeHtml(s){
     .replaceAll("'","&#039;");
 }
 function escapeAttr(s){ return escapeHtml(s).replaceAll('"',"&quot;"); }
-function cssSafe(s){ return (s??"").toString().replace(/[^a-zA-Z0-9_-]/g,"_"); }
 
 /** =========================
  *  Boot
  *  ========================= */
 async function boot(){
-  // show skeleton values while loading
   el("kTotal").innerText = "-";
   el("kCS").innerText = "-";
   el("kWD").innerText = "-";
@@ -1003,7 +915,6 @@ async function boot(){
     alert("Load failed. Please check SHEET_API and Sheet tab name.\n\n" + err.message);
   }
 }
-
 boot();
 </script>
 
