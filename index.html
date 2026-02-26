@@ -11,6 +11,7 @@
 <style>
 *{box-sizing:border-box;font-family:Segoe UI,Arial}
 body{margin:0;background:#f3f4f6}
+
 header{
   background:#0f172a;
   color:#fff;
@@ -19,32 +20,78 @@ header{
   justify-content:space-between;
   align-items:center
 }
+
 .badge{
   background:#1e293b;
   padding:6px 12px;
   border-radius:999px;
   font-size:12px
 }
+
 button{
   padding:8px 14px;
   border-radius:10px;
   border:0;
   cursor:pointer
 }
+
 .btn-primary{background:#2563eb;color:#fff}
 .btn-dark{background:#1e293b;color:#fff}
+
 .container{
   max-width:1200px;
   margin:20px auto;
   padding:0 20px
 }
+
 .card{
   background:#fff;
   border-radius:16px;
   padding:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.06);
+  margin-bottom:20px
+}
+
+.kpi{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
+  margin-bottom:20px
+}
+
+.kpiBox{
+  background:#fff;
+  border-radius:16px;
+  padding:15px;
   box-shadow:0 2px 10px rgba(0,0,0,.06)
 }
+
+.kpiBox h3{margin:0;font-size:22px}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px
+}
+
+table{
+  width:100%;
+  border-collapse:collapse
+}
+
+th{
+  background:#0f172a;
+  color:#fff;
+  padding:10px
+}
+
+td{
+  padding:8px;
+  border-bottom:1px solid #eee
+}
+
 .hidden{display:none}
+
 .modal{
   position:fixed;
   inset:0;
@@ -52,18 +99,20 @@ button{
   display:flex;
   align-items:center;
   justify-content:center;
-  z-index:999;
+  z-index:999
 }
+
 .modal-box{
   background:#fff;
   padding:20px;
   border-radius:16px;
-  width:300px;
+  width:300px
 }
+
 .modal-box input{
   width:100%;
   padding:8px;
-  margin-bottom:10px;
+  margin-bottom:10px
 }
 </style>
 </head>
@@ -81,6 +130,46 @@ button{
   </div>
 </header>
 
+<div class="container hidden" id="dashboard">
+
+  <div class="card">
+    <h2>统计总览</h2>
+    <div style="color:#6b7280">按团队统计</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
+    <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
+    <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
+    <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>岗位分布</h3>
+      <canvas id="chartPosition"></canvas>
+    </div>
+    <div class="card">
+      <h3>团队人数</h3>
+      <canvas id="chartTeam"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>详细统计表</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>团队</th>
+          <th>人数</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyStats"></tbody>
+    </table>
+  </div>
+
+</div>
+
 <div id="loginModal" class="modal">
   <div class="modal-box">
     <h3>Login</h3>
@@ -95,20 +184,34 @@ button{
 const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
 const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
 
-const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
-  auth:{persistSession:false} // 🔥 TẮT lưu session cũ
-});
+const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-/* ===== FORCE LOGOUT ON LOAD ===== */
-(async()=>{
-  await supa.auth.signOut(); // 🔥 Xóa mọi session cũ
-})();
+let USERS=[],TEAMS=[];
+let chart1,chart2;
+
+/* ===== UI CONTROL ===== */
+
+function showLogin(){
+  loginModal.style.display="flex";
+  dashboard.classList.add("hidden");
+  roleBadge.innerText="Not logged in";
+  btnLogin.classList.remove("hidden");
+  btnLogout.classList.add("hidden");
+}
+
+function showDashboard(){
+  loginModal.style.display="none";
+  dashboard.classList.remove("hidden");
+  roleBadge.innerText="Logged in";
+  btnLogin.classList.add("hidden");
+  btnLogout.classList.remove("hidden");
+}
 
 /* ===== LOGIN ===== */
+
 doLogin.onclick=async()=>{
   loginMsg.innerText="";
-
-  const {data,error}=await supa.auth.signInWithPassword({
+  const {error}=await supa.auth.signInWithPassword({
     email:loginEmail.value.trim(),
     password:loginPass.value
   });
@@ -118,23 +221,81 @@ doLogin.onclick=async()=>{
     return;
   }
 
-  // Nếu login thành công
-  roleBadge.innerText="Logged in";
-  btnLogin.classList.add("hidden");
-  btnLogout.classList.remove("hidden");
-  loginModal.style.display="none";
+  showDashboard();
+  await loadData();
 };
 
 /* ===== LOGOUT ===== */
+
 btnLogout.onclick=async()=>{
   await supa.auth.signOut();
-  location.reload();
+  showLogin();
 };
 
-/* ===== LOGIN BUTTON ===== */
-btnLogin.onclick=()=>{
-  loginModal.style.display="flex";
-};
+/* ===== INITIAL CHECK ===== */
+
+(async()=>{
+  const {data:{session}}=await supa.auth.getSession();
+  if(session){
+    showDashboard();
+    await loadData();
+  }else{
+    showLogin();
+  }
+})();
+
+/* ===== LOAD DATA ===== */
+
+async function loadData(){
+  const usersRes=await supa.from("users").select("*");
+  const teamsRes=await supa.from("teams").select("*");
+
+  USERS=usersRes.data||[];
+  TEAMS=teamsRes.data||[];
+
+  renderDashboard();
+}
+
+/* ===== RENDER ===== */
+
+function renderDashboard(){
+  kTotal.innerText=USERS.length;
+
+  const cs=USERS.filter(u=>u.position_name==="客服").length;
+  const wd=USERS.filter(u=>u.position_name==="出款").length;
+  const dp=USERS.filter(u=>u.position_name==="查单").length;
+
+  kCS.innerText=cs;
+  kWD.innerText=wd;
+  kDP.innerText=dp;
+
+  tbodyStats.innerHTML=TEAMS.map(t=>{
+    const count=USERS.filter(u=>u.team_id===t.id).length;
+    return `<tr><td>${t.team_name}</td><td>${count}</td></tr>`;
+  }).join("");
+
+  if(chart1) chart1.destroy();
+  if(chart2) chart2.destroy();
+
+  chart1=new Chart(chartPosition,{
+    type:"doughnut",
+    data:{
+      labels:["客服","出款","查单"],
+      datasets:[{data:[cs,wd,dp]}]
+    }
+  });
+
+  chart2=new Chart(chartTeam,{
+    type:"bar",
+    data:{
+      labels:TEAMS.map(t=>t.team_name),
+      datasets:[{
+        label:"人数",
+        data:TEAMS.map(t=>USERS.filter(u=>u.team_id===t.id).length)
+      }]
+    }
+  });
+}
 </script>
 
 </body>
