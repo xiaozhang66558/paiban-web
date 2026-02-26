@@ -9,71 +9,171 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{font-family:Arial;margin:0;background:#f4f6f9}
-header{background:#111827;color:#fff;padding:14px 18px;display:flex;justify-content:space-between}
-button{padding:8px 12px;border:0;border-radius:8px;cursor:pointer}
-.card{background:#fff;margin:20px;padding:20px;border-radius:12px}
-input,select{padding:8px;margin:5px 0;width:100%}
+*{box-sizing:border-box;font-family:Segoe UI,Arial}
+body{margin:0;background:#f4f6f9}
+header{
+  background:#0f172a;
+  color:#fff;
+  padding:16px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center
+}
+.badge{
+  background:#1e293b;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12px
+}
+button{
+  padding:8px 14px;
+  border-radius:10px;
+  border:0;
+  cursor:pointer
+}
+.container{
+  max-width:1200px;
+  margin:20px auto;
+  padding:0 20px
+}
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:20px
+}
+.tab{
+  padding:8px 16px;
+  background:#e5e7eb;
+  border-radius:999px;
+  cursor:pointer
+}
+.tab.active{
+  background:#0f172a;
+  color:#fff
+}
+.card{
+  background:#fff;
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.06)
+}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px
+}
+.kpi{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
+  margin:20px 0
+}
+.kpiBox{
+  background:#fff;
+  border-radius:16px;
+  padding:15px;
+  box-shadow:0 2px 10px rgba(0,0,0,.06)
+}
+.kpiBox h3{margin:0;font-size:22px}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px
+}
+th{
+  background:#0f172a;
+  color:#fff;
+  padding:10px
+}
+td{
+  padding:8px;
+  border-bottom:1px solid #eee
+}
 .hidden{display:none}
-nav button{margin-right:8px}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-td,th{border-bottom:1px solid #ddd;padding:8px}
-th{background:#111827;color:#fff}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div>HR System</div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <strong>HR System</strong>
+    <span id="roleBadge" class="badge">Not logged in</span>
+  </div>
   <div>
-    <span id="roleText">Not logged in</span>
     <button id="btnLogin">Login</button>
     <button id="btnLogout" class="hidden">Logout</button>
   </div>
 </header>
 
-<div class="card">
-<nav>
-  <button onclick="showTab('dashboard')">Dashboard</button>
-  <button onclick="showTab('employees')">Employees</button>
-  <button onclick="showTab('teams')">Teams</button>
-  <button onclick="showTab('positions')">Positions</button>
-  <button onclick="showTab('shifts')">Shifts</button>
-</nav>
-</div>
+<div class="container">
 
-<div id="dashboard" class="card"></div>
-<div id="employees" class="card hidden"></div>
-<div id="teams" class="card hidden"></div>
-<div id="positions" class="card hidden"></div>
-<div id="shifts" class="card hidden"></div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('dashboard')">Dashboard</div>
+    <div class="tab" onclick="showTab('employees')">Employees</div>
+    <div class="tab" onclick="showTab('master')">Teams/Positions</div>
+  </div>
 
-<div id="loginBox" class="card hidden">
-  <h3>Login</h3>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button id="doLogin">Login</button>
-  <div id="msg"></div>
+  <div id="dashboard">
+
+    <div class="card">
+      <h2>统计总览</h2>
+      <div style="color:#6b7280">按团队统计（管理员全局）</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
+      <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
+      <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
+      <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>岗位分布（饼图）</h3>
+        <canvas id="chartPosition"></canvas>
+      </div>
+      <div class="card">
+        <h3>团队人数（柱状图）</h3>
+        <canvas id="chartTeam"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <h3>详细统计表</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>团队</th>
+            <th>人数</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyStats"></tbody>
+      </table>
+    </div>
+
+  </div>
+
 </div>
 
 <script>
-const SUPABASE_URL = "https://mxeqccecqkyllwvbylej.supabase.co";
-const SUPABASE_KEY = "sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
+const SUPABASE_URL="https://mxeqccecqkyllwvbylej.supabase.co";
+const SUPABASE_KEY="sb_publishable_UWUWJaWHxVxZPnkm62sypQ_QU2pw2CR";
 
-const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let me=null;
-let USERS=[], TEAMS=[], POSITIONS=[], SHIFTS=[];
+let me=null, USERS=[], TEAMS=[], POSITIONS=[];
 
 function showTab(id){
-  ["dashboard","employees","teams","positions","shifts"]
-  .forEach(t=>document.getElementById(t).classList.add("hidden"));
-  document.getElementById(id).classList.remove("hidden");
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  event.target.classList.add("active");
 }
 
-document.getElementById("btnLogin").onclick=()=>{
-  document.getElementById("loginBox").classList.remove("hidden");
+document.getElementById("btnLogin").onclick=async()=>{
+  const email=prompt("Email");
+  const pass=prompt("Password");
+  await supa.auth.signInWithPassword({email,password:pass});
+  await init();
 };
 
 document.getElementById("btnLogout").onclick=async()=>{
@@ -81,19 +181,9 @@ document.getElementById("btnLogout").onclick=async()=>{
   location.reload();
 };
 
-document.getElementById("doLogin").onclick=async()=>{
-  const {error}=await supa.auth.signInWithPassword({
-    email:email.value,
-    password:password.value
-  });
-  if(error){msg.innerText=error.message;return;}
-  loginBox.classList.add("hidden");
-  await init();
-};
-
 async function init(){
   const {data:{user}}=await supa.auth.getUser();
-  if(!user){updateUI();return;}
+  if(!user)return;
 
   let {data:profile}=await supa.from("profiles")
   .select("*").eq("id",user.id).maybeSingle();
@@ -105,69 +195,55 @@ async function init(){
   }
 
   me=profile;
-  await loadAll();
-  updateUI();
+  roleBadge.innerText="Role: "+me.role;
+  btnLogin.classList.add("hidden");
+  btnLogout.classList.remove("hidden");
+
+  await loadData();
 }
 
-async function loadAll(){
+async function loadData(){
   USERS=(await supa.from("users").select("*")).data||[];
   TEAMS=(await supa.from("teams").select("*")).data||[];
   POSITIONS=(await supa.from("positions").select("*")).data||[];
-  SHIFTS=(await supa.from("shift_schedule").select("*")).data||[];
-  renderAll();
-}
 
-function updateUI(){
-  if(!me){
-    roleText.innerText="Not logged in";
-    btnLogin.classList.remove("hidden");
-    btnLogout.classList.add("hidden");
-    return;
-  }
-  roleText.innerText="Role: "+me.role;
-  btnLogin.classList.add("hidden");
-  btnLogout.classList.remove("hidden");
-}
-
-function renderAll(){
   renderDashboard();
-  renderEmployees();
-  renderTeams();
-  renderPositions();
-  renderShifts();
 }
 
 function renderDashboard(){
-  dashboard.innerHTML="<h3>Total Employees: "+USERS.length+"</h3><canvas id='chart'></canvas>";
-  const ctx=document.getElementById("chart");
-  new Chart(ctx,{
+  kTotal.innerText=USERS.length;
+
+  const cs=USERS.filter(u=>u.position_name==="客服").length;
+  const wd=USERS.filter(u=>u.position_name==="出款").length;
+  const dp=USERS.filter(u=>u.position_name==="查单").length;
+
+  kCS.innerText=cs;
+  kWD.innerText=wd;
+  kDP.innerText=dp;
+
+  tbodyStats.innerHTML=TEAMS.map(t=>{
+    const count=USERS.filter(u=>u.team_id===t.id).length;
+    return `<tr><td>${t.team_name}</td><td>${count}</td></tr>`;
+  }).join("");
+
+  new Chart(chartPosition,{
+    type:"doughnut",
+    data:{
+      labels:["客服","出款","查单"],
+      datasets:[{data:[cs,wd,dp]}]
+    }
+  });
+
+  new Chart(chartTeam,{
     type:"bar",
     data:{
       labels:TEAMS.map(t=>t.team_name),
       datasets:[{
-        label:"Employees",
+        label:"人数",
         data:TEAMS.map(t=>USERS.filter(u=>u.team_id===t.id).length)
       }]
     }
   });
-}
-
-function renderEmployees(){
-  employees.innerHTML="<h3>Employees</h3><table><tr><th>Name</th><th>Country</th></tr>"+
-  USERS.map(u=>"<tr><td>"+u.name+"</td><td>"+(u.country||"")+"</td></tr>").join("")+
-  "</table>";
-}
-
-function renderTeams(){
-  teams.innerHTML="<h3>Teams</h3>"+TEAMS.map(t=>"<div>"+t.team_name+"</div>").join("");
-}
-
-function renderPositions(){
-  positions.innerHTML="<h3>Positions</h3>"+POSITIONS.map(p=>"<div>"+p.position_name+"</div>").join("");
-}
-
-function renderShifts(){
-  shifts.innerHTML="<h3>Shifts</h3>"+SHIFTS.map(s=>"<div>"+s.shift_date+" - "+s.shift_type+"</div>").join("");
 }
 
 (async()=>{
