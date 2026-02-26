@@ -38,21 +38,6 @@ button{
   margin:20px auto;
   padding:0 20px
 }
-.tabs{
-  display:flex;
-  gap:10px;
-  margin-bottom:20px
-}
-.tab{
-  padding:8px 16px;
-  background:#e5e7eb;
-  border-radius:999px;
-  cursor:pointer
-}
-.tab.active{
-  background:#0f172a;
-  color:#fff
-}
 .card{
   background:#fff;
   border-radius:16px;
@@ -93,7 +78,7 @@ td{
 }
 .hidden{display:none}
 
-/* Login modal */
+/* Modal */
 .modal{
   position:fixed;
   inset:0;
@@ -101,6 +86,7 @@ td{
   display:flex;
   align-items:center;
   justify-content:center;
+  z-index:999;
 }
 .modal-box{
   background:#fff;
@@ -121,59 +107,52 @@ td{
 <header>
   <div style="display:flex;gap:10px;align-items:center">
     <strong>HR System</strong>
-    <span id="roleBadge" class="badge">Not logged in</span>
+    <span id="roleBadge" class="badge">Checking...</span>
   </div>
   <div>
-    <button id="btnLogin" class="btn-primary">Login</button>
+    <button id="btnLogin" class="btn-primary hidden">Login</button>
     <button id="btnLogout" class="btn-dark hidden">Logout</button>
   </div>
 </header>
 
 <div class="container">
 
-  <div class="tabs">
-    <div class="tab active">Dashboard</div>
+  <div class="card">
+    <h2>统计总览</h2>
+    <div style="color:#6b7280">按团队统计（管理员全局）</div>
   </div>
 
-  <div id="dashboard">
+  <div class="kpi">
+    <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
+    <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
+    <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
+    <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
+  </div>
 
+  <div class="grid">
     <div class="card">
-      <h2>统计总览</h2>
-      <div style="color:#6b7280">按团队统计（管理员全局）</div>
+      <h3>岗位分布（饼图）</h3>
+      <canvas id="chartPosition"></canvas>
     </div>
-
-    <div class="kpi">
-      <div class="kpiBox"><div>总人数</div><h3 id="kTotal">0</h3></div>
-      <div class="kpiBox"><div>客服</div><h3 id="kCS">0</h3></div>
-      <div class="kpiBox"><div>出款</div><h3 id="kWD">0</h3></div>
-      <div class="kpiBox"><div>查单</div><h3 id="kDP">0</h3></div>
+    <div class="card">
+      <h3>团队人数（柱状图）</h3>
+      <canvas id="chartTeam"></canvas>
     </div>
-
-    <div class="grid">
-      <div class="card">
-        <h3>岗位分布（饼图）</h3>
-        <canvas id="chartPosition"></canvas>
-      </div>
-      <div class="card">
-        <h3>团队人数（柱状图）</h3>
-        <canvas id="chartTeam"></canvas>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:20px">
-      <h3>详细统计表</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>团队</th>
-            <th>人数</th>
-          </tr>
-        </thead>
-        <tbody id="tbodyStats"></tbody>
-      </table>
-    </div>
-
   </div>
+
+  <div class="card" style="margin-top:20px">
+    <h3>详细统计表</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>团队</th>
+          <th>人数</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyStats"></tbody>
+    </table>
+  </div>
+
 </div>
 
 <!-- LOGIN MODAL -->
@@ -197,13 +176,25 @@ const supa=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
 
 let USERS=[],TEAMS=[];
 let chart1,chart2;
+let isLoggedIn=false;
 
-/* ================= LOGIN ================= */
+/* ===== SESSION CHECK ===== */
+(async()=>{
+  const {data:{session}}=await supa.auth.getSession();
+  if(session){
+    setLoggedIn();
+  }else{
+    setLoggedOut();
+  }
+})();
 
+/* ===== LOGIN BUTTON ===== */
 btnLogin.onclick=()=>loginModal.classList.remove("hidden");
 
+/* ===== LOGIN ACTION ===== */
 doLogin.onclick=async()=>{
   loginMsg.innerText="";
+
   const {error}=await supa.auth.signInWithPassword({
     email:loginEmail.value.trim(),
     password:loginPass.value
@@ -214,41 +205,61 @@ doLogin.onclick=async()=>{
     return;
   }
 
-  await init();
+  setLoggedIn();
 };
 
+/* ===== LOGOUT ===== */
 btnLogout.onclick=async()=>{
   await supa.auth.signOut();
-  USERS=[];
-  TEAMS=[];
-  roleBadge.innerText="Not logged in";
-  btnLogin.classList.remove("hidden");
-  btnLogout.classList.add("hidden");
-  loginModal.classList.add("hidden");
+  setLoggedOut();
 };
 
-/* ================= INIT ================= */
-
-async function init(){
-  const {data:{user}}=await supa.auth.getUser();
-  if(!user)return;
-
-  // 🔥 QUAN TRỌNG: LUÔN ĐÓNG MODAL
+/* ===== STATE ===== */
+function setLoggedIn(){
+  isLoggedIn=true;
   loginModal.classList.add("hidden");
-
   roleBadge.innerText="Logged in";
   btnLogin.classList.add("hidden");
   btnLogout.classList.remove("hidden");
+  loadData();
+}
 
-  USERS=(await supa.from("users").select("*")).data||[];
-  TEAMS=(await supa.from("teams").select("*")).data||[];
+function setLoggedOut(){
+  isLoggedIn=false;
+  roleBadge.innerText="Not logged in";
+  btnLogin.classList.remove("hidden");
+  btnLogout.classList.add("hidden");
+  clearDashboard();
+}
+
+/* ===== LOAD DATA ===== */
+async function loadData(){
+  if(!isLoggedIn) return;
+
+  const usersRes=await supa.from("users").select("*");
+  const teamsRes=await supa.from("teams").select("*");
+
+  USERS=usersRes.data||[];
+  TEAMS=teamsRes.data||[];
 
   renderDashboard();
 }
 
-/* ================= DASHBOARD ================= */
+/* ===== CLEAR ===== */
+function clearDashboard(){
+  kTotal.innerText=0;
+  kCS.innerText=0;
+  kWD.innerText=0;
+  kDP.innerText=0;
+  tbodyStats.innerHTML="";
+  if(chart1) chart1.destroy();
+  if(chart2) chart2.destroy();
+}
 
+/* ===== DASHBOARD ===== */
 function renderDashboard(){
+  if(!isLoggedIn) return;
+
   kTotal.innerText=USERS.length;
 
   const cs=USERS.filter(u=>u.position_name==="客服").length;
@@ -269,10 +280,8 @@ function renderDashboard(){
 
   chart1=new Chart(chartPosition,{
     type:"doughnut",
-    data:{
-      labels:["客服","出款","查单"],
-      datasets:[{data:[cs,wd,dp]}]
-    }
+    data:{labels:["客服","出款","查单"],
+    datasets:[{data:[cs,wd,dp]}]}
   });
 
   chart2=new Chart(chartTeam,{
@@ -286,15 +295,6 @@ function renderDashboard(){
     }
   });
 }
-
-/* ================= AUTO LOGIN ================= */
-
-(async()=>{
-  const {data:{session}}=await supa.auth.getSession();
-  if(session){
-    await init();
-  }
-})();
 </script>
 
 </body>
