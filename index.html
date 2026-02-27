@@ -443,8 +443,8 @@ header{
 
 <div class="wrap">
   <div class="topTabs">
-    <div class="tab active" data-page="dashboard">Dashboard</div>
-    <div class="tab" data-page="employees">Employees</div>
+    <div class="tab active" data-page="dashboard">总汇</div>
+    <div class="tab" data-page="employees">人员</div>
     <div class="tab" data-page="schedule">排班表</div>
     <div class="tab" data-page="pan">盘口人数</div>
   </div>
@@ -772,7 +772,7 @@ function openManagerList(fieldLabel, rows){
         return `
           <div class="tile" onclick="openManagerSubs('${esc(fieldLabel)}','${esc(n)}')">
             <div class="name">${esc(n)}</div>
-            <div class="count">下属（按姓名去重）: ${c}</div>
+            <div class="count">下属: ${c}</div>
           </div>
         `;
       }).join("")}
@@ -1339,8 +1339,8 @@ async function load(){
 
 buildSelectOptions(els.panSel, pans, "All 盘口（盘口）");
 
-    buildSelectOptions(els.shiftSel, shifts, "All shifts（班次 cột I）");
-    buildSelectOptions(els.teamSel, teams, "All teams（团队 cột F）");
+    buildSelectOptions(els.shiftSel, shifts, "All shifts（班次）");
+    buildSelectOptions(els.teamSel, teams, "All teams（团队）");
     buildSelectOptions(els.groupSel, groups, "All groups（组别）");
     buildSelectOptions(els.posSel, poss, "All positions（岗位）");
 
