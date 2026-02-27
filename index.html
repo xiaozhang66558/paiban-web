@@ -1228,45 +1228,64 @@ function buildShiftChart(labels, values){
    LOAD – STRICT BY COLUMN INDEX (CỘT G LÀ CHUẨN)
    ========================================================= */
 async function load(){
-  els.meta.textContent = "Loading data from Google Sheet…";
+  try{
+    els.meta.textContent = "Loading data from Google Sheet…";
 
-  const res = await fetch(SHEET_API, { cache:"no-store" });
-  const data = await res.json();
+    const res = await fetch(SHEET_API, { cache:"no-store" });
+    if(!res.ok) throw new Error("Fetch failed: " + res.status);
 
-  RAW = data
-    .map(r=>{
-      const keys = Object.keys(r);
+    const data = await res.json();
+    if(!Array.isArray(data)) throw new Error("Sheet JSON is not array");
 
-      return {
-        "负责人":   norm(r[keys[0]]),
-        "现场培训": norm(r[keys[1]]),
-        "线上组长": norm(r[keys[2]]),
-        "线上培训": norm(r[keys[3]]),
-        "组别":     norm(r[keys[4]]),
-        "团队":     norm(r[keys[5]]),
-        "姓名":     norm(r[keys[6]]),   // ✅ CỘT G CHUẨN
-        "ID":       norm(r[keys[7]]),
-        "班次":     norm(r[keys[8]]),   // ✅ CỘT I
-        "盘口":     norm(r[keys[9]]),   // ID WORKFOLIO
-        "国家":     norm(r[keys[10]]),
-        "岗位":     norm(r[keys[11]])
-      };
-    })
-    // ✅ CHỈ GIỮ DÒNG CÓ TÊN HỢP LỆ Ở CỘT G
-    .filter(r=> isValidName(r["姓名"]));
+    RAW = data
+      .map(r=>({
+        // ✅ header-safe: chống lệch cột khi copy sheet / đổi tab / đổi file
+        "负责人":   normPick(r, ["负责人","負責人","Owner","owner"]),
+        "现场培训": normPick(r, ["现场培训","現場培訓","Onsite Training","现场训","現場訓練"]),
+        "线上组长": normPick(r, ["线上组长","線上組長","Online Leader","组长","組長"]),
+        "线上培训": normPick(r, ["线上培训","線上培訓","Online Training","线上训","線上訓練"]),
+        "组别":     normPick(r, ["组别","組別","Group","group"]),
+        "团队":     normPick(r, ["团队","團隊","Team","team"]),
 
-  // ===== Build filter options =====
-  const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-  const teams  = uniq(RAW.map(r=>r["团队"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-  const groups = uniq(RAW.map(r=>r["组别"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-  const poss   = uniq(RAW.map(r=>r["岗位"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+        // ✅ CỘT G chuẩn: 姓名 (dùng làm điều kiện giữ dòng)
+        "姓名":     normPick(r, ["姓名","员工姓名","員工姓名","Name","name"]),
 
-  buildSelectOptions(els.shiftSel, shifts, "All shifts（班次 cột I）");
-  buildSelectOptions(els.teamSel, teams, "All teams（团队 cột F）");
-  buildSelectOptions(els.groupSel, groups, "All groups（组别）");
-  buildSelectOptions(els.posSel, poss, "All positions（岗位）");
+        "ID":       normPick(r, ["ID","Id","员工ID","員工ID"]),
 
-  applyFilters();
+        // ✅ 班次 vẫn lấy từ cột 班次, nhưng chỉ giữ dòng khi 姓名 hợp lệ
+        "班次":     normPick(r, ["班次","Shift","shift","班 次","班次 "]),
+
+        // ✅ 盘口/盘口 rất hay lệch tên header => thêm alias đầy đủ
+        "盘口":     normPick(r, ["盘口","盤口","ID WORKFOLIO","Workfolio","workfolio","盘口ID","盘口ID"]),
+
+        "国家":     normPick(r, ["国家","國家","Country","country"]),
+        "岗位":     normPick(r, ["岗位","崗位","Position","position"])
+      }))
+      // ✅ chỉ giữ dòng có 姓名 hợp lệ (cột G)
+      .filter(r => isValidName(r["姓名"]));
+
+    // ===== Build filter options =====
+    const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+    const teams  = uniq(RAW.map(r=>r["团队"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+    const groups = uniq(RAW.map(r=>r["组别"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+    const poss   = uniq(RAW.map(r=>r["岗位"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+
+    buildSelectOptions(els.shiftSel, shifts, "All shifts（班次 cột I）");
+    buildSelectOptions(els.teamSel, teams, "All teams（团队 cột F）");
+    buildSelectOptions(els.groupSel, groups, "All groups（组别）");
+    buildSelectOptions(els.posSel, poss, "All positions（岗位）");
+
+    applyFilters();
+  }catch(err){
+    console.error(err);
+    els.meta.textContent = "Load error: " + (err?.message || err);
+    els.pageDashboard.innerHTML = `
+      <div class="card">
+        <h2>Sheet Load Error</h2>
+        <div class="note">${esc(err?.message || String(err))}</div>
+      </div>
+    `;
+  }
 }
 
 load();
