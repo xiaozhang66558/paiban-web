@@ -434,70 +434,131 @@
 <script>
 /* =========================================================
    CONFIG
-   ========================================================= */
-const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/小张";
+========================================================= */
+const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
 
-/*
-  Your console proved keys are:
-  ['负责人','现场培训','线上组长','线上培训','组别','团队','姓名','ID','国家','岗位','盘口','班次']
-  So the issue is NOT "wrong column", it's normalization/filtering.
-*/
-
+/* =========================================================
+   GLOBAL
+========================================================= */
 let RAW = [];
 let FILTERED = [];
 
-let charts = { pos:null, team:null, shift:null };
-
-const els = {
-  pageDashboard: document.getElementById("page-dashboard"),
-  pageEmployees: document.getElementById("page-employees"),
-  pageSchedule: document.getElementById("page-schedule"),
-
-  tabs: document.querySelectorAll(".tab"),
-
-  q: document.getElementById("q"),
-  shiftSel: document.getElementById("shiftSel"),
-  teamSel: document.getElementById("teamSel"),
-  groupSel: document.getElementById("groupSel"),
-  posSel: document.getElementById("posSel"),
-  meta: document.getElementById("meta"),
-
-  modal: document.getElementById("modal"),
-  modalTitle: document.getElementById("modalTitle"),
-  modalBody: document.getElementById("modalBody"),
-  modalClose: document.getElementById("modalClose"),
-  modalBack: document.getElementById("modalBack")
-};
-
-function s(v){ return (v ?? "").toString().trim(); }
-
-/* ✅ FIX 1: norm() super clean (remove NBSP + fullwidth space) */
 function norm(v){
-  return (v ?? "")
-    .toString()
-    .replace(/\u00A0/g, " ")   // nbsp
-    .replace(/\u3000/g, " ")   // fullwidth space
-    .replace(/\s+/g, " ")
-    .trim();
+  return (v ?? "").toString().trim();
 }
 
-function uniq(arr){ return [...new Set(arr.filter(Boolean))]; }
+/* =========================================================
+   LOAD DATA (READ BY COLUMN INDEX)
+========================================================= */
+async function load(){
 
-function esc(str){
-  return (str??"").toString()
-    .replaceAll("&","&amp;").replaceAll("<","&lt;")
-    .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  const res = await fetch(SHEET_API, { cache:"no-store" });
+  const data = await res.json();
+
+  if(!data.length){
+    console.error("No data loaded");
+    return;
+  }
+
+  // 🔥 lấy thứ tự key đúng như JSON trả về
+  const keys = Object.keys(data[0]);
+
+  // mapping theo index
+  RAW = data.map(row => {
+
+    return {
+      负责人: norm(row[keys[0]]),
+      现场培训: norm(row[keys[1]]),
+      线上组长: norm(row[keys[2]]),
+      线上培训: norm(row[keys[3]]),
+      组别: norm(row[keys[4]]),
+      团队: norm(row[keys[5]]),
+      姓名: norm(row[keys[6]]),      // 🔥 cột G chuẩn
+      ID: norm(row[keys[7]]),
+      班次: norm(row[keys[8]]),
+      ID_WORKFOLIO: norm(row[keys[9]]),
+      国家: norm(row[keys[10]]),
+      岗位: norm(row[keys[11]]),
+      盘口: norm(row[keys[12]])
+    };
+  })
+  // 🔥 chỉ giữ dòng có 姓名 (cột G)
+  .filter(r => r.姓名 !== "");
+
+  FILTERED = [...RAW];
+
+  console.log("Loaded rows:", RAW.length);
+  console.log("Sample:", RAW.slice(0,3));
+
+  renderSchedule();
 }
 
-/* ✅ FIX 2: strict valid check for column G (姓名) */
-function isValidName(name){
-  const v = norm(name);
-  if(!v) return false;
-  const low = v.toLowerCase();
-  if(low === "null" || low === "undefined") return false;
-  if(v.replace(/\s/g,"") === "") return false;
-  return true;
+/* =========================================================
+   RENDER SCHEDULE
+========================================================= */
+function renderSchedule(){
+
+  const container = document.getElementById("page-schedule");
+
+  const shiftMap = {};
+
+  FILTERED.forEach(r=>{
+    const shift = r.班次 || "未填写";
+    if(!shiftMap[shift]) shiftMap[shift] = [];
+    shiftMap[shift].push(r);
+  });
+
+  let html = "";
+
+  for(const shift in shiftMap){
+
+    html += `
+      <h3 style="margin-top:20px">${shift} (${shiftMap[shift].length})</h3>
+      <table border="1" cellpadding="6" cellspacing="0" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th>负责人</th>
+            <th>现场培训</th>
+            <th>线上组长</th>
+            <th>线上培训</th>
+            <th>组别</th>
+            <th>团队</th>
+            <th>姓名</th>
+            <th>ID</th>
+            <th>国家</th>
+            <th>岗位</th>
+            <th>盘口</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${shiftMap[shift].map(r=>`
+            <tr>
+              <td>${r.负责人}</td>
+              <td>${r.现场培训}</td>
+              <td>${r.线上组长}</td>
+              <td>${r.线上培训}</td>
+              <td>${r.组别}</td>
+              <td>${r.团队}</td>
+              <td>${r.姓名}</td>
+              <td>${r.ID}</td>
+              <td>${r.国家}</td>
+              <td>${r.岗位}</td>
+              <td>${r.盘口}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  container.innerHTML = html;
 }
+
+/* =========================================================
+   INIT
+========================================================= */
+load();
+</script>
 
 /* =========================================================
    NAV
