@@ -435,12 +435,22 @@
 /* =========================================================
    CONFIG
    ========================================================= */
-const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/小张";
+const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/团队填表";
 
 /*
-  Your console proved keys are:
-  ['负责人','现场培训','线上组长','线上培训','组别','团队','姓名','ID','国家','岗位','盘口','班次']
-  So the issue is NOT "wrong column", it's normalization/filtering.
+  Column mapping (by header names from your sheet):
+  - 负责人
+  - 现场培训
+  - 线上组长
+  - 线上培训
+  - 组别
+  - 团队 (col F)
+  - 姓名 (col G)  ✅ STRICT KEY
+  - ID
+  - 国家
+  - 岗位
+  - 盘口
+  - 班次 (col I)
 */
 
 let RAW = [];
@@ -470,26 +480,38 @@ const els = {
 };
 
 function s(v){ return (v ?? "").toString().trim(); }
-
-/* ✅ FIX 1: norm() super clean (remove NBSP + fullwidth space) */
-function norm(v){
-  return (v ?? "")
-    .toString()
-    .replace(/\u00A0/g, " ")   // nbsp
-    .replace(/\u3000/g, " ")   // fullwidth space
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
+function norm(v){ return s(v).replace(/\s+/g," ").trim(); }
 function uniq(arr){ return [...new Set(arr.filter(Boolean))]; }
-
 function esc(str){
   return (str??"").toString()
     .replaceAll("&","&amp;").replaceAll("<","&lt;")
     .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 
-/* ✅ FIX 2: strict valid check for column G (姓名) */
+/* =========================================================
+   ✅ NEW: header-safe pick (chống opensheet header lệch)
+   ========================================================= */
+function pick(r, keys){
+  for(const k of keys){
+    if(Object.prototype.hasOwnProperty.call(r, k)){
+      const v = (r[k] ?? "").toString();
+      if(v.trim() !== "") return v;
+    }
+  }
+  // fallback: try loose match (trim keys of object)
+  const objKeys = Object.keys(r || {});
+  for(const want of keys){
+    const w = (want ?? "").toString().trim();
+    const found = objKeys.find(ok => ok.toString().trim() === w);
+    if(found){
+      const v = (r[found] ?? "").toString();
+      if(v.trim() !== "") return v;
+    }
+  }
+  return "";
+}
+function normPick(r, keys){ return norm(pick(r, keys)); }
+
 function isValidName(name){
   const v = norm(name);
   if(!v) return false;
@@ -947,7 +969,7 @@ window.openTeamPos = function(team, pos){
 /* =========================================================
    EMPLOYEES PAGE
    ========================================================= */
-let empViewMode = "cards";
+let empViewMode = "cards"; // default to avoid horizontal scroll
 
 function renderEmployees(){
   const rows = FILTERED;
@@ -1063,17 +1085,18 @@ window.setEmpView = function(mode){
 
 /* =========================================================
    SCHEDULE PAGE（排班表）
-   - 统计：只统计班次非空
-   - 单独 KPI：未填写班次（点击看名单）
+   ✅ FIX: 不再把空班次归类为 “未填写”
+   - 统计：只统计有班次的行
+   - 另外单独给一个 KPI：未填写班次（可点开看是谁）
    ========================================================= */
 function renderSchedule(){
   const rows = FILTERED;
 
-  // ✅ only rows with real shift values
   const rowsWithShift = rows.filter(r=> norm(r["班次"]) !== "");
   const rowsNoShift   = rows.filter(r=> norm(r["班次"]) === "");
 
-  const shiftMap = groupBy(rowsWithShift, "班次", "");
+  // group only by REAL shift values (no empty label)
+  const shiftMap = groupBy(rowsWithShift, "班次", ""); // emptyLabel won't be used because we filtered
   const shiftLabels = [...shiftMap.keys()].filter(k=>k!=="");
   const shiftCounts = shiftLabels.map(k=>countByUniqueName(shiftMap.get(k)));
 
@@ -1094,7 +1117,7 @@ function renderSchedule(){
   els.pageSchedule.innerHTML = `
     <div class="card">
       <h2>排班表</h2>
-      <div class="sub">按班次统计（班次来自 Google Sheet cột I）。✅ 已修复：空/隐形空格班次不会误判。</div>
+      <div class="sub">按班次统计（班次来自 Google Sheet cột I）。✅ 已修复：空班次不再显示为“班次: 未填写”。</div>
     </div>
 
     <div class="card">
@@ -1170,7 +1193,7 @@ window.openShift = function(shift){
 
 window.openNoShift = function(){
   const rows = FILTERED.filter(r=> norm(r["班次"]) === "");
-  openModal(`未填写班次（${countByUniqueName(rows)}）`, renderFullTable(rows, `班次(cột I) 为空/空格`));
+  openModal(`未填写班次（${countByUniqueName(rows)}）`, renderFullTable(rows, `班次(cột I) 为空`));
 };
 
 function buildShiftChart(labels, values){
@@ -1199,96 +1222,34 @@ function buildShiftChart(labels, values){
 }
 
 /* =========================================================
-   LOAD ✅ STRICT ONLY BY COLUMN G (姓名)
-   IMPORTANT:
-   - If 姓名 is invalid => drop row completely (do not read other cols)
+   LOAD ✅ STRICT BY COLUMN G (姓名)
    ========================================================= */
 async function load(){
+  els.meta.textContent = "Loading data from Google Sheet…";
+  const res = await fetch(SHEET_API, { cache:"no-store" });
+  const data = await res.json();
 
-  els.meta.textContent = "Loading data...";
-
-  try{
-
-    const res = await fetch(SHEET_API);
-    const data = await res.json();
-
-    if(!Array.isArray(data)){
-      throw new Error("Invalid sheet data");
-    }
-
-    RAW = [];
-
-    if(data.length === 0){
-      els.meta.textContent = "No data found";
-      return;
-    }
-
-    // ⭐ LẤY KEYS CHỈ 1 LẦN
-    const keys = Object.keys(data[0]);
-
-    const get = (row, index)=>{
-      if(index >= keys.length) return "";
-      return norm(row[keys[index]]);
-    };
-
-    for(const row of data){
-
-      // ⭐ CỘT G = index 6 = 姓名
-      const name = get(row, 6);
-
-      if(!isValidName(name)) continue;
-
-      RAW.push({
-        "负责人": get(row, 0),
-        "现场培训": get(row, 1),
-        "线上组长": get(row, 2),
-        "线上培训": get(row, 3),
-        "组别": get(row, 4),
-        "团队": get(row, 5),
-        "姓名": name,
-        "ID": get(row, 7),
-        "班次": get(row, 8),
-        "ID WORKFOLIO": get(row, 9),
-        "国家": get(row, 10),
-        "岗位": get(row, 11),
-        "盘口": get(row, 12)
-      });
-
-    }
-
-    els.meta.textContent = "Loaded " + RAW.length + " rows";
-
-    const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean));
-    const teams  = uniq(RAW.map(r=>r["团队"]||"未填写"));
-    const groups = uniq(RAW.map(r=>r["组别"]||"未填写"));
-    const poss   = uniq(RAW.map(r=>r["岗位"]||"未填写"));
-
-    buildSelectOptions(els.shiftSel, shifts, "All shifts");
-    buildSelectOptions(els.teamSel, teams, "All teams");
-    buildSelectOptions(els.groupSel, groups, "All groups");
-    buildSelectOptions(els.posSel, poss, "All positions");
-
-    applyFilters();
-
-  }catch(err){
-
-    console.error(err);
-    els.meta.textContent = "❌ Load failed";
-
-  }
-
-}
-
-    els.pageDashboard.innerHTML = `
-      <div class="card">
-        <h2>Sheet Load Error</h2>
-        <div class="note">${err.message}</div>
-      </div>
-    `;
-  }
-}
+  RAW = data
+    .map(r=>({
+      // ✅ header-safe: allow key with trailing spaces & common alias
+      "负责人":   normPick(r, ["负责人","負責人","Owner","owner"]),
+      "现场培训": normPick(r, ["现场培训","現場培訓","Onsite Training","现场训","現場訓練"]),
+      "线上组长": normPick(r, ["线上组长","線上組長","Online Leader","组长","組長"]),
+      "线上培训": normPick(r, ["线上培训","線上培訓","Online Training","线上训","線上訓練"]),
+      "组别":     normPick(r, ["组别","組別","Group","group"]),
+      "团队":     normPick(r, ["团队","團隊","Team","team"]),
+      "姓名":     normPick(r, ["姓名","员工姓名","員工姓名","Name","name"]),
+      "ID":       normPick(r, ["ID","Id","员工ID","員工ID"]),
+      "国家":     normPick(r, ["国家","國家","Country","country"]),
+      "岗位":     normPick(r, ["岗位","崗位","Position","position"]),
+      "盘口":     normPick(r, ["盘口","盤口","Workfolio","ID WORKFOLIO","workfolio"]),
+      "班次":     normPick(r, ["班次","班次 ","Shift","shift","班 次"])
+    }))
+    // ✅ ONLY keep row if 姓名 is valid (cột G)
+    .filter(r=> isValidName(r["姓名"]));
 
   // Build filter options from RAW
+  // ✅ shifts select: only actual shift values (no empty)
   const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
   const teams  = uniq(RAW.map(r=>r["团队"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
   const groups = uniq(RAW.map(r=>r["组别"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
