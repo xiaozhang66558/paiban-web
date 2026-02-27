@@ -1222,34 +1222,37 @@ function buildShiftChart(labels, values){
 }
 
 /* =========================================================
-   LOAD ✅ STRICT BY COLUMN G (姓名)
+   LOAD – STRICT BY COLUMN INDEX (CỘT G LÀ CHUẨN)
    ========================================================= */
 async function load(){
   els.meta.textContent = "Loading data from Google Sheet…";
+
   const res = await fetch(SHEET_API, { cache:"no-store" });
   const data = await res.json();
 
   RAW = data
-    .map(r=>({
-      // ✅ header-safe: allow key with trailing spaces & common alias
-      "负责人":   normPick(r, ["负责人","負責人","Owner","owner"]),
-      "现场培训": normPick(r, ["现场培训","現場培訓","Onsite Training","现场训","現場訓練"]),
-      "线上组长": normPick(r, ["线上组长","線上組長","Online Leader","组长","組長"]),
-      "线上培训": normPick(r, ["线上培训","線上培訓","Online Training","线上训","線上訓練"]),
-      "组别":     normPick(r, ["组别","組別","Group","group"]),
-      "团队":     normPick(r, ["团队","團隊","Team","team"]),
-      "姓名":     normPick(r, ["姓名","员工姓名","員工姓名","Name","name"]),
-      "ID":       normPick(r, ["ID","Id","员工ID","員工ID"]),
-      "国家":     normPick(r, ["国家","國家","Country","country"]),
-      "岗位":     normPick(r, ["岗位","崗位","Position","position"]),
-      "盘口":     normPick(r, ["盘口","盤口","Workfolio","ID WORKFOLIO","workfolio"]),
-      "班次":     normPick(r, ["班次","班次 ","Shift","shift","班 次"])
-    }))
-    // ✅ ONLY keep row if 姓名 is valid (cột G)
+    .map(r=>{
+      const keys = Object.keys(r);
+
+      return {
+        "负责人":   norm(r[keys[0]]),
+        "现场培训": norm(r[keys[1]]),
+        "线上组长": norm(r[keys[2]]),
+        "线上培训": norm(r[keys[3]]),
+        "组别":     norm(r[keys[4]]),
+        "团队":     norm(r[keys[5]]),
+        "姓名":     norm(r[keys[6]]),   // ✅ CỘT G CHUẨN
+        "ID":       norm(r[keys[7]]),
+        "班次":     norm(r[keys[8]]),   // ✅ CỘT I
+        "盘口":     norm(r[keys[9]]),   // ID WORKFOLIO
+        "国家":     norm(r[keys[10]]),
+        "岗位":     norm(r[keys[11]])
+      };
+    })
+    // ✅ CHỈ GIỮ DÒNG CÓ TÊN HỢP LỆ Ở CỘT G
     .filter(r=> isValidName(r["姓名"]));
 
-  // Build filter options from RAW
-  // ✅ shifts select: only actual shift values (no empty)
+  // ===== Build filter options =====
   const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
   const teams  = uniq(RAW.map(r=>r["团队"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
   const groups = uniq(RAW.map(r=>r["组别"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
