@@ -1241,28 +1241,37 @@ async function load(){
   const ok = keys.length >= need;
 
   // Map row by fixed index
-  RAW = data.map(row=>{
-    const get = (i)=> norm(row[keys[i]]);
+RAW = [];
 
-    const 姓名 = get(6); // col G fixed
-    if(!isValidName(姓名)) return null; // ✅ your request: if G empty => drop whole row
+for (let i = 0; i < data.length; i++) {
 
-    return {
-      "负责人": get(0),
-      "现场培训": get(1),
-      "线上组长": get(2),
-      "线上培训": get(3),
-      "组别": get(4),
-      "团队": get(5),
-      "姓名": 姓名,
-      "ID": get(7),
-      "班次": get(8),
-      "ID WORKFOLIO": get(9),
-      "国家": get(10),
-      "岗位": get(11),
-      "盘口": get(12)
-    };
-  }).filter(Boolean);
+  const row = data[i];
+  const keys = Object.keys(row);
+
+  const get = (index) => norm(row[keys[index]]);
+
+  const name = get(6); // cột G: 姓名
+
+  // 🚀 nếu không có tên thì bỏ ngay
+  if (!name) continue;
+
+  RAW.push({
+    "负责人": get(0),
+    "现场培训": get(1),
+    "线上组长": get(2),
+    "线上培训": get(3),
+    "组别": get(4),
+    "团队": get(5),
+    "姓名": name,
+    "ID": get(7),
+    "班次": get(8),
+    "ID WORKFOLIO": get(9),
+    "国家": get(10),
+    "岗位": get(11),
+    "盘口": get(12)
+  });
+
+}
 
   // Build filter options from RAW
   const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
