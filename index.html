@@ -396,6 +396,7 @@
     <div class="tab active" data-page="dashboard">Dashboard</div>
     <div class="tab" data-page="employees">Employees</div>
     <div class="tab" data-page="schedule">排班表</div>
+    <div class="tab" data-page="pan">盘口人数</div>
   </div>
 
   <div class="filterBar" id="filterBar">
@@ -415,6 +416,7 @@
 
   <!-- Schedule -->
   <div class="page" id="page-schedule"></div>
+  <div class="page" id="page-pan"></div>
 </div>
 
 <!-- MODAL -->
@@ -462,6 +464,7 @@ const els = {
   pageDashboard: document.getElementById("page-dashboard"),
   pageEmployees: document.getElementById("page-employees"),
   pageSchedule: document.getElementById("page-schedule"),
+  pagePan: document.getElementById("page-pan"),
 
   tabs: document.querySelectorAll(".tab"),
 
@@ -615,6 +618,7 @@ function applyFilters(){
   renderDashboard();
   renderEmployees();
   renderSchedule();
+  renderPanPage();
 }
 
 ["input","change"].forEach(evt=>{
@@ -966,6 +970,11 @@ window.openTeamPos = function(team, pos){
   openModal(`${team} · ${pos}（${countByUniqueName(rows)}）`, renderFullTable(rows, `团队 = ${team} 且 岗位 = ${pos}`));
 };
 
+  window.openPan = function(pan){
+  const rows = FILTERED.filter(r=> norm(r["盘口"]) === pan);
+  openModal(`盘口：${pan}`, renderFullTable(rows, `盘口 = ${pan}`));
+};
+
 /* =========================================================
    EMPLOYEES PAGE
    ========================================================= */
@@ -1287,7 +1296,98 @@ async function load(){
     `;
   }
 }
+function renderPanPage(){
 
+  const rows = FILTERED;
+
+  // group by 盘口
+  const panMap = new Map();
+
+  rows.forEach(r=>{
+    const pan = norm(r["盘口"]) || "未填写";
+    const shift = norm(r["班次"]);
+    const pos = norm(r["岗位"]);
+    const name = norm(r["姓名"]);
+
+    if(!isValidName(name)) return;
+
+    if(!panMap.has(pan)){
+      panMap.set(pan,{
+        names: new Set(),
+        day: new Set(),
+        night: new Set(),
+        mid: new Set(),
+        posMap: new Map()
+      });
+    }
+
+    const obj = panMap.get(pan);
+
+    obj.names.add(name);
+
+    if(shift.includes("Day")) obj.day.add(name);
+    if(shift.includes("Night")) obj.night.add(name);
+    if(shift.includes("中")) obj.mid.add(name);
+
+    if(!obj.posMap.has(pos)) obj.posMap.set(pos,new Set());
+    obj.posMap.get(pos).add(name);
+  });
+
+  const list = [...panMap.entries()]
+    .map(([pan,data])=>{
+      return {
+        pan,
+        total: data.names.size,
+        day: data.day.size,
+        night: data.night.size,
+        mid: data.mid.size,
+        posDetail: [...data.posMap.entries()].map(([k,v])=>({
+          pos:k,
+          count:v.size
+        }))
+      };
+    })
+    .sort((a,b)=>b.total-a.total);
+
+  els.pagePan.innerHTML = `
+    <div class="card">
+      <h2>盘口人数统计</h2>
+      <div class="sub">按盘口统计人数（按姓名去重）</div>
+    </div>
+
+    <div class="card compact">
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>盘口</th>
+              <th>总人数</th>
+              <th>白班</th>
+              <th>夜班</th>
+              <th>中班</th>
+              <th>岗位明细</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(r=>`
+              <tr>
+                <td class="link" onclick="openPan('${esc(r.pan)}')">${esc(r.pan)}</td>
+                <td>${r.total}</td>
+                <td>${r.day}</td>
+                <td>${r.night}</td>
+                <td>${r.mid}</td>
+                <td>
+                  ${r.posDetail.map(p=>`${esc(p.pos)}: ${p.count}`).join("<br>")}
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+  
 load();
 </script>
 </body>
