@@ -878,11 +878,18 @@ function renderDashboard(){
       <div class="card">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <div>
-            <div style="font-weight:1000; font-size:16px;">岗位分布</div>
-            <div class="note">点击图例或图形 → 弹出该岗位员工名单</div>
-          </div>
-          <button class="btn" onclick="openModal('岗位统计（按姓名去重）', renderTeamOrPosSummary('岗位','岗位'))">查看汇总</button>
-        </div>
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+  
+  <div style="flex:1; text-align:center;">
+    <div style="font-weight:1000; font-size:16px;">岗位分布</div>
+    <div class="note">点击图例或图形 → 弹出该岗位员工名单</div>
+  </div>
+
+  <button class="btn" onclick="openModal('岗位统计（按姓名去重）', renderTeamOrPosSummary('岗位','岗位'))">
+    查看汇总
+  </button>
+
+</div>
         <div class="chartBox"><canvas id="chartPos"></canvas></div>
       </div>
 
