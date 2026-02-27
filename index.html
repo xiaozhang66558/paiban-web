@@ -1205,37 +1205,21 @@ function buildShiftChart(labels, values){
    ========================================================= */
 async function load(){
 
-  els.meta.textContent = "Connecting to Google Sheet…";
+  els.meta.textContent = "Loading data...";
 
   try{
 
-    const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(), 10000); // 10s timeout
-
-    const res = await fetch(SHEET_API,{
-      cache:"no-store",
-      signal: controller.signal
-    });
-
-    clearTimeout(timeout);
-
-    if(!res.ok){
-      throw new Error("HTTP status " + res.status);
-    }
+    const res = await fetch(SHEET_API);
 
     const data = await res.json();
 
-    if(!Array.isArray(data)){
-      throw new Error("Invalid sheet data");
-    }
+    console.log("DATA LENGTH:", data.length);
 
     RAW = [];
 
     for(const r of data){
 
       const nm = norm(r["姓名"]);
-
-      // ⭐ chỉ đọc nếu cột G có tên
       if(!isValidName(nm)) continue;
 
       RAW.push({
@@ -1257,24 +1241,26 @@ async function load(){
 
     els.meta.textContent = "Loaded " + RAW.length + " rows";
 
-    // build filters
-    const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-    const teams  = uniq(RAW.map(r=>r["团队"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-    const groups = uniq(RAW.map(r=>r["组别"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-    const poss   = uniq(RAW.map(r=>r["岗位"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+    const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean));
+    const teams  = uniq(RAW.map(r=>r["团队"]||"未填写"));
+    const groups = uniq(RAW.map(r=>r["组别"]||"未填写"));
+    const poss   = uniq(RAW.map(r=>r["岗位"]||"未填写"));
 
-    buildSelectOptions(els.shiftSel, shifts, "All shifts（班次 cột I）");
-    buildSelectOptions(els.teamSel, teams, "All teams（团队 cột F）");
-    buildSelectOptions(els.groupSel, groups, "All groups（组别）");
-    buildSelectOptions(els.posSel, poss, "All positions（岗位）");
+    buildSelectOptions(els.shiftSel, shifts, "All shifts");
+    buildSelectOptions(els.teamSel, teams, "All teams");
+    buildSelectOptions(els.groupSel, groups, "All groups");
+    buildSelectOptions(els.posSel, poss, "All positions");
 
     applyFilters();
 
   }catch(err){
 
     console.error(err);
+    els.meta.textContent = "❌ Load error";
 
-    els.meta.textContent = "❌ Load failed";
+  }
+
+}
 
     els.pageDashboard.innerHTML = `
       <div class="card">
