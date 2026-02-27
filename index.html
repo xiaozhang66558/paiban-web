@@ -405,6 +405,7 @@
     <select id="teamSel"></select>
     <select id="groupSel"></select>
     <select id="posSel"></select>
+    <select id="panSel"></select>
     <div class="meta" id="meta">Loading…</div>
   </div>
 
@@ -473,6 +474,7 @@ const els = {
   teamSel: document.getElementById("teamSel"),
   groupSel: document.getElementById("groupSel"),
   posSel: document.getElementById("posSel"),
+  panSel: document.getElementById("panSel"),
   meta: document.getElementById("meta"),
 
   modal: document.getElementById("modal"),
@@ -584,6 +586,7 @@ function applyFilters(){
   const team  = els.teamSel.value;
   const group = els.groupSel.value;
   const pos   = els.posSel.value;
+  const pan = els.panSel.value;
 
   FILTERED = RAW.filter(r=>{
     const 姓名 = norm(r["姓名"]);
@@ -602,6 +605,7 @@ function applyFilters(){
     if(team && 团队 !== team) return false;
     if(group && 组别 !== group) return false;
     if(pos && 岗位 !== pos) return false;
+    if(pan && 盘口 !== pan) return false;
 
     if(q){
       const hay = [
@@ -627,6 +631,7 @@ function applyFilters(){
   els.teamSel.addEventListener(evt, applyFilters);
   els.groupSel.addEventListener(evt, applyFilters);
   els.posSel.addEventListener(evt, applyFilters);
+  els.panSel.addEventListener(evt, applyFilters);
 });
 
 /* =========================================================
@@ -1278,6 +1283,10 @@ async function load(){
     const teams  = uniq(RAW.map(r=>r["团队"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
     const groups = uniq(RAW.map(r=>r["组别"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
     const poss   = uniq(RAW.map(r=>r["岗位"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+    const pans = uniq(RAW.map(r=>r["盘口"]).filter(Boolean))
+  .sort((a,b)=>a.localeCompare(b,"zh"));
+
+buildSelectOptions(els.panSel, pans, "All 盘口（盘口）");
 
     buildSelectOptions(els.shiftSel, shifts, "All shifts（班次 cột I）");
     buildSelectOptions(els.teamSel, teams, "All teams（团队 cột F）");
@@ -1300,8 +1309,8 @@ function renderPanPage(){
 
   const rows = FILTERED;
 
-  // group by 盘口
   const panMap = new Map();
+  const totalSet = new Set();
 
   rows.forEach(r=>{
     const pan = norm(r["盘口"]) || "未填写";
@@ -1310,6 +1319,8 @@ function renderPanPage(){
     const name = norm(r["姓名"]);
 
     if(!isValidName(name)) return;
+
+    totalSet.add(name);
 
     if(!panMap.has(pan)){
       panMap.set(pan,{
@@ -1322,7 +1333,6 @@ function renderPanPage(){
     }
 
     const obj = panMap.get(pan);
-
     obj.names.add(name);
 
     if(shift.includes("Day")) obj.day.add(name);
@@ -1333,6 +1343,8 @@ function renderPanPage(){
     obj.posMap.get(pos).add(name);
   });
 
+  const grandTotal = totalSet.size;
+
   const list = [...panMap.entries()]
     .map(([pan,data])=>{
       return {
@@ -1341,10 +1353,10 @@ function renderPanPage(){
         day: data.day.size,
         night: data.night.size,
         mid: data.mid.size,
-        posDetail: [...data.posMap.entries()].map(([k,v])=>({
-          pos:k,
-          count:v.size
-        }))
+        percent: grandTotal ? ((data.names.size/grandTotal)*100).toFixed(2) : 0,
+        posDetail: [...data.posMap.entries()]
+          .map(([k,v])=>({pos:k,count:v.size}))
+          .sort((a,b)=>b.count-a.count)
       };
     })
     .sort((a,b)=>b.total-a.total);
@@ -1352,27 +1364,31 @@ function renderPanPage(){
   els.pagePan.innerHTML = `
     <div class="card">
       <h2>盘口人数统计</h2>
-      <div class="sub">按盘口统计人数（按姓名去重）</div>
+      <div class="sub">总人数：${grandTotal}（按姓名去重）</div>
     </div>
 
-    <div class="card compact">
+    <div class="card">
       <div class="tableWrap">
         <table>
           <thead>
             <tr>
+              <th>Rank</th>
               <th>盘口</th>
               <th>总人数</th>
+              <th>占比</th>
               <th>白班</th>
               <th>夜班</th>
               <th>中班</th>
-              <th>岗位明细</th>
+              <th>岗位分布</th>
             </tr>
           </thead>
           <tbody>
-            ${list.map(r=>`
-              <tr>
+            ${list.map((r,i)=>`
+              <tr style="${i<3?'background:#f0f7ff;font-weight:700':''}">
+                <td>#${i+1}</td>
                 <td class="link" onclick="openPan('${esc(r.pan)}')">${esc(r.pan)}</td>
                 <td>${r.total}</td>
+                <td>${r.percent}%</td>
                 <td>${r.day}</td>
                 <td>${r.night}</td>
                 <td>${r.mid}</td>
