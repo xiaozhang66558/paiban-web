@@ -1090,10 +1090,13 @@ window.setEmpView = function(mode){
    - 另外单独给一个 KPI：未填写班次（可点开看是谁）
    ========================================================= */
 function renderSchedule(){
-  const rows = FILTERED;
 
-  const rowsWithShift = rows.filter(r=> norm(r["班次"]) !== "");
-  const rowsNoShift   = rows.filter(r=> norm(r["班次"]) === "");
+  // 🔥 CHỈ LẤY DÒNG CÓ TÊN (CỘT G)
+  const rows = RAW.filter(r => isValidName(r["姓名"]));
+
+  // 🔥 Chỉ sau khi chắc chắn có 姓名 mới xét 班次
+  const rowsWithShift = rows.filter(r => norm(r["班次"]) !== "");
+  const rowsNoShift   = rows.filter(r => norm(r["班次"]) === "");
 
   // group only by REAL shift values (no empty label)
   const shiftMap = groupBy(rowsWithShift, "班次", ""); // emptyLabel won't be used because we filtered
