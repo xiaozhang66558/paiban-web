@@ -1204,33 +1204,86 @@ function buildShiftChart(labels, values){
    - If 姓名 is invalid => drop row completely (do not read other cols)
    ========================================================= */
 async function load(){
-  els.meta.textContent = "Loading data from Google Sheet…";
-  const res = await fetch(SHEET_API, { cache:"no-store" });
-  const data = await res.json();
 
-  RAW = data
-    .map(r=>{
-      // ✅ Strict: only keep row if G(姓名) valid.
+  els.meta.textContent = "Connecting to Google Sheet…";
+
+  try{
+
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 10000); // 10s timeout
+
+    const res = await fetch(SHEET_API,{
+      cache:"no-store",
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    if(!res.ok){
+      throw new Error("HTTP status " + res.status);
+    }
+
+    const data = await res.json();
+
+    if(!Array.isArray(data)){
+      throw new Error("Invalid sheet data");
+    }
+
+    RAW = [];
+
+    for(const r of data){
+
       const nm = norm(r["姓名"]);
-      if(!isValidName(nm)) return null;
 
-      // only then read other columns
-      return {
+      // ⭐ chỉ đọc nếu cột G có tên
+      if(!isValidName(nm)) continue;
+
+      RAW.push({
         "负责人": norm(r["负责人"]),
         "现场培训": norm(r["现场培训"]),
         "线上组长": norm(r["线上组长"]),
         "线上培训": norm(r["线上培训"]),
         "组别": norm(r["组别"]),
         "团队": norm(r["团队"]),
-        "姓名": nm,               // ⭐ cột G chuẩn
+        "姓名": nm,
         "ID": norm(r["ID"]),
         "国家": norm(r["国家"]),
         "岗位": norm(r["岗位"]),
         "盘口": norm(r["盘口"]),
-        "班次": norm(r["班次"])   // cột I
-      };
-    })
-    .filter(Boolean);
+        "班次": norm(r["班次"])
+      });
+
+    }
+
+    els.meta.textContent = "Loaded " + RAW.length + " rows";
+
+    // build filters
+    const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+    const teams  = uniq(RAW.map(r=>r["团队"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+    const groups = uniq(RAW.map(r=>r["组别"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+    const poss   = uniq(RAW.map(r=>r["岗位"]||"未填写").filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+
+    buildSelectOptions(els.shiftSel, shifts, "All shifts（班次 cột I）");
+    buildSelectOptions(els.teamSel, teams, "All teams（团队 cột F）");
+    buildSelectOptions(els.groupSel, groups, "All groups（组别）");
+    buildSelectOptions(els.posSel, poss, "All positions（岗位）");
+
+    applyFilters();
+
+  }catch(err){
+
+    console.error(err);
+
+    els.meta.textContent = "❌ Load failed";
+
+    els.pageDashboard.innerHTML = `
+      <div class="card">
+        <h2>Sheet Load Error</h2>
+        <div class="note">${err.message}</div>
+      </div>
+    `;
+  }
+}
 
   // Build filter options from RAW
   const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
