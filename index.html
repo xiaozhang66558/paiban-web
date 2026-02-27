@@ -586,7 +586,7 @@ function applyFilters(){
   const team  = els.teamSel.value;
   const group = els.groupSel.value;
   const pos   = els.posSel.value;
-  const pan = els.panSel.value;
+  const pan   = els.panSel.value;
 
   FILTERED = RAW.filter(r=>{
     const 姓名 = norm(r["姓名"]);
@@ -595,6 +595,7 @@ function applyFilters(){
     const 组别 = norm(r["组别"]);
     const 岗位 = norm(r["岗位"]);
     const 班次 = norm(r["班次"]);
+    const 盘口 = norm(r["盘口"]);
 
     const 负责人 = norm(r["负责人"]);
     const 现场培训 = norm(r["现场培训"]);
