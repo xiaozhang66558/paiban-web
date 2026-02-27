@@ -379,56 +379,56 @@
       font-weight:800;
       font-size:12px;
     }
+
     /* ===== FORCE CENTER ALL TEXT ===== */
-body,
-.card,
-.kpi,
-.tile,
-.empCard,
-.modal .box,
-.note,
-.sub,
-.badge,
-.pill,
-.btn,
-table,
-thead th,
-tbody td {
-  text-align: center !important;
-}
+    body,
+    .card,
+    .kpi,
+    .tile,
+    .empCard,
+    .modal .box,
+    .note,
+    .sub,
+    .badge,
+    .pill,
+    .btn,
+    table,
+    thead th,
+    tbody td {
+      text-align: center !important;
+    }
 
-/* Center flex containers */
-header,
-.filterBar,
-.topTabs,
-.kpiRow,
-.grid2,
-.btnRow,
-.empCard .row1 {
-  justify-content: center !important;
-}
+    /* Center flex containers */
+    header,
+    .filterBar,
+    .topTabs,
+    .kpiRow,
+    .grid2,
+    .btnRow,
+    .empCard .row1 {
+      justify-content: center !important;
+    }
+
     /* ===== GIỮ HEADER & FILTER NHƯ CŨ ===== */
+    header{
+      justify-content: space-between !important;
+      text-align: left !important;
+    }
 
-header{
-  justify-content: space-between !important;
-  text-align: left !important;
-}
+    .filterBar{
+      justify-content: flex-start !important;
+      text-align: left !important;
+    }
 
-.filterBar{
-  justify-content: flex-start !important;
-  text-align: left !important;
-}
+    .filterBar input,
+    .filterBar select{
+      text-align: left !important;
+    }
 
-.filterBar input,
-.filterBar select{
-  text-align: left !important;
-}
-
-.filterBar .meta{
-  margin-left: auto !important;
-  text-align: right !important;
-}
-    
+    .filterBar .meta{
+      margin-left: auto !important;
+      text-align: right !important;
+    }
   </style>
 </head>
 
@@ -450,7 +450,7 @@ header{
   </div>
 
   <div class="filterBar" id="filterBar">
-    <input id="q" placeholder="Search name / ID / team / group / position / manager" />
+    <input id="q" placeholder="Search name / ID / team / group / position / manager / 工作内容" />
     <select id="shiftSel"></select>
     <select id="teamSel"></select>
     <select id="groupSel"></select>
@@ -492,18 +492,7 @@ const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP
 
 /*
   Column mapping (by header names from your sheet):
-  - 负责人
-  - 现场培训
-  - 线上组长
-  - 线上培训
-  - 组别
-  - 团队 (col F)
-  - 姓名 (col G)  ✅ STRICT KEY
-  - ID
-  - 国家
-  - 岗位
-  - 盘口
-  - 班次 (col I)
+  负责人	现场培训	线上组长	线上培训	组别	团队	姓名	ID	班次	国家	岗位	盘口	工作内容
 */
 
 let RAW = [];
@@ -544,7 +533,7 @@ function esc(str){
 }
 
 /* =========================================================
-   ✅ NEW: header-safe pick (chống opensheet header lệch)
+   ✅ header-safe pick (chống opensheet header lệch)
    ========================================================= */
 function pick(r, keys){
   for(const k of keys){
@@ -553,7 +542,6 @@ function pick(r, keys){
       if(v.trim() !== "") return v;
     }
   }
-  // fallback: try loose match (trim keys of object)
   const objKeys = Object.keys(r || {});
   for(const want of keys){
     const w = (want ?? "").toString().trim();
@@ -646,6 +634,7 @@ function applyFilters(){
     const 岗位 = norm(r["岗位"]);
     const 班次 = norm(r["班次"]);
     const 盘口 = norm(r["盘口"]);
+    const 工作内容 = norm(r["工作内容"]);
 
     const 负责人 = norm(r["负责人"]);
     const 现场培训 = norm(r["现场培训"]);
@@ -660,7 +649,7 @@ function applyFilters(){
 
     if(q){
       const hay = [
-        姓名, ID, 团队, 组别, 岗位, 班次,
+        姓名, ID, 团队, 组别, 岗位, 班次, 盘口, 工作内容,
         负责人, 现场培训, 线上组长, 线上培训
       ].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
@@ -688,7 +677,6 @@ function applyFilters(){
 /* =========================================================
    STATS HELPERS
    ========================================================= */
-// Total unique people set = 姓名 + 线上组长 + 线上培训 (as you requested)
 function getTotalPeopleSet(rows){
   const set = new Set();
   rows.forEach(r=>{
@@ -735,9 +723,10 @@ function countByUniqueName(rows){
 
 /* =========================================================
    MODAL TABLE RENDER
+   ✅ ADD: 工作内容 (显示在 盘口 后面)
    ========================================================= */
 function renderFullTable(rows, titleHint=""){
-  const cols = ["负责人","现场培训","线上组长","线上培训","组别","团队","班次","岗位","姓名","ID","国家","盘口"];
+  const cols = ["负责人","现场培训","线上组长","线上培训","组别","团队","班次","岗位","姓名","ID","国家","盘口","工作内容"];
   return `
     <div class="note">${esc(titleHint)}  Rows: <b>${rows.length.toLocaleString()}</b></div>
     <div class="tableWrap">
@@ -800,17 +789,14 @@ function renderDashboard(){
   const leaderSet = getUniqueSetByField(rows,"线上组长");
   const trainSet  = getUniqueSetByField(rows,"线上培训");
 
-  // Positions distribution (岗位) by unique 姓名
   const posMap = groupBy(rows,"岗位");
   const posLabels = [...posMap.keys()];
   const posCounts = posLabels.map(k=>countByUniqueName(posMap.get(k)));
 
-  // Teams distribution (团队=col F) by unique 姓名
   const teamMap = groupBy(rows,"团队");
   const teamLabels = [...teamMap.keys()];
   const teamCounts = teamLabels.map(k=>countByUniqueName(teamMap.get(k)));
 
-  // Team detail table: each team show total + each position count
   const allPositions = uniq(rows.map(r=>norm(r["岗位"])||"未填写")).sort((a,b)=>a.localeCompare(b,"zh"));
 
   const teamRows = [...teamMap.entries()]
@@ -1026,15 +1012,16 @@ window.openTeamPos = function(team, pos){
   openModal(`${team} · ${pos}（${countByUniqueName(rows)}）`, renderFullTable(rows, `团队 = ${team} 且 岗位 = ${pos}`));
 };
 
-  window.openPan = function(pan){
+window.openPan = function(pan){
   const rows = FILTERED.filter(r=> norm(r["盘口"]) === pan);
   openModal(`盘口：${pan}`, renderFullTable(rows, `盘口 = ${pan}`));
 };
 
 /* =========================================================
    EMPLOYEES PAGE
+   ✅ ADD: 工作内容
    ========================================================= */
-let empViewMode = "cards"; // default to avoid horizontal scroll
+let empViewMode = "cards";
 
 function renderEmployees(){
   const rows = FILTERED;
@@ -1065,6 +1052,7 @@ function renderEmployees(){
             const id = norm(r["ID"])||"";
             const country = norm(r["国家"])||"";
             const pan = norm(r["盘口"])||"";
+            const work = norm(r["工作内容"])||"";
             const owner = norm(r["负责人"])||"";
             const onsite = norm(r["现场培训"])||"";
             const leader = norm(r["线上组长"])||"";
@@ -1092,6 +1080,7 @@ function renderEmployees(){
                   <div>线上组长: <span class="link" onclick="openManagerSubs('线上组长','${esc(leader)}')">${esc(leader||"-")}</span></div>
                   <div>线上培训: <span class="link" onclick="openManagerSubs('线上培训','${esc(trainer)}')">${esc(trainer||"-")}</span></div>
                   <div style="grid-column:1 / -1;">盘口: ${esc(pan||"-")}</div>
+                  <div style="grid-column:1 / -1;">工作内容: ${esc(work||"-")}</div>
                 </div>
               </div>
             `;
@@ -1106,8 +1095,8 @@ function renderEmployees(){
           <table>
             <thead>
               <tr>
-                <th>姓名</th><th>ID</th><th>岗位</th><th>团队(cột F)</th><th>组别</th><th>班次(cột I)</th>
-                <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th><th>国家</th><th>盘口</th>
+                <th>姓名</th><th>ID</th><th>岗位</th><th>团队</th><th>组别</th><th>班次</th>
+                <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th><th>国家</th><th>盘口</th><th>工作内容</th>
               </tr>
             </thead>
             <tbody>
@@ -1130,6 +1119,7 @@ function renderEmployees(){
                     <td class="link" onclick="openManagerSubs('线上培训','${esc(trainer)}')">${esc(trainer)}</td>
                     <td>${esc(norm(r["国家"]))}</td>
                     <td>${esc(norm(r["盘口"]))}</td>
+                    <td>${esc(norm(r["工作内容"]))}</td>
                   </tr>
                 `;
               }).join("")}
@@ -1150,21 +1140,15 @@ window.setEmpView = function(mode){
 
 /* =========================================================
    SCHEDULE PAGE（排班表）
-   ✅ FIX: 不再把空班次归类为 “未填写”
-   - 统计：只统计有班次的行
-   - 另外单独给一个 KPI：未填写班次（可点开看是谁）
+   ✅ ADD: 工作内容 (在 盘口 后面)
    ========================================================= */
 function renderSchedule(){
-
-  // 🔥 CHỈ LẤY DÒNG CÓ TÊN (CỘT G)
   const rows = RAW.filter(r => isValidName(r["姓名"]));
 
-  // 🔥 Chỉ sau khi chắc chắn có 姓名 mới xét 班次
   const rowsWithShift = rows.filter(r => norm(r["班次"]) !== "");
   const rowsNoShift   = rows.filter(r => norm(r["班次"]) === "");
 
-  // group only by REAL shift values (no empty label)
-  const shiftMap = groupBy(rowsWithShift, "班次", ""); // emptyLabel won't be used because we filtered
+  const shiftMap = groupBy(rowsWithShift, "班次", "");
   const shiftLabels = [...shiftMap.keys()].filter(k=>k!=="");
   const shiftCounts = shiftLabels.map(k=>countByUniqueName(shiftMap.get(k)));
 
@@ -1185,12 +1169,12 @@ function renderSchedule(){
   els.pageSchedule.innerHTML = `
     <div class="card">
       <h2>排班表</h2>
-      <div class="sub">按班次统计（班次来自 Google Sheet cột I）。✅ 已修复：空班次不再显示为“班次: 未填写”。</div>
+      <div class="sub">按班次统计（班次来自 Google Sheet）。✅ 已修复：空班次不再显示为“班次: 未填写”。</div>
     </div>
 
     <div class="card">
       <div style="font-weight:1000; font-size:16px;">班次统计（只统计有班次的行）</div>
-      <div class="note">你说 “中班会有多个时间段”，所以必须从 cột I（班次）取 unique；这里已按你要求。</div>
+      <div class="note">你说 “中班会有多个时间段”，所以必须从 班次 取 unique；这里已按你要求。</div>
 
       <div class="kpiRow" style="grid-template-columns:repeat(3,1fr)">
         ${shiftCards || `<div class="note">没有找到任何班次数据（全部为空或被筛选掉）</div>`}
@@ -1219,7 +1203,7 @@ function renderSchedule(){
           <thead>
             <tr>
               <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th>
-              <th>团队(cột F)</th><th>组别</th><th>班次(cột I)</th><th>岗位</th><th>姓名</th><th>ID</th><th>国家</th><th>盘口</th>
+              <th>团队</th><th>组别</th><th>班次</th><th>岗位</th><th>姓名</th><th>ID</th><th>国家</th><th>盘口</th><th>工作内容</th>
             </tr>
           </thead>
           <tbody>
@@ -1242,6 +1226,7 @@ function renderSchedule(){
                   <td>${esc(norm(r["ID"]))}</td>
                   <td>${esc(norm(r["国家"]))}</td>
                   <td>${esc(norm(r["盘口"]))}</td>
+                  <td>${esc(norm(r["工作内容"]))}</td>
                 </tr>
               `;
             }).join("")}
@@ -1256,12 +1241,12 @@ function renderSchedule(){
 
 window.openShift = function(shift){
   const rows = FILTERED.filter(r=> norm(r["班次"]) === shift);
-  openModal(`班次：${shift}（${countByUniqueName(rows)}）`, renderFullTable(rows, `班次(cột I) = ${shift}`));
+  openModal(`班次：${shift}（${countByUniqueName(rows)}）`, renderFullTable(rows, `班次 = ${shift}`));
 };
 
 window.openNoShift = function(){
   const rows = FILTERED.filter(r=> norm(r["班次"]) === "");
-  openModal(`未填写班次（${countByUniqueName(rows)}）`, renderFullTable(rows, `班次(cột I) 为空`));
+  openModal(`未填写班次（${countByUniqueName(rows)}）`, renderFullTable(rows, `班次 为空`));
 };
 
 function buildShiftChart(labels, values){
@@ -1290,7 +1275,8 @@ function buildShiftChart(labels, values){
 }
 
 /* =========================================================
-   LOAD – STRICT BY COLUMN INDEX (CỘT G LÀ CHUẨN)
+   LOAD
+   ✅ ADD: 工作内容
    ========================================================= */
 async function load(){
   try{
@@ -1304,41 +1290,29 @@ async function load(){
 
     RAW = data
       .map(r=>({
-        // ✅ header-safe: chống lệch cột khi copy sheet / đổi tab / đổi file
         "负责人":   normPick(r, ["负责人","負責人","Owner","owner"]),
         "现场培训": normPick(r, ["现场培训","現場培訓","Onsite Training","现场训","現場訓練"]),
         "线上组长": normPick(r, ["线上组长","線上組長","Online Leader","组长","組長"]),
         "线上培训": normPick(r, ["线上培训","線上培訓","Online Training","线上训","線上訓練"]),
         "组别":     normPick(r, ["组别","組別","Group","group"]),
         "团队":     normPick(r, ["团队","團隊","Team","team"]),
-
-        // ✅ CỘT G chuẩn: 姓名 (dùng làm điều kiện giữ dòng)
         "姓名":     normPick(r, ["姓名","员工姓名","員工姓名","Name","name"]),
-
         "ID":       normPick(r, ["ID","Id","员工ID","員工ID"]),
-
-        // ✅ 班次 vẫn lấy từ cột 班次, nhưng chỉ giữ dòng khi 姓名 hợp lệ
         "班次":     normPick(r, ["班次","Shift","shift","班 次","班次 "]),
-
-        // ✅ 盘口/盘口 rất hay lệch tên header => thêm alias đầy đủ
-        "盘口":     normPick(r, ["盘口","盤口","ID WORKFOLIO","Workfolio","workfolio","盘口ID","盘口ID"]),
-
+        "盘口":     normPick(r, ["盘口","盤口","ID WORKFOLIO","Workfolio","workfolio","盘口ID","盘口ID "]),
+        "工作内容": normPick(r, ["工作内容","工作內容","工作內容 ","工作","内容","內容","Work Content","Job Content","Content","工作内容/内容"]),
         "国家":     normPick(r, ["国家","國家","Country","country"]),
         "岗位":     normPick(r, ["岗位","崗位","Position","position"])
       }))
-      // ✅ chỉ giữ dòng có 姓名 hợp lệ (cột G)
       .filter(r => isValidName(r["姓名"]));
 
-    // ===== Build filter options =====
     const shifts = uniq(RAW.map(r=>r["班次"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
     const teams  = uniq(RAW.map(r=>r["团队"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
     const groups = uniq(RAW.map(r=>r["组别"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
     const poss   = uniq(RAW.map(r=>r["岗位"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
-    const pans = uniq(RAW.map(r=>r["盘口"]).filter(Boolean))
-  .sort((a,b)=>a.localeCompare(b,"zh"));
+    const pans   = uniq(RAW.map(r=>r["盘口"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
 
-buildSelectOptions(els.panSel, pans, "All 盘口（盘口）");
-
+    buildSelectOptions(els.panSel, pans, "All 盘口（盘口）");
     buildSelectOptions(els.shiftSel, shifts, "All shifts（班次）");
     buildSelectOptions(els.teamSel, teams, "All teams（团队）");
     buildSelectOptions(els.groupSel, groups, "All groups（组别）");
@@ -1356,8 +1330,12 @@ buildSelectOptions(els.panSel, pans, "All 盘口（盘口）");
     `;
   }
 }
-function renderPanPage(){
 
+/* =========================================================
+   PAN PAGE
+   (逻辑不变)
+   ========================================================= */
+function renderPanPage(){
   const rows = FILTERED;
 
   const panMap = new Map();
@@ -1454,7 +1432,7 @@ function renderPanPage(){
     </div>
   `;
 }
-  
+
 load();
 </script>
 </body>
