@@ -455,6 +455,7 @@
     <select id="teamSel"></select>
     <select id="groupSel"></select>
     <select id="posSel"></select>
+    <select id="countrySel"></select>
     <select id="panSel"></select>
     <div class="meta" id="meta">Loading…</div>
   </div>
@@ -513,6 +514,7 @@ const els = {
   teamSel: document.getElementById("teamSel"),
   groupSel: document.getElementById("groupSel"),
   posSel: document.getElementById("posSel"),
+  countrySel: document.getElementById("countrySel"),
   panSel: document.getElementById("panSel"),
   meta: document.getElementById("meta"),
 
@@ -624,6 +626,7 @@ function applyFilters(){
   const team  = els.teamSel.value;
   const group = els.groupSel.value;
   const pos   = els.posSel.value;
+  const country = els.countrySel.value;
   const pan   = els.panSel.value;
 
   FILTERED = RAW.filter(r=>{
@@ -645,6 +648,7 @@ function applyFilters(){
     if(team && 团队 !== team) return false;
     if(group && 组别 !== group) return false;
     if(pos && 岗位 !== pos) return false;
+    if(country && 国家 !== country) return false;
     if(pan && 盘口 !== pan) return false;
 
     if(q){
@@ -671,6 +675,7 @@ function applyFilters(){
   els.teamSel.addEventListener(evt, applyFilters);
   els.groupSel.addEventListener(evt, applyFilters);
   els.posSel.addEventListener(evt, applyFilters);
+  els.countrySel.addEventListener(evt, applyFilters);
   els.panSel.addEventListener(evt, applyFilters);
 });
 
@@ -1310,12 +1315,14 @@ async function load(){
     const teams  = uniq(RAW.map(r=>r["团队"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
     const groups = uniq(RAW.map(r=>r["组别"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
     const poss   = uniq(RAW.map(r=>r["岗位"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
+    const countries = uniq(RAW.map(r=>r["国家"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
     const pans   = uniq(RAW.map(r=>r["盘口"]).filter(Boolean)).sort((a,b)=>a.localeCompare(b,"zh"));
 
     buildSelectOptions(els.panSel, pans, "All 盘口（盘口）");
     buildSelectOptions(els.shiftSel, shifts, "All shifts（班次）");
     buildSelectOptions(els.teamSel, teams, "All teams（团队）");
     buildSelectOptions(els.groupSel, groups, "All groups（组别）");
+    buildSelectOptions(els.countrySel, countries, "All 国家（国家）");
     buildSelectOptions(els.posSel, poss, "All positions（岗位）");
 
     applyFilters();
