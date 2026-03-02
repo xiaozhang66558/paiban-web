@@ -682,14 +682,9 @@ function getTotalPeopleSet(rows){
   const set = new Set();
   rows.forEach(r=>{
     const name = norm(r["姓名"]);
-    const leader = norm(r["线上组长"]);
-    const trainer = norm(r["线上培训"]);
-
-    if(!isValidName(name)) return;
-
-    set.add(name);
-    if(isValidName(leader)) set.add(leader);
-    if(isValidName(trainer)) set.add(trainer);
+    if(isValidName(name)){
+      set.add(name);
+    }
   });
   return set;
 }
@@ -825,11 +820,11 @@ function renderDashboard(){
       <div class="sub">按岗位 & 团队统计（点击卡片/图表可弹窗查看员工名单）</div>
 
       <div class="kpiRow">
-        <div class="kpi" onclick="openModal('总人数名单（去重逻辑：姓名+线上组长+线上培训）', renderFullTable(FILTERED,'去重统计不影响名单展示：这里展示筛选后的所有原始行'))">
+        <div class="kpi" onclick="openModal('总人数名单（去重逻辑：仅姓名）', renderFullTable(FILTERED,'去重统计不影响名单展示：这里展示筛选后的所有原始行'))">
           <div class="spark"></div>
           <div class="t">总人数（去重）</div>
           <div class="v">${totalPeople.toLocaleString()}</div>
-          <div class="hint">姓名 + 线上组长 + 线上培训（unique）</div>
+          <div class="hint">姓名（unique）</div>
         </div>
 
         <div class="kpi" onclick="openManagerList('负责人', FILTERED)">
