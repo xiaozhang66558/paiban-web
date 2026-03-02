@@ -637,12 +637,8 @@ function applyFilters(){
     const 岗位 = norm(r["岗位"]);
     const 班次 = norm(r["班次"]);
     const 盘口 = norm(r["盘口"]);
+    const 国家 = norm(r["国家"]);
     const 工作内容 = norm(r["工作内容"]);
-
-    const 负责人 = norm(r["负责人"]);
-    const 现场培训 = norm(r["现场培训"]);
-    const 线上组长 = norm(r["线上组长"]);
-    const 线上培训 = norm(r["线上培训"]);
 
     if(shift && 班次 !== shift) return false;
     if(team && 团队 !== team) return false;
@@ -653,15 +649,15 @@ function applyFilters(){
 
     if(q){
       const hay = [
-        姓名, ID, 团队, 组别, 岗位, 班次, 盘口, 工作内容,
-        负责人, 现场培训, 线上组长, 线上培训
+        姓名, ID, 团队, 组别, 岗位, 班次, 盘口, 国家, 工作内容
       ].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
   });
 
-  els.meta.textContent = `Rows: ${RAW.length.toLocaleString()} • Filtered: ${FILTERED.length.toLocaleString()} • ${new Date().toLocaleString()}`;
+  els.meta.textContent =
+    `Rows: ${RAW.length} • Filtered: ${FILTERED.length} • ${new Date().toLocaleString()}`;
 
   renderDashboard();
   renderEmployees();
