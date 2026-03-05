@@ -511,6 +511,7 @@ let FILTERED = [];
 
 let STATS_RAW = []
 let ACCOUNT_MAP = {}
+let EMP_MAP = {}
 
 let charts = { pos:null, team:null, shift:null };
 
@@ -1323,6 +1324,7 @@ function buildStatsSummary(){
 
 function renderWorkStats(){
 
+  if(!STATS_RAW.length) return
   const map = buildStatsSummary()
 
   const rows = Object.entries(map)
@@ -1612,8 +1614,9 @@ function renderPanPage(){
   `;
 }
 
-load();
-loadStats();
+loadStats().then(()=>{
+  load()
+})
 </script>
 </body>
 </html>
