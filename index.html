@@ -931,6 +931,8 @@ function renderDashboard(){
     </div>
   `;
 
+  renderWorkStats()
+
   buildPosChart(posLabels, posCounts);
   buildTeamChart(teamLabels, teamCounts);
 }
@@ -1282,6 +1284,106 @@ function buildShiftChart(labels, values){
     }
   });
 }
+  function buildShiftChart(labels, values){
+   ...
+}
+
+/* =========================================================
+   BUILD STATS SUMMARY
+   ========================================================= */
+
+function buildStatsSummary(){
+
+  const map = {}
+
+  STATS_RAW.forEach(r=>{
+
+    const id = r.id
+
+    if(!id) return
+
+    if(!map[id]){
+      map[id] = {
+        processed:0,
+        reject:0
+      }
+    }
+
+    map[id].processed += r.processed
+    map[id].reject += r.reject
+
+  })
+
+  return map
+}
+
+/* =========================================================
+   RENDER WORK STATS
+   ========================================================= */
+
+function renderWorkStats(){
+
+  const map = buildStatsSummary()
+
+  const rows = Object.entries(map)
+    .map(([id,v])=>{
+
+      const emp = EMP_MAP[id]
+
+      return {
+        id,
+        name: emp ? emp["姓名"] : "",
+        team: emp ? emp["团队"] : "",
+        processed: v.processed,
+        reject: v.reject
+      }
+
+    })
+    .sort((a,b)=>b.processed-a.processed)
+
+  const html = `
+  <div class="card">
+    <h2>后台处理统计</h2>
+
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>ID</th>
+            <th>姓名</th>
+            <th>团队</th>
+            <th>已处理</th>
+            <th>已驳回</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((r,i)=>`
+          <tr>
+            <td>#${i+1}</td>
+            <td>${esc(r.id)}</td>
+            <td>${esc(r.name)}</td>
+            <td>${esc(r.team)}</td>
+            <td>${r.processed}</td>
+            <td>${r.reject}</td>
+          </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+  `
+
+  els.pageDashboard.innerHTML += html
+
+}
+
+/* =========================================================
+   LOAD STATS
+   ========================================================= */
+
+async function loadStats(){
 
 /* =========================================================
    LOAD STATS
@@ -1395,6 +1497,7 @@ async function load(){
     buildSelectOptions(els.posSel, poss, "All positions（岗位）");
 
     applyFilters();
+    buildEmployeeMap();
   }catch(err){
     console.error(err);
     els.meta.textContent = "Load error: " + (err?.message || err);
