@@ -1026,10 +1026,21 @@ function showAvgDetails(team, position, avgValue) {
       total7Days: totalOrders7Days,
       dailyOrders: dailyOrders
     };
-  }).filter(e => e.total7Days > 0 || employees.length < 50); // chỉ hiện người có đơn nếu nhiều
+  }).filter(e => e.total7Days > 0 || employees.length < 50);
   
   // Sắp xếp theo tổng đơn giảm dần
   empDetails.sort((a, b) => b.total7Days - a.total7Days);
+  
+  // Tìm giá trị thấp nhất cho mỗi ngày
+  const minPerDay = {};
+  last7Days.forEach(date => {
+    let minValue = Infinity;
+    empDetails.forEach(emp => {
+      const val = emp.dailyOrders[date];
+      if (val < minValue) minValue = val;
+    });
+    minPerDay[date] = minValue;
+  });
   
   const totalEmployees = empDetails.length;
   const totalOrdersAll = empDetails.reduce((sum, e) => sum + e.total7Days, 0);
@@ -1042,7 +1053,7 @@ function showAvgDetails(team, position, avgValue) {
         <div><strong>团队:</strong> ${esc(team)}</div>
         <div><strong>岗位:</strong> ${esc(position)}</div>
         <div><strong>Bình quân 7 ngày:</strong> ${actualAvg} đơn/người (tổng ${totalOrdersAll} đơn / ${totalEmployees} người)</div>
-        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ Hiển thị 7 ngày gần nhất có dữ liệu</div>
+        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ Hiển thị 7 ngày gần nhất có dữ liệu | 🔴 Màu đỏ = thấp nhất ngày</div>
       </div>
       
       <div class="tableWrap">
@@ -1063,11 +1074,24 @@ function showAvgDetails(team, position, avgValue) {
                 <td class="link" onclick="openModal('员工详情', renderFullTable(FILTERED.filter(r=>r['ID']==='${emp.id}'), '员工: ${emp.name}'))">${esc(emp.id)}</td>
                 <td class="link" onclick="openModal('员工详情', renderFullTable(FILTERED.filter(r=>r['ID']==='${emp.id}'), '员工: ${emp.name}'))">${esc(emp.name)}</td>
                 <td style="font-weight:900; color:#2563eb;">${emp.total7Days}</td>
-                ${last7Days.map(d => `
-                  <td style="${emp.dailyOrders[d] > 0 ? 'color:#22c55e; font-weight:700;' : 'color:#cbd5e1;'}">
-                    ${emp.dailyOrders[d] > 0 ? emp.dailyOrders[d] : '-'}
-                  </td>
-                `).join("")}
+                ${last7Days.map(d => {
+                  const value = emp.dailyOrders[d];
+                  const isMin = value === minPerDay[d] && value > 0; // thấp nhất và > 0
+                  const isZero = value === 0;
+                  let colorStyle = "";
+                  let displayValue = value;
+                  
+                  if (isMin && !isZero) {
+                    colorStyle = "color:#dc2626; font-weight:700;"; // màu đỏ cho thấp nhất
+                  } else if (isZero) {
+                    colorStyle = "color:#cbd5e1;";
+                    displayValue = "-";
+                  } else {
+                    colorStyle = "color:#22c55e; font-weight:700;";
+                  }
+                  
+                  return `<td style="${colorStyle}">${displayValue}</td>`;
+                }).join("")}
               </tr>
             `).join("")}
           </tbody>
