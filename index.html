@@ -1026,25 +1026,22 @@ function showAvgDetails(team, position, avgValue) {
       total7Days: totalOrders7Days,
       dailyOrders: dailyOrders
     };
-  });
+  }).filter(e => e.total7Days > 0 || employees.length < 50); // giữ lại ngay cả khi total7Days=0 nếu ít nhân viên
   
   // Sắp xếp theo tổng đơn giảm dần
   empDetails.sort((a, b) => b.total7Days - a.total7Days);
   
-  // 🎯 Tìm giá trị thấp nhất cho mỗi ngày (CHỈ TRONG TEAM NÀY)
-  // Chú ý: nếu tất cả đều 0 thì min = 0, nhưng sẽ không tô đỏ (vì không ai có đơn)
-  const minPerDay = {};
-  const hasAnyPositive = {};
+  // 🎯 Tìm giá trị thấp nhất >0 cho mỗi ngày (CHỈ TRONG TEAM NÀY)
+  const minPositivePerDay = {};
   last7Days.forEach(date => {
     let minValue = Infinity;
-    let hasPositive = false;
     empDetails.forEach(emp => {
       const val = emp.dailyOrders[date];
-      if (val > 0) hasPositive = true;
-      if (val < minValue) minValue = val;
+      if (val > 0 && val < minValue) {
+        minValue = val;
+      }
     });
-    minPerDay[date] = minValue;
-    hasAnyPositive[date] = hasPositive;
+    minPositivePerDay[date] = minValue === Infinity ? null : minValue;
   });
   
   const totalEmployees = empDetails.length;
@@ -1058,7 +1055,7 @@ function showAvgDetails(team, position, avgValue) {
         <div><strong>团队:</strong> ${esc(team)}</div>
         <div><strong>岗位:</strong> ${esc(position)}</div>
         <div><strong>Bình quân 7 ngày:</strong> ${actualAvg} đơn/người (tổng ${totalOrdersAll} đơn / ${totalEmployees} người)</div>
-        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ 🔴 Màu đỏ = thấp nhất trong ${esc(team)} (团队) mỗi ngày (chỉ tô nếu có đơn >0)</div>
+        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ 🔴 Màu đỏ = người có số đơn >0 và thấp nhất trong ngày (của team này)</div>
       </div>
       
       <div class="tableWrap">
@@ -1081,14 +1078,15 @@ function showAvgDetails(team, position, avgValue) {
                 <td style="font-weight:900; color:#2563eb;">${emp.total7Days}</td>
                 ${last7Days.map(d => {
                   const value = emp.dailyOrders[d];
-                  const isMin = (value === minPerDay[d]) && hasAnyPositive[d] && value > 0;
-                  const isZero = value === 0;
+                  const minPos = minPositivePerDay[d];
                   let colorStyle = "";
                   let displayValue = value;
                   
-                  if (isMin) {
+                  if (value > 0 && minPos !== null && value === minPos) {
+                    // Thấp nhất trong ngày và >0 -> màu đỏ
                     colorStyle = "color:#dc2626; font-weight:700; background:#fff0f0; border-radius:4px; display:inline-block; padding:2px 6px;";
-                  } else if (isZero) {
+                    displayValue = value;
+                  } else if (value === 0) {
                     colorStyle = "color:#cbd5e1;";
                     displayValue = "-";
                   } else if (value > 0) {
@@ -1103,7 +1101,7 @@ function showAvgDetails(team, position, avgValue) {
         </table>
       </div>
       
-      ${empDetails.length === 0 ? '<div class="note" style="text-align:center; padding:20px;">⚠️ Không có nhân viên nào trong team này</div>' : ''}
+      ${empDetails.length === 0 ? '<div class="note" style="text-align:center; padding:20px;">⚠️ Không có nhân viên nào hoặc không có dữ liệu đơn hàng</div>' : ''}
     </div>
   `;
   
