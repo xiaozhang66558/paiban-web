@@ -981,45 +981,86 @@ window.openManagerSubs = function(fieldLabel, managerName){
 /* =========================================================
    DASHBOARD
    ========================================================= */
-function renderDashboard(){
+function renderDashboard() {
   const rows = FILTERED;
 
   const totalPeopleSet = getTotalPeopleSet(rows);
   const totalPeople = totalPeopleSet.size;
 
-  const ownerSet  = getUniqueSetByField(rows,"负责人");
-  const onsiteSet = getUniqueSetByField(rows,"现场培训");
-  const leaderSet = getUniqueSetByField(rows,"线上组长");
-  const trainSet  = getUniqueSetByField(rows,"线上培训");
+  const ownerSet = getUniqueSetByField(rows, "负责人");
+  const onsiteSet = getUniqueSetByField(rows, "现场培训");
+  const leaderSet = getUniqueSetByField(rows, "线上组长");
+  const trainSet = getUniqueSetByField(rows, "线上培训");
 
-  const posMap = groupBy(rows,"岗位");
+  const posMap = groupBy(rows, "岗位");
   const posLabels = [...posMap.keys()];
-  const posCounts = posLabels.map(k=>countByUniqueName(posMap.get(k)));
+  const posCounts = posLabels.map(k => countByUniqueName(posMap.get(k)));
 
-  const teamMap = groupBy(rows,"团队");
+  const teamMap = groupBy(rows, "团队");
   const teamLabels = [...teamMap.keys()];
-  const teamCounts = teamLabels.map(k=>countByUniqueName(teamMap.get(k)));
+  const teamCounts = teamLabels.map(k => countByUniqueName(teamMap.get(k)));
 
-  const allPositions = uniq(rows.map(r=>norm(r["岗位"])||"未填写")).sort((a,b)=>a.localeCompare(b,"zh"));
+  const allPositions = uniq(rows.map(r => norm(r["岗位"]) || "未填写")).sort((a, b) => a.localeCompare(b, "zh"));
+
+  // Helper: tính bình quân xử lý của một nhóm nhân viên (dựa trên ORDER_STATS)
+  function getAvgProcess(employeesList) {
+    let totalOrders = 0;
+    let totalDays = 0;
+    const dateSet = new Set();
+
+    employeesList.forEach(emp => {
+      const id = emp["ID"];
+      if (!id || !ORDER_STATS[id]) return;
+
+      const stats = ORDER_STATS[id];
+      Object.entries(stats).forEach(([date, data]) => {
+        const dayTotal = (data.success || 0) + (data.reject || 0);
+        if (dayTotal > 0) {
+          totalOrders += dayTotal;
+          dateSet.add(date);
+        }
+      });
+    });
+
+    totalDays = dateSet.size;
+    const avg = totalDays > 0 ? (totalOrders / totalDays).toFixed(1) : "0.0";
+    return { totalOrders, totalDays, avg };
+  }
 
   const teamRows = [...teamMap.entries()]
-    .map(([team, list])=>{
+    .map(([team, list]) => {
       const total = countByUniqueName(list);
 
+      // Thống kê theo vị trí (岗位)
       const byPosSet = new Map();
-      allPositions.forEach(p=>byPosSet.set(p, new Set()));
-
-      list.forEach(r=>{
-        const p = norm(r["岗位"])||"未填写";
+      allPositions.forEach(p => byPosSet.set(p, new Set()));
+      list.forEach(r => {
+        const p = norm(r["岗位"]) || "未填写";
         const nm = norm(r["姓名"]);
-        if(isValidName(nm)) byPosSet.get(p).add(nm);
+        if (isValidName(nm)) byPosSet.get(p).add(nm);
       });
+      const byPosFinal = allPositions.map(p => byPosSet.get(p).size);
 
-      const byPosFinal = allPositions.map(p=>byPosSet.get(p).size);
+      // Lấy danh sách nhân viên theo từng vị trí đặc biệt: 出款, 彩金, 客服
+      const chukuanList = list.filter(r => norm(r["岗位"]) === "出款");
+      const caijinList = list.filter(r => norm(r["岗位"]) === "彩金");
+      const kefuList = list.filter(r => norm(r["岗位"]) === "客服");
 
-      return { team, list, total, byPosFinal };
+      const chukuanAvg = getAvgProcess(chukuanList);
+      const caijinAvg = getAvgProcess(caijinList);
+      const kefuAvg = getAvgProcess(kefuList);
+
+      return {
+        team,
+        list,
+        total,
+        byPosFinal,
+        chukuanAvg,
+        caijinAvg,
+        kefuAvg
+      };
     })
-    .sort((a,b)=>b.total-a.total);
+    .sort((a, b) => b.total - a.total);
 
   els.pageDashboard.innerHTML = `
     <div class="card">
@@ -1092,30 +1133,41 @@ function renderDashboard(){
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
         <div>
           <div style="font-weight:1000; font-size:16px;">团队统计表（cột F）</div>
-          <div class="note">点击任意数字 → 弹窗查看对应员工名单</div>
+          <div class="note">点击任意数字 → 弹窗查看对应员工名单 | 出款/彩金/客服 单元格显示 (总单量/天数 → 日均)</div>
         </div>
       </div>
 
       <div class="tableWrap">
-        <table>
+        <table style="min-width: 800px;">
           <thead>
             <tr>
               <th>团队</th>
               <th>总人数</th>
-              ${allPositions.map(p=>`<th>${esc(p)}</th>`).join("")}
+              ${allPositions.map(p => `<th>${esc(p)}</th>`).join("")}
+              <th>出款<br><span style="font-size:10px;">(总单/天数 → 日均)</span></th>
+              <th>彩金<br><span style="font-size:10px;">(总单/天数 → 日均)</span></th>
+              <th>客服<br><span style="font-size:10px;">(总单/天数 → 日均)</span></th>
             </tr>
           </thead>
           <tbody>
-            ${teamRows.map(tr=>{
-              const cells = tr.byPosFinal.map((n,idx)=>{
+            ${teamRows.map(tr => {
+              const cells = tr.byPosFinal.map((n, idx) => {
                 const pos = allPositions[idx];
                 return `<td class="link" onclick="openTeamPos('${esc(tr.team)}','${esc(pos)}')">${n}</td>`;
               }).join("");
+
+              const chukuanDisplay = `${tr.chukuanAvg.totalOrders}/${tr.chukuanAvg.totalDays} → ${tr.chukuanAvg.avg}`;
+              const caijinDisplay = `${tr.caijinAvg.totalOrders}/${tr.caijinAvg.totalDays} → ${tr.caijinAvg.avg}`;
+              const kefuDisplay = `${tr.kefuAvg.totalOrders}/${tr.kefuAvg.totalDays} → ${tr.kefuAvg.avg}`;
+
               return `
                 <tr>
                   <td class="link" onclick="openTeam('${esc(tr.team)}')">${esc(tr.team)}</td>
                   <td class="link" onclick="openTeam('${esc(tr.team)}')">${tr.total}</td>
                   ${cells}
+                  <td class="link" onclick="openTeamPos('${esc(tr.team)}','出款')" style="font-size:11px;">${chukuanDisplay}</td>
+                  <td class="link" onclick="openTeamPos('${esc(tr.team)}','彩金')" style="font-size:11px;">${caijinDisplay}</td>
+                  <td class="link" onclick="openTeamPos('${esc(tr.team)}','客服')" style="font-size:11px;">${kefuDisplay}</td>
                 </tr>
               `;
             }).join("")}
