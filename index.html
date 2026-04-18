@@ -1008,14 +1008,13 @@ function renderDashboard() {
   // 3 vị trí đặc biệt sẽ ở cuối
   const specialPositions = ["出款", "彩金", "客服"];
 
-  // Helper: tính tổng đơn và tổng số ngày làm việc của một team cho một vị trí cụ thể
+  // Helper: tính tổng đơn và số nhân viên + bình quân ngày
   function getTeamPositionStats(teamList, position) {
     const employeesInPos = teamList.filter(r => norm(r["岗位"]) === position);
     const employeeCount = countByUniqueName(employeesInPos);
     
     let totalOrders = 0;
     let totalWorkingDays = 0;
-    const dateSetPerEmployee = new Map(); // lưu số ngày làm việc của từng nhân viên
     
     employeesInPos.forEach(emp => {
       const id = emp["ID"];
@@ -1033,7 +1032,6 @@ function renderDashboard() {
       });
       
       totalWorkingDays += empDates.size;
-      dateSetPerEmployee.set(id, empDates.size);
     });
     
     // Bình quân 1 ngày = tổng đơn / tổng số ngày làm việc
@@ -1042,7 +1040,6 @@ function renderDashboard() {
     return { 
       totalOrders, 
       employeeCount, 
-      totalWorkingDays,
       avgPerDay 
     };
   }
@@ -1073,7 +1070,7 @@ function renderDashboard() {
         list,
         total,
         byPosFinal,
-        chukuanStats,
+        chuanStats: chukuanStats,
         caijinStats,
         kefuStats
       };
@@ -1151,7 +1148,7 @@ function renderDashboard() {
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
         <div>
           <div style="font-weight:1000; font-size:16px;">团队统计表（cột F）</div>
-          <div class="note">点击任意数字 → 弹窗查看对应员工名单 | 出款/彩金/客服 显示: 总单量 / 总人天 → 日均</div>
+          <div class="note">点击任意数字 → 弹窗查看对应员工名单 | 出款/彩金/客服: 上面=人数, 下面=日均单量</div>
         </div>
       </div>
 
@@ -1162,7 +1159,7 @@ function renderDashboard() {
               <th>团队</th>
               <th>总人数</th>
               ${allPositions.map(p => `<th>${esc(p)}</th>`).join("")}
-              ${specialPositions.map(p => `<th>${esc(p)}<br><span style="font-size:10px;">(总单量/总人天 → 日均)</span></th>`).join("")}
+              ${specialPositions.map(p => `<th>${esc(p)}</th>`).join("")}
             </tr>
           </thead>
           <tbody>
@@ -1172,19 +1169,38 @@ function renderDashboard() {
                 return `<td class="link" onclick="openTeamPos('${esc(tr.team)}','${esc(pos)}')">${n}</td>`;
               }).join("");
 
-              // Format hiển thị cho 3 cột đặc biệt: tổng đơn / tổng số ngày làm việc → bình quân 1 ngày
-              const chukuanDisplay = `${tr.chukuanStats.totalOrders.toLocaleString()} / ${tr.chukuanStats.totalWorkingDays} → ${tr.chukuanStats.avgPerDay}`;
-              const caijinDisplay = `${tr.caijinStats.totalOrders.toLocaleString()} / ${tr.caijinStats.totalWorkingDays} → ${tr.caijinStats.avgPerDay}`;
-              const kefuDisplay = `${tr.kefuStats.totalOrders.toLocaleString()} / ${tr.kefuStats.totalWorkingDays} → ${tr.kefuStats.avgPerDay}`;
+              // 出款: 显示人数 + 日均单量
+              const chukuanHtml = `
+                <td style="padding:4px 8px;">
+                  <div class="link" onclick="openTeamPos('${esc(tr.team)}','出款')" style="font-weight:900; font-size:14px;">${tr.chuanStats.employeeCount}</div>
+                  <div style="font-size:11px; color:#2563eb; margin-top:4px;">📊 ${tr.chuanStats.avgPerDay}</div>
+                </td>
+              `;
+              
+              // 彩金: 显示人数 + 日均单量
+              const caijinHtml = `
+                <td style="padding:4px 8px;">
+                  <div class="link" onclick="openTeamPos('${esc(tr.team)}','彩金')" style="font-weight:900; font-size:14px;">${tr.caijinStats.employeeCount}</div>
+                  <div style="font-size:11px; color:#2563eb; margin-top:4px;">📊 ${tr.caijinStats.avgPerDay}</div>
+                </td>
+              `;
+              
+              // 客服: 显示人数 + 日均单量
+              const kefuHtml = `
+                <td style="padding:4px 8px;">
+                  <div class="link" onclick="openTeamPos('${esc(tr.team)}','客服')" style="font-weight:900; font-size:14px;">${tr.kefuStats.employeeCount}</div>
+                  <div style="font-size:11px; color:#2563eb; margin-top:4px;">📊 ${tr.kefuStats.avgPerDay}</div>
+                </td>
+              `;
 
               return `
                 <tr>
                   <td class="link" onclick="openTeam('${esc(tr.team)}')">${esc(tr.team)}</td>
                   <td class="link" onclick="openTeam('${esc(tr.team)}')">${tr.total}</td>
                   ${cells}
-                  <td class="link" onclick="openTeamPos('${esc(tr.team)}','出款')" style="font-size:11px; white-space:nowrap;">${chukuanDisplay}</td>
-                  <td class="link" onclick="openTeamPos('${esc(tr.team)}','彩金')" style="font-size:11px; white-space:nowrap;">${caijinDisplay}</td>
-                  <td class="link" onclick="openTeamPos('${esc(tr.team)}','客服')" style="font-size:11px; white-space:nowrap;">${kefuDisplay}</td>
+                  ${chukuanHtml}
+                  ${caijinHtml}
+                  ${kefuHtml}
                 </tr>
               `;
             }).join("")}
