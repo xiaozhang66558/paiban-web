@@ -1008,24 +1008,43 @@ function renderDashboard() {
   // 3 vị trí đặc biệt sẽ ở cuối
   const specialPositions = ["出款", "彩金", "客服"];
 
-  // Helper: tính tổng đơn và số nhân viên của một team cho một vị trí cụ thể
+  // Helper: tính tổng đơn và tổng số ngày làm việc của một team cho một vị trí cụ thể
   function getTeamPositionStats(teamList, position) {
     const employeesInPos = teamList.filter(r => norm(r["岗位"]) === position);
     const employeeCount = countByUniqueName(employeesInPos);
     
     let totalOrders = 0;
+    let totalWorkingDays = 0;
+    const dateSetPerEmployee = new Map(); // lưu số ngày làm việc của từng nhân viên
+    
     employeesInPos.forEach(emp => {
       const id = emp["ID"];
       if (!id || !ORDER_STATS[id]) return;
       
       const stats = ORDER_STATS[id];
-      Object.values(stats).forEach(data => {
-        totalOrders += (data.success || 0) + (data.reject || 0);
+      const empDates = new Set();
+      
+      Object.entries(stats).forEach(([date, data]) => {
+        const dayTotal = (data.success || 0) + (data.reject || 0);
+        if (dayTotal > 0) {
+          totalOrders += dayTotal;
+          empDates.add(date);
+        }
       });
+      
+      totalWorkingDays += empDates.size;
+      dateSetPerEmployee.set(id, empDates.size);
     });
     
-    const avg = employeeCount > 0 ? (totalOrders / employeeCount).toFixed(1) : "0.0";
-    return { totalOrders, employeeCount, avg };
+    // Bình quân 1 ngày = tổng đơn / tổng số ngày làm việc
+    const avgPerDay = totalWorkingDays > 0 ? (totalOrders / totalWorkingDays).toFixed(1) : "0.0";
+    
+    return { 
+      totalOrders, 
+      employeeCount, 
+      totalWorkingDays,
+      avgPerDay 
+    };
   }
 
   const teamRows = [...teamMap.entries()]
@@ -1132,7 +1151,7 @@ function renderDashboard() {
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
         <div>
           <div style="font-weight:1000; font-size:16px;">团队统计表（cột F）</div>
-          <div class="note">点击任意数字 → 弹窗查看对应员工名单 | 出款/彩金/客服 显示: 总单量 / 人数 → 人均</div>
+          <div class="note">点击任意数字 → 弹窗查看对应员工名单 | 出款/彩金/客服 显示: 总单量 / 总人天 → 日均</div>
         </div>
       </div>
 
@@ -1143,7 +1162,7 @@ function renderDashboard() {
               <th>团队</th>
               <th>总人数</th>
               ${allPositions.map(p => `<th>${esc(p)}</th>`).join("")}
-              ${specialPositions.map(p => `<th>${esc(p)}<br><span style="font-size:10px;">(总单量/人数 → 人均)</span></th>`).join("")}
+              ${specialPositions.map(p => `<th>${esc(p)}<br><span style="font-size:10px;">(总单量/总人天 → 日均)</span></th>`).join("")}
             </tr>
           </thead>
           <tbody>
@@ -1153,10 +1172,10 @@ function renderDashboard() {
                 return `<td class="link" onclick="openTeamPos('${esc(tr.team)}','${esc(pos)}')">${n}</td>`;
               }).join("");
 
-              // Format hiển thị cho 3 cột đặc biệt: tổng đơn / số nhân viên → bình quân
-              const chukuanDisplay = `${tr.chukuanStats.totalOrders.toLocaleString()} / ${tr.chukuanStats.employeeCount} → ${tr.chukuanStats.avg}`;
-              const caijinDisplay = `${tr.caijinStats.totalOrders.toLocaleString()} / ${tr.caijinStats.employeeCount} → ${tr.caijinStats.avg}`;
-              const kefuDisplay = `${tr.kefuStats.totalOrders.toLocaleString()} / ${tr.kefuStats.employeeCount} → ${tr.kefuStats.avg}`;
+              // Format hiển thị cho 3 cột đặc biệt: tổng đơn / tổng số ngày làm việc → bình quân 1 ngày
+              const chukuanDisplay = `${tr.chukuanStats.totalOrders.toLocaleString()} / ${tr.chukuanStats.totalWorkingDays} → ${tr.chukuanStats.avgPerDay}`;
+              const caijinDisplay = `${tr.caijinStats.totalOrders.toLocaleString()} / ${tr.caijinStats.totalWorkingDays} → ${tr.caijinStats.avgPerDay}`;
+              const kefuDisplay = `${tr.kefuStats.totalOrders.toLocaleString()} / ${tr.kefuStats.totalWorkingDays} → ${tr.kefuStats.avgPerDay}`;
 
               return `
                 <tr>
@@ -1178,7 +1197,6 @@ function renderDashboard() {
   buildPosChart(posLabels, posCounts);
   buildTeamChart(teamLabels, teamCounts);
 }
-
 function renderTeamOrPosSummary(fieldLabel, fieldName){
   const m = groupBy(FILTERED, fieldName);
   const rows = [...m.entries()]
