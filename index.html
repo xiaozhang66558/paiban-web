@@ -594,6 +594,8 @@ td.pan-cell{
     <select id="groupSel"></select>
     <select id="posSel"></select>
     <select id="countrySel"></select>
+    <input type="text" id="supervisorSearch" placeholder="🔍 Tìm theo tên (负责人/现场培训/线上组长/线上培训)" list="supervisorDatalist" autocomplete="off" style="min-width: 220px; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(15,23,42,.10);" />
+<datalist id="supervisorDatalist"></datalist>
     <select id="panSel"></select>
     <div class="meta" id="meta">Loading…</div>
   </div>
@@ -673,6 +675,8 @@ const els = {
   posSel: document.getElementById("posSel"),
   countrySel: document.getElementById("countrySel"),
   panSel: document.getElementById("panSel"),
+  supervisorSearch: document.getElementById("supervisorSearch"),
+  supervisorDatalist: document.getElementById("supervisorDatalist"),
   meta: document.getElementById("meta"),
 
   modal: document.getElementById("modal"),
@@ -833,6 +837,7 @@ function applyFilters(){
   const pos   = els.posSel.value;
   const country = els.countrySel.value;
   const pan   = els.panSel.value;
+  const supervisorName = norm(els.supervisorSearch.value); // 👈 Thêm dòng này
 
   FILTERED = RAW.filter(r=>{
     const 姓名 = norm(r["姓名"]);
@@ -844,6 +849,10 @@ function applyFilters(){
     const 盘口 = norm(r["盘口"]);
     const 国家 = norm(r["国家"]);
     const 工作内容 = norm(r["工作内容"]);
+    const 负责人 = norm(r["负责人"]);       // 👈 Cần khai báo thêm nếu chưa có
+    const 现场培训 = norm(r["现场培训"]);   // 👈 Cần khai báo thêm
+    const 线上组长 = norm(r["线上组长"]);   // 👈 Cần khai báo thêm
+    const 线上培训 = norm(r["线上培训"]);   // 👈 Cần khai báo thêm
 
     if(shift && 班次 !== shift) return false;
     if(team && 团队 !== team) return false;
@@ -851,6 +860,12 @@ function applyFilters(){
     if(pos && 岗位 !== pos) return false;
     if(country && 国家 !== country) return false;
     if(pan && 盘口 !== pan) return false;
+
+    // 👇 Thêm đoạn này
+    if(supervisorName) {
+      const match = (负责人 === supervisorName) || (现场培训 === supervisorName) || (线上组长 === supervisorName) || (线上培训 === supervisorName);
+      if(!match) return false;
+    }
 
     if(q){
       const hay = [
@@ -861,9 +876,7 @@ function applyFilters(){
     return true;
   });
 
-  els.meta.textContent =
-    `Rows: ${RAW.length} • Filtered: ${FILTERED.length} • ${new Date().toLocaleString()}`;
-
+  els.meta.textContent = `Rows: ${RAW.length} • Filtered: ${FILTERED.length} • ${new Date().toLocaleString()}`;
   renderDashboard();
   renderEmployees();
   renderSchedule();
@@ -880,6 +893,7 @@ function applyFilters(){
   els.posSel.addEventListener(evt, applyFilters);
   els.countrySel.addEventListener(evt, applyFilters);
   els.panSel.addEventListener(evt, applyFilters);
+  els.supervisorSearch.addEventListener(evt, applyFilters);
 });
 
 /* =========================================================
@@ -1763,6 +1777,17 @@ async function load(){
     buildSelectOptions(els.groupSel, groups, "All groups（组别）");
     buildSelectOptions(els.countrySel, countries, "All 国家（国家）");
     buildSelectOptions(els.posSel, poss, "All positions（岗位）");
+
+    // Gom tất cả tên từ 4 cột (负责人, 现场培训, 线上组长, 线上培训)
+    const allSupervisorNames = new Set();
+    RAW.forEach(r => {
+      const fz = norm(r["负责人"]); if(fz) allSupervisorNames.add(fz);
+      const onsite = norm(r["现场培训"]); if(onsite) allSupervisorNames.add(onsite);
+      const leader = norm(r["线上组长"]); if(leader) allSupervisorNames.add(leader);
+      const trainer = norm(r["线上培训"]); if(trainer) allSupervisorNames.add(trainer);
+    });
+    const sortedNames = [...allSupervisorNames].sort((a,b)=>a.localeCompare(b,"zh"));
+    els.supervisorDatalist.innerHTML = sortedNames.map(n => `<option value="${esc(n)}">`).join("");
 
     await loadMistakes();
     
