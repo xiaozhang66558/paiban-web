@@ -1054,8 +1054,8 @@ function showAvgDetails(team, position, avgValue) {
       <div style="margin-bottom: 16px; padding: 12px; background: #f0f7ff; border-radius: 12px;">
         <div><strong>团队:</strong> ${esc(team)}</div>
         <div><strong>岗位:</strong> ${esc(position)}</div>
-        <div><strong>Bình quân 7 ngày:</strong> ${actualAvg} đơn/người (tổng ${totalOrdersAll} đơn / ${totalEmployees} người)</div>
-        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ 🔴 Màu đỏ = người có số đơn >0 và thấp nhất trong ngày (của team này)</div>
+        <div><strong>平均7天:</strong> ${actualAvg} 笔数/人数 (总 ${totalOrdersAll} 单 / ${totalEmployees} 人数)</div>
+        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ 🔴 红色 = 每日最低笔数 (个团队)</div>
       </div>
       
       <div class="tableWrap">
@@ -1065,7 +1065,7 @@ function showAvgDetails(team, position, avgValue) {
               <th>#</th>
               <th>ID</th>
               <th>姓名</th>
-              <th>Tổng 7 ngày</th>
+              <th>总7天笔数</th>
               ${last7Days.map(d => `<th style="min-width:70px;">${d.slice(5)}</th>`).join("")}
             </tr>
           </thead>
