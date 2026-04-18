@@ -990,7 +990,6 @@ function getLast7Days() {
   return sortedDates.slice(0, 7).sort((a, b) => new Date(a) - new Date(b));
 }
 
-// Hiển thị chi tiết khi click vào bình quân
 function showAvgDetails(team, position, avgValue) {
   // Lọc nhân viên trong team HIỆN TẠI và vị trí HIỆN TẠI
   const employees = FILTERED.filter(r => {
@@ -1026,16 +1025,29 @@ function showAvgDetails(team, position, avgValue) {
       total7Days: totalOrders7Days,
       dailyOrders: dailyOrders
     };
-  }).filter(e => e.total7Days > 0 || employees.length < 50); // giữ lại ngay cả khi total7Days=0 nếu ít nhân viên
+  });
+  
+  // ✅ CHỈ GIỮ LẠI NHỮNG NGƯỜI CÓ TỔNG ĐƠN > 0
+  const empDetailsFiltered = empDetails.filter(e => e.total7Days > 0);
+  
+  // Nếu không có ai thì thông báo
+  if (empDetailsFiltered.length === 0) {
+    openModal(`${team} - ${position}`, `
+      <div style="padding:20px; text-align:center;">
+        <div class="note">⚠️ Không có nhân viên nào có đơn hàng trong 7 ngày qua.</div>
+      </div>
+    `);
+    return;
+  }
   
   // Sắp xếp theo tổng đơn giảm dần
-  empDetails.sort((a, b) => b.total7Days - a.total7Days);
+  empDetailsFiltered.sort((a, b) => b.total7Days - a.total7Days);
   
-  // 🎯 Tìm giá trị thấp nhất >0 cho mỗi ngày (CHỈ TRONG TEAM NÀY)
+  // Tìm giá trị thấp nhất >0 cho mỗi ngày
   const minPositivePerDay = {};
   last7Days.forEach(date => {
     let minValue = Infinity;
-    empDetails.forEach(emp => {
+    empDetailsFiltered.forEach(emp => {
       const val = emp.dailyOrders[date];
       if (val > 0 && val < minValue) {
         minValue = val;
@@ -1044,8 +1056,8 @@ function showAvgDetails(team, position, avgValue) {
     minPositivePerDay[date] = minValue === Infinity ? null : minValue;
   });
   
-  const totalEmployees = empDetails.length;
-  const totalOrdersAll = empDetails.reduce((sum, e) => sum + e.total7Days, 0);
+  const totalEmployees = empDetailsFiltered.length;
+  const totalOrdersAll = empDetailsFiltered.reduce((sum, e) => sum + e.total7Days, 0);
   const actualAvg = totalEmployees > 0 ? (totalOrdersAll / totalEmployees).toFixed(1) : "0.0";
   
   // Tạo bảng HTML
@@ -1054,8 +1066,9 @@ function showAvgDetails(team, position, avgValue) {
       <div style="margin-bottom: 16px; padding: 12px; background: #f0f7ff; border-radius: 12px;">
         <div><strong>团队:</strong> ${esc(team)}</div>
         <div><strong>岗位:</strong> ${esc(position)}</div>
-        <div><strong>平均7天:</strong> ${actualAvg} 笔数/人数 (总 ${totalOrdersAll} 单 / ${totalEmployees} 人数)</div>
-        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ 🔴 红色 = 每日最低笔数 (个团队)</div>
+        <div><strong>Bình quân 7 ngày:</strong> ${actualAvg} đơn/người (tổng ${totalOrdersAll} đơn / ${totalEmployees} người có đơn)</div>
+        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ 🔴 Màu đỏ = người có số đơn >0 và thấp nhất trong ngày (của team này)</div>
+        <div style="font-size:12px; color:#64748b;">※ Chỉ hiển thị nhân viên có đơn trong 7 ngày</div>
       </div>
       
       <div class="tableWrap">
@@ -1065,12 +1078,12 @@ function showAvgDetails(team, position, avgValue) {
               <th>#</th>
               <th>ID</th>
               <th>姓名</th>
-              <th>总7天笔数</th>
+              <th>Tổng 7 ngày</th>
               ${last7Days.map(d => `<th style="min-width:70px;">${d.slice(5)}</th>`).join("")}
             </tr>
           </thead>
           <tbody>
-            ${empDetails.map((emp, idx) => `
+            ${empDetailsFiltered.map((emp, idx) => `
               <tr>
                 <td>${idx + 1}</td>
                 <td class="link" onclick="openModal('员工详情', renderFullTable(FILTERED.filter(r=>r['ID']==='${emp.id}'), '员工: ${emp.name}'))">${esc(emp.id)}</td>
@@ -1083,7 +1096,6 @@ function showAvgDetails(team, position, avgValue) {
                   let displayValue = value;
                   
                   if (value > 0 && minPos !== null && value === minPos) {
-                    // Thấp nhất trong ngày và >0 -> màu đỏ
                     colorStyle = "color:#dc2626; font-weight:700; background:#fff0f0; border-radius:4px; display:inline-block; padding:2px 6px;";
                     displayValue = value;
                   } else if (value === 0) {
@@ -1100,14 +1112,11 @@ function showAvgDetails(team, position, avgValue) {
           </tbody>
         </table>
       </div>
-      
-      ${empDetails.length === 0 ? '<div class="note" style="text-align:center; padding:20px;">⚠️ Không có nhân viên nào hoặc không có dữ liệu đơn hàng</div>' : ''}
     </div>
   `;
   
-  openModal(`${team} - ${position} (平均: ${avgValue} 单/天)`, html);
+  openModal(`${team} - ${position} (Bình quân: ${avgValue} đơn/ngày)`, html);
 }
-
   
 function renderDashboard() {
   const rows = FILTERED;
