@@ -1205,149 +1205,149 @@ function renderDashboard() {
     })
     .sort((a, b) => b.total - a.total);
 
-  els.pageDashboard.innerHTML = `
-    <div class="card">
-      <h2>统计总览</h2>
-      <div class="sub">按岗位 & 团队统计（点击卡片/图表可弹窗查看员工名单）</div>
-
-      <div class="kpiRow">
-        <div class="kpi" onclick="openModal('总人数名单（去重逻辑：仅姓名）', renderFullTable(FILTERED,'去重统计不影响名单展示：这里展示筛选后的所有原始行'))">
-          <div class="spark"></div>
-          <div class="t">总人数（去重）</div>
-          <div class="v">${totalPeople.toLocaleString()}</div>
-          <div class="hint">姓名（unique）</div>
-        </div>
-
-        <div class="kpi" onclick="openManagerList('负责人', FILTERED)">
-          <div class="spark"></div>
-          <div class="t">负责人</div>
-          <div class="v">${ownerSet.size.toLocaleString()}</div>
-          <div class="hint">点击查看名单 → 再点人看下属</div>
-        </div>
-
-        <div class="kpi" onclick="openManagerList('现场培训', FILTERED)">
-          <div class="spark"></div>
-          <div class="t">现场培训</div>
-          <div class="v">${onsiteSet.size.toLocaleString()}</div>
-          <div class="hint">点击查看名单 → 再点人看下属</div>
-        </div>
-
-        <div class="kpi" onclick="openManagerList('线上组长', FILTERED)">
-          <div class="spark"></div>
-          <div class="t">线上组长</div>
-          <div class="v">${leaderSet.size.toLocaleString()}</div>
-          <div class="hint">点击查看名单 → 再点人看下属</div>
-        </div>
-
-        <div class="kpi" onclick="openManagerList('线上培训', FILTERED)">
-          <div class="spark"></div>
-          <div class="t">线上培训</div>
-          <div class="v">${trainSet.size.toLocaleString()}</div>
-          <div class="hint">点击查看名单 → 再点人看下属</div>
+    els.pageDashboard.innerHTML = `
+      <div class="card">
+        <h2>统计总览</h2>
+        <div class="sub">按岗位 & 团队统计（点击卡片/图表可弹窗查看员工名单）</div>
+  
+        <div class="kpiRow">
+          <div class="kpi" onclick="openModal('总人数名单（去重逻辑：仅姓名）', renderFullTable(FILTERED,'去重统计不影响名单展示：这里展示筛选后的所有原始行'))">
+            <div class="spark"></div>
+            <div class="t">总人数（去重）</div>
+            <div class="v">${totalPeople.toLocaleString()}</div>
+            <div class="hint">姓名（unique）</div>
+          </div>
+  
+          <div class="kpi" onclick="openManagerList('负责人', FILTERED)">
+            <div class="spark"></div>
+            <div class="t">负责人</div>
+            <div class="v">${ownerSet.size.toLocaleString()}</div>
+            <div class="hint">点击查看名单 → 再点人看下属</div>
+          </div>
+  
+          <div class="kpi" onclick="openManagerList('现场培训', FILTERED)">
+            <div class="spark"></div>
+            <div class="t">现场培训</div>
+            <div class="v">${onsiteSet.size.toLocaleString()}</div>
+            <div class="hint">点击查看名单 → 再点人看下属</div>
+          </div>
+  
+          <div class="kpi" onclick="openManagerList('线上组长', FILTERED)">
+            <div class="spark"></div>
+            <div class="t">线上组长</div>
+            <div class="v">${leaderSet.size.toLocaleString()}</div>
+            <div class="hint">点击查看名单 → 再点人看下属</div>
+          </div>
+  
+          <div class="kpi" onclick="openManagerList('线上培训', FILTERED)">
+            <div class="spark"></div>
+            <div class="t">线上培训</div>
+            <div class="v">${trainSet.size.toLocaleString()}</div>
+            <div class="hint">点击查看名单 → 再点人看下属</div>
+          </div>
         </div>
       </div>
-    </div>
-
-    <div class="grid2">
+  
+      <!-- 团队统计表（cột F） - đặt lên trên -->
       <div class="card">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <div>
-            <div style="font-weight:1000; font-size:16px;">岗位分布</div>
-            <div class="note">点击图例或图形 → 弹出该岗位员工名单</div>
+            <div style="font-weight:1000; font-size:16px;">团队统计表（cột F）</div>
+            <div class="note">点击任意数字 → 弹窗查看对应员工名单 | 出款/彩金/客服: 上面=人数, 下面=日均单量</div>
           </div>
-          <button class="btn" onclick="openModal('岗位统计（按姓名去重）', renderTeamOrPosSummary('岗位','岗位'))">查看汇总</button>
         </div>
-        <div class="chartBox"><canvas id="chartPos"></canvas></div>
+  
+        <div class="tableWrap">
+          <table style="min-width: 800px;">
+            <thead>
+              <tr>
+                <th>团队</th>
+                <th>总人数</th>
+                ${allPositions.map(p => `<th>${esc(p)}</th>`).join("")}
+                ${specialPositions.map(p => `<th>${esc(p)}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${teamRows.map(tr => {
+                const cells = tr.byPosFinal.map((n, idx) => {
+                  const pos = allPositions[idx];
+                  return `<td class="link" onclick="openTeamPos('${esc(tr.team)}','${esc(pos)}')">${n}</td>`;
+                }).join("");
+  
+                // 出款
+                const chukuanHtml = `
+                  <td style="padding:4px 8px;">
+                    <div class="link" onclick="openTeamPos('${esc(tr.team)}','出款')" style="font-weight:900; font-size:14px;">${tr.chuanStats.employeeCount}</div>
+                    <div style="font-size:11px; color:#2563eb; margin-top:4px; cursor:pointer;" onclick="showAvgDetails('${esc(tr.team)}','出款','${tr.chuanStats.avgPerDay}')">
+                      📊 ${tr.chuanStats.avgPerDay}
+                    </div>
+                  </td>
+                `;
+                
+                // 彩金
+                const caijinHtml = `
+                  <td style="padding:4px 8px;">
+                    <div class="link" onclick="openTeamPos('${esc(tr.team)}','彩金')" style="font-weight:900; font-size:14px;">${tr.caijinStats.employeeCount}</div>
+                    <div style="font-size:11px; color:#2563eb; margin-top:4px; cursor:pointer;" onclick="showAvgDetails('${esc(tr.team)}','彩金','${tr.caijinStats.avgPerDay}')">
+                      📊 ${tr.caijinStats.avgPerDay}
+                    </div>
+                  </td>
+                `;
+                
+                // 客服
+                const kefuHtml = `
+                  <td style="padding:4px 8px;">
+                    <div class="link" onclick="openTeamPos('${esc(tr.team)}','客服')" style="font-weight:900; font-size:14px;">${tr.kefuStats.employeeCount}</div>
+                    <div style="font-size:11px; color:#2563eb; margin-top:4px; cursor:pointer;" onclick="showAvgDetails('${esc(tr.team)}','客服','${tr.kefuStats.avgPerDay}')">
+                      📊 ${tr.kefuStats.avgPerDay}
+                    </div>
+                  </td>
+                `;
+  
+                return `
+                  <tr>
+                    <td class="link" onclick="openTeam('${esc(tr.team)}')">${esc(tr.team)}</td>
+                    <td class="link" onclick="openTeam('${esc(tr.team)}')">${tr.total}</td>
+                    ${cells}
+                    ${chukuanHtml}
+                    ${caijinHtml}
+                    ${kefuHtml}
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      <div class="card">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <div>
-            <div style="font-weight:1000; font-size:16px;">团队人数（cột F：团队）</div>
-            <div class="note">点击柱子 → 弹出该团队员工名单</div>
+  
+      <!-- 岗位分布 + 团队人数 (grid2) đặt xuống dưới -->
+      <div class="grid2">
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div>
+              <div style="font-weight:1000; font-size:16px;">岗位分布</div>
+              <div class="note">点击图例或图形 → 弹出该岗位员工名单</div>
+            </div>
+            <button class="btn" onclick="openModal('岗位统计（按姓名去重）', renderTeamOrPosSummary('岗位','岗位'))">查看汇总</button>
           </div>
-          <button class="btn" onclick="openModal('团队统计（按姓名去重）', renderTeamOrPosSummary('团队','团队'))">查看汇总</button>
+          <div class="chartBox"><canvas id="chartPos"></canvas></div>
         </div>
-        <div class="chartBox"><canvas id="chartTeam"></canvas></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-        <div>
-          <div style="font-weight:1000; font-size:16px;">团队统计表（cột F）</div>
-          <div class="note">点击任意数字 → 弹窗查看对应员工名单 | 出款/彩金/客服: 上面=人数, 下面=日均单量</div>
+  
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div>
+              <div style="font-weight:1000; font-size:16px;">团队人数（cột F：团队）</div>
+              <div class="note">点击柱子 → 弹出该团队员工名单</div>
+            </div>
+            <button class="btn" onclick="openModal('团队统计（按姓名去重）', renderTeamOrPosSummary('团队','团队'))">查看汇总</button>
+          </div>
+          <div class="chartBox"><canvas id="chartTeam"></canvas></div>
         </div>
       </div>
-
-      <div class="tableWrap">
-        <table style="min-width: 800px;">
-          <thead>
-            <tr>
-              <th>团队</th>
-              <th>总人数</th>
-              ${allPositions.map(p => `<th>${esc(p)}</th>`).join("")}
-              ${specialPositions.map(p => `<th>${esc(p)}</th>`).join("")}
-            </tr>
-          </thead>
-          <tbody>
-            ${teamRows.map(tr => {
-              const cells = tr.byPosFinal.map((n, idx) => {
-                const pos = allPositions[idx];
-                return `<td class="link" onclick="openTeamPos('${esc(tr.team)}','${esc(pos)}')">${n}</td>`;
-              }).join("");
-
-              // Trong renderDashboard(), thay thế phần tạo 3 cột đặc biệt bằng:
-
-              // 出款: 显示人数 + 日均单量 (có click vào bình quân)
-              const chukuanHtml = `
-                <td style="padding:4px 8px;">
-                  <div class="link" onclick="openTeamPos('${esc(tr.team)}','出款')" style="font-weight:900; font-size:14px;">${tr.chuanStats.employeeCount}</div>
-                  <div style="font-size:11px; color:#2563eb; margin-top:4px; cursor:pointer;" onclick="showAvgDetails('${esc(tr.team)}','出款','${tr.chuanStats.avgPerDay}')">
-                    📊 ${tr.chuanStats.avgPerDay}
-                  </div>
-                </td>
-              `;
-              
-              // 彩金: 显示人数 + 日均单量 (có click vào bình quân)
-              const caijinHtml = `
-                <td style="padding:4px 8px;">
-                  <div class="link" onclick="openTeamPos('${esc(tr.team)}','彩金')" style="font-weight:900; font-size:14px;">${tr.caijinStats.employeeCount}</div>
-                  <div style="font-size:11px; color:#2563eb; margin-top:4px; cursor:pointer;" onclick="showAvgDetails('${esc(tr.team)}','彩金','${tr.caijinStats.avgPerDay}')">
-                    📊 ${tr.caijinStats.avgPerDay}
-                  </div>
-                </td>
-              `;
-              
-              // 客服: 显示人数 + 日均单量 (có click vào bình quân)
-              const kefuHtml = `
-                <td style="padding:4px 8px;">
-                  <div class="link" onclick="openTeamPos('${esc(tr.team)}','客服')" style="font-weight:900; font-size:14px;">${tr.kefuStats.employeeCount}</div>
-                  <div style="font-size:11px; color:#2563eb; margin-top:4px; cursor:pointer;" onclick="showAvgDetails('${esc(tr.team)}','客服','${tr.kefuStats.avgPerDay}')">
-                    📊 ${tr.kefuStats.avgPerDay}
-                  </div>
-                </td>
-              `;
-
-              return `
-                <tr>
-                  <td class="link" onclick="openTeam('${esc(tr.team)}')">${esc(tr.team)}</td>
-                  <td class="link" onclick="openTeam('${esc(tr.team)}')">${tr.total}</td>
-                  ${cells}
-                  ${chukuanHtml}
-                  ${caijinHtml}
-                  ${kefuHtml}
-                </tr>
-              `;
-            }).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-
-  buildPosChart(posLabels, posCounts);
-  buildTeamChart(teamLabels, teamCounts);
+    `;
+  
+    buildPosChart(posLabels, posCounts);
+    buildTeamChart(teamLabels, teamCounts);
 }
 function renderTeamOrPosSummary(fieldLabel, fieldName){
   const m = groupBy(FILTERED, fieldName);
