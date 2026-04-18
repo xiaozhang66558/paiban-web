@@ -1215,6 +1215,7 @@ function renderDashboard() {
       const chukuanStats = getTeamPositionStats(list, "出款");
       const caijinStats = getTeamPositionStats(list, "彩金");
       const kefuStats = getTeamPositionStats(list, "客服");
+      const chadanStats = getTeamPositionStats(list, "查单"); 
 
       return {
         team,
@@ -1223,7 +1224,8 @@ function renderDashboard() {
         byPosFinal,
         chuanStats: chukuanStats,
         caijinStats,
-        kefuStats
+        kefuStats,
+        chadanStats
       };
     })
     .sort((a, b) => b.total - a.total);
@@ -1325,6 +1327,16 @@ function renderDashboard() {
                     </div>
                   </td>
                 `;
+
+                // 查单
+                const chadanHtml = `
+                  <td style="padding:4px 8px;">
+                    <div class="link" onclick="openTeamPos('${esc(tr.team)}','查单')" style="font-weight:900; font-size:14px;">${tr.chadanStats.employeeCount}</div>
+                    <div style="font-size:11px; color:#2563eb; margin-top:4px; cursor:pointer;" onclick="showAvgDetails('${esc(tr.team)}','查单','${tr.chadanStats.avgPerDay}')">
+                      📊 ${tr.chadanStats.avgPerDay}
+                    </div>
+                  </td>
+                `;
   
                 return `
                   <tr>
@@ -1334,6 +1346,7 @@ function renderDashboard() {
                     ${chukuanHtml}
                     ${caijinHtml}
                     ${kefuHtml}
+                    ${chadanHtml} 
                   </tr>
                 `;
               }).join("")}
