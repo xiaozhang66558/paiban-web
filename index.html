@@ -1153,7 +1153,7 @@ function renderDashboard() {
 
   // Danh sách các vị trí (岗位) - loại bỏ 出款, 彩金, 客服 để đưa ra ngoài
   const allPositions = uniq(rows.map(r => norm(r["岗位"]) || "未填写"))
-    .filter(p => p !== "出款" && p !== "彩金" && p !== "客服")
+    .filter(p => p !== "出款" && p !== "彩金" && p !== "客服" && p !== "查单")
     .sort((a, b) => a.localeCompare(b, "zh"));
   
   // 3 vị trí đặc biệt sẽ ở cuối
@@ -1204,7 +1204,7 @@ function renderDashboard() {
       allPositions.forEach(p => byPosSet.set(p, new Set()));
       list.forEach(r => {
         const p = norm(r["岗位"]) || "未填写";
-        if (p !== "出款" && p !== "彩金" && p !== "客服") {
+        if (p !== "出款" && p !== "彩金" && p !== "客服" && p !== "查单") {
           const nm = norm(r["姓名"]);
           if (isValidName(nm)) byPosSet.get(p).add(nm);
         }
