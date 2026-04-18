@@ -1205,7 +1205,7 @@ function renderDashboard() {
     })
     .sort((a, b) => b.total - a.total);
 
-  els.pageDashboard.innerHTML = `
+    els.pageDashboard.innerHTML = `
     <div class="card">
       <h2>统计总览</h2>
       <div class="sub">按岗位 & 团队统计（点击卡片/图表可弹窗查看员工名单）</div>
@@ -1248,30 +1248,7 @@ function renderDashboard() {
       </div>
     </div>
 
-    <div class="grid2">
-      <div class="card">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <div>
-            <div style="font-weight:1000; font-size:16px;">岗位分布</div>
-            <div class="note">点击图例或图形 → 弹出该岗位员工名单</div>
-          </div>
-          <button class="btn" onclick="openModal('岗位统计（按姓名去重）', renderTeamOrPosSummary('岗位','岗位'))">查看汇总</button>
-        </div>
-        <div class="chartBox"><canvas id="chartPos"></canvas></div>
-      </div>
-
-      <div class="card">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <div>
-            <div style="font-weight:1000; font-size:16px;">团队人数（cột F：团队）</div>
-            <div class="note">点击柱子 → 弹出该团队员工名单</div>
-          </div>
-          <button class="btn" onclick="openModal('团队统计（按姓名去重）', renderTeamOrPosSummary('团队','团队'))">查看汇总</button>
-        </div>
-        <div class="chartBox"><canvas id="chartTeam"></canvas></div>
-      </div>
-    </div>
-
+    <!-- 团队统计表（cột F） - đặt lên trên -->
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
         <div>
@@ -1297,9 +1274,7 @@ function renderDashboard() {
                 return `<td class="link" onclick="openTeamPos('${esc(tr.team)}','${esc(pos)}')">${n}</td>`;
               }).join("");
 
-              // Trong renderDashboard(), thay thế phần tạo 3 cột đặc biệt bằng:
-
-              // 出款: 显示人数 + 日均单量 (có click vào bình quân)
+              // 出款
               const chukuanHtml = `
                 <td style="padding:4px 8px;">
                   <div class="link" onclick="openTeamPos('${esc(tr.team)}','出款')" style="font-weight:900; font-size:14px;">${tr.chuanStats.employeeCount}</div>
@@ -1309,7 +1284,7 @@ function renderDashboard() {
                 </td>
               `;
               
-              // 彩金: 显示人数 + 日均单量 (có click vào bình quân)
+              // 彩金
               const caijinHtml = `
                 <td style="padding:4px 8px;">
                   <div class="link" onclick="openTeamPos('${esc(tr.team)}','彩金')" style="font-weight:900; font-size:14px;">${tr.caijinStats.employeeCount}</div>
@@ -1319,7 +1294,7 @@ function renderDashboard() {
                 </td>
               `;
               
-              // 客服: 显示人数 + 日均单量 (có click vào bình quân)
+              // 客服
               const kefuHtml = `
                 <td style="padding:4px 8px;">
                   <div class="link" onclick="openTeamPos('${esc(tr.team)}','客服')" style="font-weight:900; font-size:14px;">${tr.kefuStats.employeeCount}</div>
@@ -1344,11 +1319,36 @@ function renderDashboard() {
         </table>
       </div>
     </div>
+
+    <!-- 岗位分布 + 团队人数 (grid2) đặt xuống dưới -->
+    <div class="grid2">
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div>
+            <div style="font-weight:1000; font-size:16px;">岗位分布</div>
+            <div class="note">点击图例或图形 → 弹出该岗位员工名单</div>
+          </div>
+          <button class="btn" onclick="openModal('岗位统计（按姓名去重）', renderTeamOrPosSummary('岗位','岗位'))">查看汇总</button>
+        </div>
+        <div class="chartBox"><canvas id="chartPos"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div>
+            <div style="font-weight:1000; font-size:16px;">团队人数（cột F：团队）</div>
+            <div class="note">点击柱子 → 弹出该团队员工名单</div>
+          </div>
+          <button class="btn" onclick="openModal('团队统计（按姓名去重）', renderTeamOrPosSummary('团队','团队'))">查看汇总</button>
+        </div>
+        <div class="chartBox"><canvas id="chartTeam"></canvas></div>
+      </div>
+    </div>
   `;
 
   buildPosChart(posLabels, posCounts);
   buildTeamChart(teamLabels, teamCounts);
-}
+  
 function renderTeamOrPosSummary(fieldLabel, fieldName){
   const m = groupBy(FILTERED, fieldName);
   const rows = [...m.entries()]
