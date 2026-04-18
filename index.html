@@ -379,6 +379,22 @@
       font-weight:800;
       font-size:12px;
     }
+    .statsFilters{
+    display:flex;
+    gap:10px;
+    margin:15px 0;
+    }
+
+    .statsFilters select{
+    padding:6px 10px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    }
+    .statsFilters input[type="date"]{
+      padding:6px 10px;
+      border-radius:6px;
+      border:1px solid #ccc;
+    }
 
     /* ===== FORCE CENTER ALL TEXT ===== */
     body,
@@ -429,6 +445,126 @@
       margin-left: auto !important;
       text-align: right !important;
     }
+
+   /* ===== TABLE AUTO FIT ===== */
+   .statsTable{
+     table-layout:auto;
+     width:max-content;
+     min-width:100%;
+   }
+
+   /* các cột bình thường */
+   .statsTable th,
+   .statsTable td{
+     padding:8px 10px;
+     white-space:nowrap;
+   }
+    .statsTable th:nth-child(9),
+    .statsTable td:nth-child(9){
+      min-width:90px !important;
+      width:90px !important;
+    }
+
+    .statsTable th:nth-child(10),
+    .statsTable td:nth-child(10){
+      min-width:130px !important;
+      width:130px !important;
+    }
+
+/* ===== 盘口 column toàn hệ thống ===== */
+
+/* header */
+th.pan-cell{
+  width:140px !important;
+  min-width:140px !important;
+  max-width:140px !important;
+}
+  .statsTable td.pan-cell{
+     overflow:hidden;
+     text-overflow:ellipsis;
+     white-space:nowrap;
+  }
+
+/* cell */
+td.pan-cell{
+
+  width:140px !important;
+  max-width:140px !important;
+
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+
+  cursor:pointer;
+  color:#2563eb;
+  font-weight:700;
+}
+    /* =========================
+       STICKY HEADER - 2 ROWS ĐỒNG NHẤT NỀN
+    ========================= */
+    /* Sticky header: giữ nguyên 2 hàng đầu khi scroll */
+    .tableWrap {
+      overflow: auto;
+      position: relative;
+    }
+
+    /* Hàng header đầu tiên */
+    table thead tr:first-child th {
+      position: sticky;
+      top: 0;        /* dính top */
+      z-index: 21;   /* cao hơn hàng thứ hai */
+      background: linear-gradient(180deg, #0b1220, #111827);
+    }
+
+    /* Hàng header thứ hai */
+    table thead tr:nth-child(2) th {
+      position: sticky;
+      top: 36px;     /* chiều cao hàng đầu tiên */
+      z-index: 20;
+      background: linear-gradient(180deg, #0b1220, #111827);
+    }
+    /* SORT ICON CHO CÁC CỘT */
+    .sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+
+    .sortable .sort-arrow {
+      font-size: 10px;
+      margin-left: 4px;
+      color: #ffffff;
+      display: inline-block;
+    }
+
+    /* ===== RESIZABLE TABLE COLUMNS ===== */
+
+    th{
+      position: relative;
+    }
+
+    /* thanh kéo cột */
+    .resizer{
+      position:absolute;
+      top:0;
+      right:-3px;
+      width:8px;
+      height:100%;
+      cursor:col-resize;
+      user-select:none;
+      background:rgba(0,0,0,0.08);
+      transition:background .15s;
+    }
+
+    /* hover rõ hơn */
+    .resizer:hover{
+      background:#2563eb;
+    }
+
+    /* khi đang kéo */
+    .resizer.active{
+      background:#2563eb;
+    }
   </style>
 </head>
 
@@ -447,6 +583,8 @@
     <div class="tab" data-page="employees">人员</div>
     <div class="tab" data-page="schedule">排班表</div>
     <div class="tab" data-page="pan">盘口人数</div>
+    <div class="tab" data-page="stats">统计</div>
+    <div class="tab" data-page="mistakes">错误统计</div>
   </div>
 
   <div class="filterBar" id="filterBar">
@@ -469,6 +607,8 @@
   <!-- Schedule -->
   <div class="page" id="page-schedule"></div>
   <div class="page" id="page-pan"></div>
+  <div class="page" id="page-stats"></div>
+  <div class="page" id="page-mistakes"></div>
 </div>
 
 <!-- MODAL -->
@@ -491,6 +631,17 @@
    ========================================================= */
 const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/填表";
 
+// ===== ORDER STATISTICS API =====
+
+const ORDER_API =
+"https://opensheet.vercel.app/1TEp-YzwjFKjorR4Xpmrb6UiKq2maMmawIW6oYQI75qM/填表";
+
+const ACCOUNT_API =
+"https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP8Sas_vZA/账号";
+
+const MISTAKE_API = "https://opensheet.vercel.app/1TEp-YzwjFKjorR4Xpmrb6UiKq2maMmawIW6oYQI75qM/员工错误";
+let MISTAKES = [];
+
 /*
   Column mapping (by header names from your sheet):
   负责人        现场培训        线上组长        线上培训        组别        团队        姓名        ID        班次        国家        岗位        盘口        工作内容
@@ -499,6 +650,10 @@ const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP
 let RAW = [];
 let FILTERED = [];
 
+let ACCOUNT_MAP = {};
+let ACCOUNT_JOIN_DATE = {};
+let ORDER_STATS = {};
+
 let charts = { pos:null, team:null, shift:null };
 
 const els = {
@@ -506,6 +661,8 @@ const els = {
   pageEmployees: document.getElementById("page-employees"),
   pageSchedule: document.getElementById("page-schedule"),
   pagePan: document.getElementById("page-pan"),
+  pageStats: document.getElementById("page-stats"),
+  pageMistakes: document.getElementById("page-mistakes"),
 
   tabs: document.querySelectorAll(".tab"),
 
@@ -528,11 +685,59 @@ const els = {
 function s(v){ return (v ?? "").toString().trim(); }
 function norm(v){ return s(v).replace(/\s+/g," ").trim(); }
 function uniq(arr){ return [...new Set(arr.filter(Boolean))]; }
+function normDateISO(v){
+
+  const str = (v ?? "").toString().trim();
+  if(!str) return "";
+
+  // ISO
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+  // 中文日期 2026年2月8日
+  let m = str.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+  if(m){
+    const y = m[1];
+    const mm = String(m[2]).padStart(2,"0");
+    const dd = String(m[3]).padStart(2,"0");
+    return `${y}-${mm}-${dd}`;
+  }
+
+  // YYYY/M/D
+  m = str.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+  if(m){
+    const y = m[1];
+    const mm = String(m[2]).padStart(2,"0");
+    const dd = String(m[3]).padStart(2,"0");
+    return `${y}-${mm}-${dd}`;
+  }
+
+  // D/M/YYYY
+  m = str.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if(m){
+    let a = +m[1], b = +m[2], y = m[3];
+    let day, month;
+
+    if(a > 12){ day = a; month = b; }
+    else if(b > 12){ month = a; day = b; }
+    else { day = a; month = b; }
+
+    return `${y}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  }
+
+  return str;
+}
 function esc(str){
   return (str??"").toString()
-    .replaceAll("&","&amp;").replaceAll("<","&lt;")
-    .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
+  function showFullContent(title, content){
+  openModal(title, `<div style="padding:20px; font-size:16px; word-break: break-all;">${esc(content)}</div>`);
+}
+  
 
 /* =========================================================
    ✅ header-safe pick (chống opensheet header lệch)
@@ -663,6 +868,8 @@ function applyFilters(){
   renderEmployees();
   renderSchedule();
   renderPanPage();
+  renderStatsPage();
+  renderMistakesPage();
 }
 
 ["input","change"].forEach(evt=>{
@@ -1013,6 +1220,11 @@ window.openPan = function(pan){
   openModal(`盘口：${pan}`, renderFullTable(rows, `盘口 = ${pan}`));
 };
 
+/* thêm ngay dưới đây */
+function showPan(pan){
+  openModal("盘口详情", `<div style="padding:20px;font-size:16px">${pan}</div>`);
+}
+
 /* =========================================================
    EMPLOYEES PAGE
    ✅ ADD: 工作内容
@@ -1092,7 +1304,7 @@ function renderEmployees(){
             <thead>
               <tr>
                 <th>姓名</th><th>ID</th><th>岗位</th><th>团队</th><th>组别</th><th>班次</th>
-                <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th><th>国家</th><th>盘口</th><th>工作内容</th>
+                <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th><th>国家</th><th class="pan-cell">盘口</th><th>工作内容</th>
               </tr>
             </thead>
             <tbody>
@@ -1114,7 +1326,9 @@ function renderEmployees(){
                     <td class="link" onclick="openManagerSubs('线上组长','${esc(leader)}')">${esc(leader)}</td>
                     <td class="link" onclick="openManagerSubs('线上培训','${esc(trainer)}')">${esc(trainer)}</td>
                     <td>${esc(norm(r["国家"]))}</td>
-                    <td>${esc(norm(r["盘口"]))}</td>
+                    <td class="pan-cell" onclick="showFullContent('盘口','${esc(norm(r["盘口"]))}')">
+                    ${esc(norm(r["盘口"]))}
+                    </td>
                     <td>${esc(norm(r["工作内容"]))}</td>
                   </tr>
                 `;
@@ -1199,7 +1413,7 @@ function renderSchedule(){
           <thead>
             <tr>
               <th>负责人</th><th>现场培训</th><th>线上组长</th><th>线上培训</th>
-              <th>团队</th><th>组别</th><th>班次</th><th>岗位</th><th>姓名</th><th>ID</th><th>国家</th><th>盘口</th><th>工作内容</th>
+              <th>团队</th><th>组别</th><th>班次</th><th>岗位</th><th>姓名</th><th>ID</th><th>国家</th><th class="pan-cell">盘口</th><th>工作内容</th>
             </tr>
           </thead>
           <tbody>
@@ -1221,7 +1435,9 @@ function renderSchedule(){
                   <td>${esc(norm(r["姓名"]))}</td>
                   <td>${esc(norm(r["ID"]))}</td>
                   <td>${esc(norm(r["国家"]))}</td>
-                  <td>${esc(norm(r["盘口"]))}</td>
+                  <td class="pan-cell" onclick="showFullContent('盘口','${esc(norm(r["盘口"]))}')">
+                  ${esc(norm(r["盘口"]))}
+                  </td>
                   <td>${esc(norm(r["工作内容"]))}</td>
                 </tr>
               `;
@@ -1276,6 +1492,9 @@ function buildShiftChart(labels, values){
    ========================================================= */
 async function load(){
   try{
+    await loadAccountMap();
+    await loadOrderStats();
+    
     els.meta.textContent = "Loading data from Google Sheet…";
 
     const res = await fetch(SHEET_API, { cache:"no-store" });
@@ -1286,6 +1505,7 @@ async function load(){
 
     RAW = data
       .map(r=>({
+        "入职时间": normPick(r, ["入职时间","入職時間","Join Date","入职","入職"]),
         "负责人":   normPick(r, ["负责人","負責人","Owner","owner"]),
         "现场培训": normPick(r, ["现场培训","現場培訓","Onsite Training","现场训","現場訓練"]),
         "线上组长": normPick(r, ["线上组长","線上組長","Online Leader","组长","組長"]),
@@ -1316,7 +1536,17 @@ async function load(){
     buildSelectOptions(els.countrySel, countries, "All 国家（国家）");
     buildSelectOptions(els.posSel, poss, "All positions（岗位）");
 
+    await loadMistakes();
+    
     applyFilters();
+    populateStatsFilters();
+    renderStatsPage();
+    renderOrderStats();   // thêm dòng này
+
+    // 🔹 Thêm 2 dòng này để load và hiển thị lỗi
+    
+    renderMistakesPage();
+
   }catch(err){
     console.error(err);
     els.meta.textContent = "Load error: " + (err?.message || err);
@@ -1400,7 +1630,7 @@ function renderPanPage(){
           <thead>
             <tr>
               <th>Rank</th>
-              <th>盘口</th>
+              <th class="pan-cell">盘口</th>
               <th>总人数</th>
               <th>占比</th>
               <th>白班</th>
@@ -1413,7 +1643,9 @@ function renderPanPage(){
             ${list.map((r,i)=>`
               <tr style="${i<3?'background:#f0f7ff;font-weight:700':''}">
                 <td>#${i+1}</td>
-                <td class="link" onclick="openPan('${esc(r.pan)}')">${esc(r.pan)}</td>
+                <td class="pan-cell" onclick="showFullContent('盘口','${esc(r.pan)}')">
+                ${esc(r.pan)}
+                </td>
                 <td>${r.total}</td>
                 <td>${r.percent}%</td>
                 <td>${r.day}</td>
@@ -1430,8 +1662,676 @@ function renderPanPage(){
     </div>
   `;
 }
+  // ===============================
+// LOAD ACCOUNT MAPPING
+// ===============================
 
+async function loadAccountMap(){
+
+  const res = await fetch(ACCOUNT_API);
+  const data = await res.json();
+
+  data.forEach(r=>{
+
+    const id = (r["ID"] || "").trim();
+
+    const accounts = (r["后台账号"] || "")
+      .split("/")
+      .map(a=>a.trim())
+      .filter(Boolean);
+    const joinDate = (r["入职时间"] || "").trim();
+
+    ACCOUNT_JOIN_DATE[id] = joinDate;
+
+    accounts.forEach(acc=>{
+      ACCOUNT_MAP[acc] = id;
+    });
+
+  });
+
+}
+  // ===============================
+// LOAD ORDER STATS
+// ===============================
+
+async function loadOrderStats(){
+  const res = await fetch(ORDER_API);
+  const data = await res.json();
+
+  const map = {};
+  const dates = new Set();
+
+  data.forEach(r=>{
+    const acc = (r["后台账号"] || "").trim();
+    const id = ACCOUNT_MAP[acc];
+    if(!id) return;
+
+    const date = normDateISO(r["日期"]);   // ✅ tạo date trước
+    if(!date) return;
+
+    dates.add(date);                       // ✅ add sau khi có date
+
+    if(!map[id]) map[id] = {};
+    if(!map[id][date]){
+      map[id][date] = { success:0, reject:0 };
+    }
+
+    map[id][date].success += Number(r["已处理"] || 0);
+    map[id][date].reject  += Number(r["驳回"] || 0);
+  });
+
+  ORDER_STATS = map;
+  window.ORDER_DATES = [...dates].sort();
+}
+async function loadMistakes(){
+  try{
+    const res = await fetch(MISTAKE_API, { cache:"no-store" });
+    if(!res.ok) throw new Error("Fetch failed: " + res.status);
+    const data = await res.json();
+    if(!Array.isArray(data)) throw new Error("Mistake sheet JSON is not array");
+
+    // Map dữ liệu và lấy thêm thông tin từ RAW/FILTERED
+    MISTAKES = data.map(r=>{
+      const id = normPick(r, ["ID"]);
+      const emp = FILTERED.find(x=>x["ID"]===id) || RAW.find(x=>x["ID"]===id) || {};
+
+      return {
+        "ID": id,
+        "姓名": emp["姓名"] || "-",
+        "团队": emp["团队"] || "-",
+        "岗位": emp["岗位"] || "-",
+        "盘口": emp["盘口"] || "-",
+        "会员/id /订单号": normPick(r, ["会员/id /订单号"]),
+        "金额": normPick(r, ["金额"]),
+        "错误备注": normPick(r, ["错误备注"]),
+        "正确操作方式": normPick(r, ["正确操作方式"]),
+        "错误类型": normPick(r, ["错误类型"]),
+        "扣分": normPick(r, ["扣分"]),
+        "质检人": normPick(r, ["质检人"]),
+        "质检时间": normDateISO(normPick(r, ["质检时间"])),
+        "小组长复审": normPick(r, ["小组长复审"]),
+        "质检人对/错": normPick(r, ["质检人对错"]),
+        "复检时间": normDateISO(normPick(r, ["复检时间"]))
+      };
+    });
+    
+  }catch(err){
+    console.error("Load Mistakes:", err);
+    if(els.pageMistakes) {
+      els.pageMistakes.innerHTML = `
+        <div class="card">
+          <h2>加载错误统计失败</h2>
+          <div class="note">${esc(err?.message||err)}</div>
+        </div>
+      `;
+    }
+  }
+}
+
+function renderMistakesPage(){
+
+  const allowedIds = new Set(
+    FILTERED.map(r => (r["ID"] || "").trim())
+  );
+
+  const rows = MISTAKES.filter(r =>
+    allowedIds.has((r["ID"] || "").trim())
+  );
+
+  els.pageMistakes.innerHTML = `
+    <div class="card">
+      <h2>员工错误统计</h2>
+      <div class="sub">可搜索/筛选 / 点击 ID 弹窗显示详细信息</div>
+      <input type="text" id="mistakeSearch" placeholder="Search ID / 姓名 / 金额 / 岗位 / 盘口" style="margin-bottom:10px; padding:6px 10px; border-radius:6px; border:1px solid #ccc; width:300px" />
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>姓名</th>
+              <th>团队</th>
+              <th>岗位</th>
+              <th>盘口</th>
+              <th>会员/id /订单号</th>
+              <th>金额</th>
+              <th>错误备注</th>
+              <th>正确操作方式</th>
+              <th>错误类型</th>
+              <th class="sortable" data-value="Deduct 扣分">Deduct 扣分 <span class="sort-arrow">⇅</span></th>
+              <th>质检人</th>
+              <th>质检时间</th>
+              <th>小组长复审</th>
+              <th>first check right or wrong 质检人对/错</th>
+              <th>复检时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td class="link" onclick="openModal('员工错误详情', renderFullTable([r]))">${esc(r["ID"])}</td>
+                <td>${esc(r["姓名"])}</td>
+                <td>${esc(r["团队"])}</td>
+                <td>${esc(r["岗位"])}</td>
+                <td class="pan-cell" onclick="showFullContent('盘口','${esc(r["盘口"])}')">
+                ${esc(r["盘口"])}
+                </td>
+                <td class="truncate-cell" onclick="showFullContent('会员/id /订单号', '${esc(r["会员/id /订单号"])}')">
+                  ${esc(r["会员/id /订单号"])}
+                </td>
+                <td>${esc(r["金额"])}</td>
+                <td>${esc(r["错误备注"])}</td>
+                <td>${esc(r["正确操作方式"])}</td>
+                <td>${esc(r["错误类型"])}</td>
+                <td class="sortable" data-value="${r["Deduct 扣分"] || 0}">${esc(r["Deduct 扣分"])}</td>
+                <td>${esc(r["质检人"])}</td>
+                <td>${esc(r["质检时间"])}</td>
+                <td>${esc(r["小组长复审"])}</td>
+                <td>${esc(r["质检人对/错"])}</td>
+                <td>${esc(r["复检时间"])}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // search filter
+  const searchInput = document.getElementById("mistakeSearch");
+  searchInput.oninput = ()=>{
+    const q = norm(searchInput.value).toLowerCase();
+    Array.from(els.pageMistakes.querySelectorAll("tbody tr")).forEach(tr=>{
+      const text = tr.textContent.toLowerCase();
+      tr.style.display = text.includes(q) ? "" : "none";
+    });
+  };
+}
+  // ===============================
+// RENDER ORDER STATS
+// ===============================
+
+function renderOrderStats(){
+
+  const dates = window.ORDER_DATES || [];   // thêm dòng này
+
+  const rows = Object.entries(ORDER_STATS)
+    .sort((a,b)=>{
+  const sum = obj => Object.values(obj)
+    .reduce((t,d)=>t+(d.success||0)+(d.reject||0),0);
+
+  return sum(b[1]) - sum(a[1]);
+});
+
+  const html = `
+  <div class="card">
+
+    <h2>员工订单处理统计</h2>
+
+    <div class="tableWrap">
+      <table>
+
+        <thead>
+        <tr>
+          <th>ID</th>
+          <th>姓名</th>
+          <th>班次</th>
+          <th>国家</th>
+          <th>岗位</th>
+          <th>盘口</th>
+          ${dates.map(d=>`<th colspan="2">${d}</th>`).join("")}
+        </tr>
+
+        <tr>
+          <th colspan="6"></th>
+          ${dates.map(()=>`
+            <th>成功</th>
+            <th>驳回</th>
+          `).join("")}
+        </tr>
+        </thead>
+
+        <tbody>
+
+          ${rows.map(([id,v])=>{
+
+          const emp = FILTERED.find(r=>r["ID"]===id) || RAW.find(r=>r["ID"]===id);
+
+          const name = emp?.["姓名"] || "-";
+          const shift = emp?.["班次"] || "-";
+          const country = emp?.["国家"] || "-";
+          const pos = emp?.["岗位"] || "-";
+          const pan = emp?.["盘口"] || "-";
+          const join = normDateISO(ACCOUNT_JOIN_DATE[id] || "");
+          let total = 0;
+
+          dates.forEach(d=>{
+            const day = v[d] || {success:0,reject:0};
+            total += (Number(day.success || 0) + Number(day.reject || 0));
+          });
+
+          const avg = dates.length ? Math.round(total / dates.length) : 0;
+
+          return `
+          <tr>
+
+          <td>${id}</td>
+          <td>${name}</td>
+          <td>${shift}</td>
+          <td>${country}</td>
+          <td>${pos}</td>
+          <td class="pan-cell" onclick="showPan('${pan}')">${pan}</td>
+
+          ${dates.map(d=>{
+            const day = v[d] || {success:0,reject:0};
+            return `
+              <td>${day.success}</td>
+              <td>${day.reject}</td>
+            `;
+          }).join("")}
+
+</tr>
+`;
+
+}).join("")}
+
+        </tbody>
+
+      </table>
+    </div>
+
+  </div>
+  `;
+
+  document
+    .getElementById("page-stats")
+    .insertAdjacentHTML("beforeend", html);
+
+}
+// ===============================
+// STATS PAGE
+// ===============================
+function populateStatsFilters(){
+  const posSel = document.getElementById("statsPos");
+  if(!posSel) return;
+
+  const current = posSel.dataset.selected || posSel.value || "";
+
+  const poss = [...new Set((RAW || []).map(r => r["岗位"]).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,"zh"));
+
+  posSel.innerHTML = `<option value="">全部岗位</option>`;
+  poss.forEach(p=>{
+    const opt = document.createElement("option");
+    opt.value = p;
+    opt.textContent = p;
+    posSel.appendChild(opt);
+  });
+
+  // giữ lại lựa chọn cũ (để khỏi bị “nhảy về 全部岗位”)
+  posSel.value = current;
+}
+
+function renderStatsPage(){
+
+  const posFilter = document.getElementById("statsPos")?.value || "";
+  const fromDate = document.getElementById("statsFrom")?.value || "";
+  const toDate   = document.getElementById("statsTo")?.value || "";
+
+  const allowedIds = new Set(
+    (FILTERED || [])
+      .map(r => (r["ID"] || "").trim())
+      .filter(Boolean)
+  );
+
+  const dates = window.ORDER_DATES || [];
+
+  // ✅ chỉ lấy ngày nằm trong khoảng chọn
+  const activeDates = dates.filter(d=>{
+    if(fromDate && d < fromDate) return false;
+    if(toDate && d > toDate) return false;
+    return true;
+  });
+
+  // ✅ lọc theo FILTERED + 岗位 + khoảng ngày
+  const rows = Object.entries(ORDER_STATS || {})
+    .filter(([id, v]) => {
+      if(!allowedIds.has(id)) return false;
+
+      const emp = FILTERED.find(r => (r["ID"] || "").trim() === id)
+               || RAW.find(r => (r["ID"] || "").trim() === id);
+      if(!emp) return false;
+
+      if(posFilter && (emp["岗位"] || "") !== posFilter) return false;
+
+      // nếu chọn khoảng ngày thì ID này phải có ít nhất 1 ngày nằm trong khoảng
+      if(activeDates.length){
+        const ok = activeDates.some(d => (v && v[d]));
+        if(!ok) return false;
+      }
+      return true;
+    });
+
+  els.pageStats.innerHTML = `
+    <div class="card">
+      <h2>员工订单处理统计</h2>
+      <div class="sub">按员工 ID 汇总</div>
+
+      <div class="statsFilters">
+        <input type="date" id="statsFrom" value="${esc(fromDate)}" />
+        <input type="date" id="statsTo" value="${esc(toDate)}" />
+        <select id="statsPos" data-selected="${esc(posFilter)}">
+        <option value="">全部岗位</option>
+        </select>
+      </div>
+
+      <div class="tableWrap">
+        <table class="statsTable">
+          <thead>
+         <tr>
+           <th>ID</th>
+           <th>姓名</th>
+           <th>团队</th>
+           <th>班次</th>
+           <th>国家</th>
+           <th>岗位</th>
+           <th>盘口</th>
+           <th>入职时间</th>
+           <th class="sortable" data-value="total" style="min-width:80px">
+             总
+             <span class="sort-arrow">⇅</span>
+           </th>
+
+           <th class="sortable" data-value="avg" style="min-width:120px">
+             平均每天处理
+             <span class="sort-arrow">⇅</span>
+           </th>
+           <th class="sortable" data-value="mistake" style="min-width:90px">
+           错误次数
+           <span class="sort-arrow">⇅</span>
+           </th>
+           ${activeDates.map(d => `<th>${esc(d)}<br>成功/驳回</th>`).join("")}
+         </tr>
+       </thead>
+          <tbody>
+
+            ${rows.map(([id,v])=>{
+
+              const emp = FILTERED.find(r => (r["ID"] || "").trim() === id)
+                       || RAW.find(r => (r["ID"] || "").trim() === id);
+
+              const name = emp?.["姓名"] || "-";
+              const team = emp?.["团队"] || "-";
+              const shift = emp?.["班次"] || "-";
+              const country = emp?.["国家"] || "-";
+              const pos = emp?.["岗位"] || "-";
+              const pan = emp?.["盘口"] || "-";
+              const join = normDateISO(ACCOUNT_JOIN_DATE[id] || "");
+
+              let total = 0;
+              let validDays = 0;
+
+              activeDates.forEach(d => {
+
+                // ❗ bỏ qua ngày trước khi入职
+                if(join && d < join) return;
+
+                const day = v?.[d] || {success:0, reject:0};
+                const dayTotal = (Number(day.success || 0) + Number(day.reject || 0));
+
+                if(dayTotal > 0){
+                  total += dayTotal;
+                  validDays += 1;
+                }
+
+              });
+
+              const avg = validDays ? Math.round(total / validDays) : 0;
+              const mistakeCount = MISTAKES.filter(m => {
+
+              const mid = (m["ID"] || "").trim();
+              if(mid !== id) return false;
+
+              const date = (m["复检时间"] || "").slice(0,10);
+
+              if(fromDate && date < fromDate) return false;
+              if(toDate && date > toDate) return false;
+
+              return true;
+
+            }).length;
+
+              return `
+                <tr>
+                  <td>${esc(id)}</td>
+                  <td>${esc(name)}</td>
+                  <td>${esc(team)}</td>
+                  <td>${esc(shift)}</td>
+                  <td>${esc(country)}</td>
+                  <td>${esc(pos)}</td>
+                  <td class="pan-cell" onclick="showFullContent('盘口', '${esc(pan)}')">${esc(pan)}</td>
+                  <td>${esc(join)}</td>
+                  <td class="sortable" data-value="${total}">${total}</td>
+                  <td class="sortable" data-value="${avg}">${avg}</td>
+                  <td class="link sortable" data-value="${mistakeCount}" 
+                  onclick="event.stopPropagation(); openMistakeList('${id}')">
+                  ${mistakeCount}
+                  </td>
+
+                  ${activeDates.map(d=>{
+
+                    // nếu chưa入职 thì không tính
+                    if(join && d < join){
+                      return `<td>0 / 0</td>`;
+                    }
+
+                    const day = v?.[d] || {success:0,reject:0};
+
+                    return `<td>${day.success || 0} / ${day.reject || 0}</td>`;
+
+                  }).join("")}
+                </tr>
+              `;
+            }).join("")}
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // ✅ populate xong rồi mới gắn lại value + onchange
+  populateStatsFilters();
+
+  const posSel = document.getElementById("statsPos");
+  if(posSel) posSel.onchange = renderStatsPage;
+
+  const fromEl = document.getElementById("statsFrom");
+  if(fromEl) fromEl.onchange = renderStatsPage;
+
+  const toEl = document.getElementById("statsTo");
+  if(toEl) toEl.onchange = renderStatsPage;
+}
+// ===== STATS TABLE: SORTABLE + CLICK MODAL =====
+document.addEventListener("click", e => {
+
+  // 1️⃣ Nếu click vào header có class "sortable" → sắp xếp
+  const th = e.target.closest("th.sortable");
+  if(th){
+    const table = th.closest("table");
+    const tbody = table.querySelector("tbody");
+    const index = Array.from(th.parentNode.children).indexOf(th);
+
+    th.asc = !th.asc; // toggle ascending/descending
+
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    rows.sort((a,b)=>{
+      const aVal = parseFloat(a.children[index].dataset.value || a.children[index].textContent) || 0;
+      const bVal = parseFloat(b.children[index].dataset.value || b.children[index].textContent) || 0;
+      return th.asc ? aVal - bVal : bVal - aVal;
+    });
+
+    rows.forEach(r => tbody.appendChild(r));
+    return; // exit listener, tránh tiếp tục check td
+  }
+
+  // 2️⃣ Nếu click vào ô trong statsTable → mở modal
+  const td = e.target.closest(".statsTable td");
+  if(td && !td.classList.contains("link")){
+    const content = td.textContent.trim();
+    if(content){
+      openModal("Chi tiết ô", `<div style="padding:20px;font-size:16px">${esc(content)}</div>`);
+    }
+  }
+
+});
+
+  // ===== EXCEL STYLE TABLE RESIZE =====
+function enableTableResize(){
+
+  document.querySelectorAll("table").forEach((table, tableIndex)=>{
+
+    const headers = table.querySelectorAll("th");
+
+    headers.forEach((th, colIndex)=>{
+
+      if(th.querySelector(".resizer")) return;
+
+      const resizer = document.createElement("div");
+      resizer.className = "resizer";
+      th.appendChild(resizer);
+
+      const storageKey = "table_" + tableIndex + "_col_" + colIndex;
+
+      // restore width
+      const saved = localStorage.getItem(storageKey);
+      if(saved){
+        setColumnWidth(table, colIndex, saved);
+      }
+
+      let startX = 0;
+      let startWidth = 0;
+
+      resizer.addEventListener("mousedown", e=>{
+        startX = e.pageX;
+        startWidth = th.offsetWidth;
+
+        document.addEventListener("mousemove", resize);
+        document.addEventListener("mouseup", stop);
+      });
+
+      function resize(e){
+
+        const newWidth = startWidth + (e.pageX - startX);
+
+        if(newWidth < 60) return;
+
+        setColumnWidth(table, colIndex, newWidth);
+
+        localStorage.setItem(storageKey, newWidth);
+
+      }
+
+      function stop(){
+        document.removeEventListener("mousemove", resize);
+        document.removeEventListener("mouseup", stop);
+      }
+
+      // double click = auto fit
+      resizer.addEventListener("dblclick", ()=>{
+
+        let max = 80;
+
+        table.querySelectorAll("tr").forEach(row=>{
+          const cell = row.children[colIndex];
+          if(cell){
+            const width = cell.scrollWidth + 20;
+            if(width > max) max = width;
+          }
+        });
+
+        setColumnWidth(table, colIndex, max);
+        localStorage.setItem(storageKey, max);
+
+      });
+
+    });
+
+  });
+
+}
+
+function setColumnWidth(table, index, width){
+
+  table.querySelectorAll("tr").forEach(row=>{
+    const cell = row.children[index];
+    if(cell){
+      cell.style.width = width + "px";
+      cell.style.maxWidth = width + "px";
+    }
+  });
+
+  }
+function openMistakeList(id){
+
+  const list = MISTAKES.filter(r => (r["ID"] || "").trim() === id);
+
+  if(!list.length){
+    openModal("错误记录", `<div style="padding:20px">该员工没有错误记录</div>`);
+    return;
+  }
+
+  const html = `
+  <div class="tableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>姓名</th>
+          <th>团队</th>
+          <th>岗位</th>
+          <th>盘口</th>
+          <th>会员/id /订单号</th>
+          <th>金额</th>
+          <th>错误备注</th>
+          <th>正确操作方式</th>
+          <th>错误类型</th>
+          <th>扣分</th>
+          <th>质检人</th>
+          <th>质检时间</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${list.map(r=>`
+          <tr>
+            <td>${r["ID"]}</td>
+            <td>${r["姓名"]}</td>
+            <td>${r["团队"]}</td>
+            <td>${r["岗位"]}</td>
+            <td>${r["盘口"]}</td>
+            <td>${r["会员/id /订单号"]}</td>
+            <td>${r["金额"]}</td>
+            <td>${r["错误备注"]}</td>
+            <td>${r["正确操作方式"]}</td>
+            <td>${r["错误类型"]}</td>
+            <td>${r["扣分"]}</td>
+            <td>${r["质检人"]}</td>
+            <td>${r["质检时间"]}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+
+    </table>
+  </div>
+  `;
+
+  openModal("员工错误记录 - " + id + " （" + list.length + "）", html);
+}
 load();
+
+setTimeout(()=>{
+  enableTableResize();
+},800);
 </script>
 </body>
 </html>
