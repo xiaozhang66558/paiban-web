@@ -992,14 +992,14 @@ function getLast7Days() {
 
 // Hiển thị chi tiết khi click vào bình quân
 function showAvgDetails(team, position, avgValue) {
-  // Lọc nhân viên trong team và vị trí
+  // Lọc nhân viên trong team HIỆN TẠI và vị trí HIỆN TẠI
   const employees = FILTERED.filter(r => {
     return norm(r["团队"]) === team && norm(r["岗位"]) === position;
   });
   
   const last7Days = getLast7Days();
   
-  // Tính số đơn 7 ngày gần nhất cho từng nhân viên
+  // Tính số đơn 7 ngày cho từng nhân viên trong team này
   const empDetails = employees.map(emp => {
     const id = emp["ID"];
     let totalOrders7Days = 0;
@@ -1031,7 +1031,7 @@ function showAvgDetails(team, position, avgValue) {
   // Sắp xếp theo tổng đơn giảm dần
   empDetails.sort((a, b) => b.total7Days - a.total7Days);
   
-  // Tìm giá trị thấp nhất cho mỗi ngày
+  // 🎯 Tìm giá trị thấp nhất cho mỗi ngày (CHỈ TRONG TEAM NÀY)
   const minPerDay = {};
   last7Days.forEach(date => {
     let minValue = Infinity;
@@ -1053,7 +1053,7 @@ function showAvgDetails(team, position, avgValue) {
         <div><strong>团队:</strong> ${esc(team)}</div>
         <div><strong>岗位:</strong> ${esc(position)}</div>
         <div><strong>Bình quân 7 ngày:</strong> ${actualAvg} đơn/người (tổng ${totalOrdersAll} đơn / ${totalEmployees} người)</div>
-        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ Hiển thị 7 ngày gần nhất có dữ liệu | 🔴 Màu đỏ = thấp nhất ngày</div>
+        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ 🔴 Màu đỏ = thấp nhất trong ${esc(team)} (团队) mỗi ngày</div>
       </div>
       
       <div class="tableWrap">
@@ -1076,21 +1076,22 @@ function showAvgDetails(team, position, avgValue) {
                 <td style="font-weight:900; color:#2563eb;">${emp.total7Days}</td>
                 ${last7Days.map(d => {
                   const value = emp.dailyOrders[d];
-                  const isMin = value === minPerDay[d] && value > 0; // thấp nhất và > 0
+                  const isMin = value === minPerDay[d] && value > 0;
                   const isZero = value === 0;
                   let colorStyle = "";
                   let displayValue = value;
                   
                   if (isMin && !isZero) {
-                    colorStyle = "color:#dc2626; font-weight:700;"; // màu đỏ cho thấp nhất
+                    colorStyle = "color:#dc2626; font-weight:700; background:#fff0f0; border-radius:4px; display:inline-block; padding:2px 6px;";
+                    displayValue = value;
                   } else if (isZero) {
                     colorStyle = "color:#cbd5e1;";
                     displayValue = "-";
-                  } else {
+                  } else if (value > 0) {
                     colorStyle = "color:#22c55e; font-weight:700;";
                   }
                   
-                  return `<td style="${colorStyle}">${displayValue}</td>`;
+                  return `<td><span style="${colorStyle}">${displayValue}</span></td>`;
                 }).join("")}
               </tr>
             `).join("")}
