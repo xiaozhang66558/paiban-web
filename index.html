@@ -1004,16 +1004,16 @@ function getLast7Days() {
   return sortedDates.slice(0, 7).sort((a, b) => new Date(a) - new Date(b));
 }
 
-// Hiển thị chi tiết khi click vào bình quân
+// Hiển thị chi tiết khi click vào bình quân (tô màu top 3 thấp nhất: đỏ đậm, vàng cam, vàng)
 function showAvgDetails(team, position, avgValue) {
-  // Lọc nhân viên trong team HIỆN TẠI và vị trí HIỆN TẠI
+  // Lọc nhân viên trong team và vị trí
   const employees = FILTERED.filter(r => {
     return norm(r["团队"]) === team && norm(r["岗位"]) === position;
   });
   
   const last7Days = getLast7Days();
   
-  // Tính số đơn 7 ngày cho từng nhân viên trong team này
+  // Tính số đơn 7 ngày cho từng nhân viên
   const empDetails = employees.map(emp => {
     const id = emp["ID"];
     let totalOrders7Days = 0;
@@ -1042,7 +1042,7 @@ function showAvgDetails(team, position, avgValue) {
     };
   });
   
-  // CHỈ GIỮ LẠI NHỮNG NGƯỜI CÓ TỔNG ĐƠN > 0
+  // Chỉ giữ nhân viên có tổng đơn > 0
   const empDetailsFiltered = empDetails.filter(e => e.total7Days > 0);
   
   if (empDetailsFiltered.length === 0) {
@@ -1057,38 +1057,36 @@ function showAvgDetails(team, position, avgValue) {
   // Sắp xếp theo tổng đơn giảm dần
   empDetailsFiltered.sort((a, b) => b.total7Days - a.total7Days);
   
-  // Hàm tìm top 3 giá trị thấp nhất >0 cho mỗi ngày
-  function getTop3LowestPositive(dailyValues) {
-    // dailyValues là mảng các số (có thể có 0), chỉ lấy >0
-    const positives = dailyValues.filter(v => v > 0);
-    const uniqueSorted = [...new Set(positives)].sort((a,b) => a - b);
+  // Hàm lấy top 3 giá trị thấp nhất (>0) từ một mảng số
+  function getTop3LowestPositive(values) {
+    const positives = values.filter(v => v > 0);
+    const uniqueSorted = [...new Set(positives)].sort((a, b) => a - b);
     return {
-      lowest: uniqueSorted[0],
-      second: uniqueSorted[1],
-      third: uniqueSorted[2]
+      lowest: uniqueSorted[0],   // thấp nhất
+      second: uniqueSorted[1],   // thấp thứ hai
+      third: uniqueSorted[2]     // thấp thứ ba
     };
   }
   
-  // Tạo mảng dữ liệu theo ngày để tìm top 3
-  const dailyData = {};
+  // Tính top 3 cho mỗi ngày
+  const dailyTop = {};
   last7Days.forEach(date => {
-    const values = empDetailsFiltered.map(emp => emp.dailyOrders[date]);
-    const top3 = getTop3LowestPositive(values);
-    dailyData[date] = top3;
+    const dailyValues = empDetailsFiltered.map(emp => emp.dailyOrders[date]);
+    dailyTop[date] = getTop3LowestPositive(dailyValues);
   });
   
   const totalEmployees = empDetailsFiltered.length;
   const totalOrdersAll = empDetailsFiltered.reduce((sum, e) => sum + e.total7Days, 0);
   const actualAvg = totalEmployees > 0 ? (totalOrdersAll / totalEmployees).toFixed(1) : "0.0";
   
-  // Tạo bảng HTML
+  // Tạo HTML
   const html = `
     <div style="padding: 10px;">
       <div style="margin-bottom: 16px; padding: 12px; background: #f0f7ff; border-radius: 12px;">
         <div><strong>团队:</strong> ${esc(team)}</div>
         <div><strong>岗位:</strong> ${esc(position)}</div>
         <div><strong>Bình quân 7 ngày:</strong> ${actualAvg} đơn/người (tổng ${totalOrdersAll} đơn / ${totalEmployees} người có đơn)</div>
-        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ 🟥 Đỏ đậm = thấp nhất | 🟥 Đỏ nhạt = thấp thứ hai | 🟧 Cam = thấp thứ ba (chỉ số đơn >0)</div>
+        <div style="font-size:12px; color:#64748b; margin-top:6px;">※ Màu sắc: <span style="color:#b91c1c; font-weight:bold;">Đỏ đậm</span> = thấp nhất | <span style="color:#ea580c; font-weight:bold;">Vàng cam</span> = thấp thứ hai | <span style="color:#ca8a04; font-weight:bold;">Vàng</span> = thấp thứ ba (chỉ số đơn >0)</div>
       </div>
       
       <div class="tableWrap">
@@ -1111,17 +1109,17 @@ function showAvgDetails(team, position, avgValue) {
                 <td style="font-weight:900; color:#2563eb;">${emp.total7Days}</td>
                 ${last7Days.map(d => {
                   const value = emp.dailyOrders[d];
-                  const top = dailyData[d];
+                  const top = dailyTop[d];
                   let colorStyle = "";
                   let displayValue = value;
                   
                   if (value > 0) {
                     if (top.lowest !== undefined && value === top.lowest) {
-                      colorStyle = "color:#b91c1c; font-weight:700; background:#fee2e2; border-radius:4px; display:inline-block; padding:2px 6px;"; // đỏ đậm
+                      colorStyle = "color:#b91c1c; font-weight:700; background:#fee2e2; border-radius:4px; display:inline-block; padding:2px 6px;";
                     } else if (top.second !== undefined && value === top.second) {
-                      colorStyle = "color:#dc2626; font-weight:700; background:#fecaca; border-radius:4px; display:inline-block; padding:2px 6px;"; // đỏ nhạt
+                      colorStyle = "color:#ea580c; font-weight:700; background:#fed7aa; border-radius:4px; display:inline-block; padding:2px 6px;";
                     } else if (top.third !== undefined && value === top.third) {
-                      colorStyle = "color:#ea580c; font-weight:700; background:#fed7aa; border-radius:4px; display:inline-block; padding:2px 6px;"; // cam
+                      colorStyle = "color:#ca8a04; font-weight:700; background:#fef3c7; border-radius:4px; display:inline-block; padding:2px 6px;";
                     } else {
                       colorStyle = "color:#22c55e; font-weight:700;";
                     }
