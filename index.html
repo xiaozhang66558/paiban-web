@@ -635,6 +635,7 @@ const SHEET_API = "https://opensheet.elk.sh/1e38ZBHG0B0nxODaooPhgreG67A2RLxLxrpP
 
 // ===== ORDER STATISTICS API =====
 
+// 网站数据 = 脚本生成的干净表（填表 + 工作表4 全部月份）
 const ORDER_API =
 "https://opensheet.vercel.app/1TEp-YzwjFKjorR4Xpmrb6UiKq2maMmawIW6oYQI75qM/网站数据";
 
@@ -691,32 +692,26 @@ function norm(v){ return s(v).replace(/\s+/g," ").trim(); }
 function uniq(arr){ return [...new Set(arr.filter(Boolean))]; }
 function normDateISO(v){
 
-  const str = (v ?? "").toString().trim();
+  let str = (v ?? "").toString().trim();
   if(!str) return "";
 
-  // ISO
-  if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  // 一个单元格里有多个时间 → 只取第一行
+  str = str.split(/[\r\n]+/)[0].trim();
 
-  // 中文日期 2026年2月8日
-  let m = str.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
-  if(m){
-    const y = m[1];
-    const mm = String(m[2]).padStart(2,"0");
-    const dd = String(m[3]).padStart(2,"0");
-    return `${y}-${mm}-${dd}`;
+  const pad = n => String(n).padStart(2,"0");
+
+  // Google Sheets serial number (46204 等)
+  if(/^\d{5}(\.\d+)?$/.test(str)){
+    const d = new Date(Date.UTC(1899,11,30) + Math.floor(Number(str))*86400000);
+    return d.toISOString().slice(0,10);
   }
 
-  // YYYY/M/D
-  m = str.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
-  if(m){
-    const y = m[1];
-    const mm = String(m[2]).padStart(2,"0");
-    const dd = String(m[3]).padStart(2,"0");
-    return `${y}-${mm}-${dd}`;
-  }
+  // YYYY-M-D / YYYY/M/D / 2026年4月28日 —— 在字符串任意位置
+  let m = str.match(/(\d{4})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/);
+  if(m) return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
 
-  // D/M/YYYY
-  m = str.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  // D/M/YYYY (28/04/2026)
+  m = str.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
   if(m){
     let a = +m[1], b = +m[2], y = m[3];
     let day, month;
@@ -725,10 +720,10 @@ function normDateISO(v){
     else if(b > 12){ month = a; day = b; }
     else { day = a; month = b; }
 
-    return `${y}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return `${y}-${pad(month)}-${pad(day)}`;
   }
 
-  return str;
+  return "";
 }
 function esc(str){
   return (str??"").toString()
@@ -1138,7 +1133,7 @@ function showAvgDetails(team, position, avgValue) {
     </div>
   `;
   
-  openModal(`${team} - ${position} (Bình quân: ${avgValue} 单/天)`, html);
+  openModal(`${team} - ${position} (平均: ${avgValue} 单/天)`, html);
 }
   
 function renderDashboard() {
@@ -1951,15 +1946,15 @@ async function loadAccountMap(){
     const id = (r["ID"] || "").trim();
 
     const accounts = (r["后台账号"] || "")
-      .split("/")
-      .map(a=>a.trim())
+      .split(/[\/,;、\s]+/)
+      .map(a => a.replace(/^[^0-9a-zA-Z]+|[^0-9a-zA-Z]+$/g, "").trim().toLowerCase())
       .filter(Boolean);
     const joinDate = (r["入职时间"] || "").trim();
 
     ACCOUNT_JOIN_DATE[id] = joinDate;
 
     accounts.forEach(acc=>{
-      ACCOUNT_MAP[acc] = id;
+      if(!(acc in ACCOUNT_MAP)) ACCOUNT_MAP[acc] = id;
     });
 
   });
@@ -1970,14 +1965,16 @@ async function loadAccountMap(){
 // ===============================
 
 async function loadOrderStats(){
-  const res = await fetch(ORDER_API);
-  const data = await res.json();
+  const res = await fetch(ORDER_API, { cache:"no-store" });
+  const raw = await res.json();
+  const data = Array.isArray(raw) ? raw : [];
+  console.log(`📦 订单数据：${data.length} 行`);
 
   const map = {};
   const dates = new Set();
 
   data.forEach(r=>{
-    const acc = (r["后台账号"] || "").trim();
+    const acc = (r["后台账号"] || "").trim().toLowerCase();
     const id = ACCOUNT_MAP[acc];
     if(!id) return;
 
@@ -2043,20 +2040,76 @@ async function loadMistakes(){
   }
 }
 
+let MIST_FROM = "";
+let MIST_TO   = "";
+
+function mistToday(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+
+window.setMistRange = function(kind){
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  if(kind === "all"){
+    MIST_FROM = ""; MIST_TO = "";
+  } else if(kind === "month"){
+    MIST_FROM = `${d.getFullYear()}-${p(d.getMonth()+1)}-01`;
+    MIST_TO   = mistToday();
+  } else if(kind === "7d"){
+    const s = new Date(d.getTime() - 6*86400000);
+    MIST_FROM = `${s.getFullYear()}-${p(s.getMonth()+1)}-${p(s.getDate())}`;
+    MIST_TO   = mistToday();
+  }
+  renderMistakesPage();
+};
+
 function renderMistakesPage(){
 
   const allowedIds = new Set(
     FILTERED.map(r => (r["ID"] || "").trim())
   );
 
-  const rows = MISTAKES.filter(r =>
+  const inRoster = MISTAKES.filter(r =>
     allowedIds.has((r["ID"] || "").trim())
   );
+
+  // 按 质检时间 过滤
+  let rows = inRoster.filter(r=>{
+    const d = (r["质检时间"] || "").slice(0,10);
+    if(MIST_FROM){ if(!d || d < MIST_FROM) return false; }
+    if(MIST_TO){   if(!d || d > MIST_TO)   return false; }
+    return true;
+  });
+
+  // 最新的排在最前面
+  rows.sort((a,b)=> (b["质检时间"]||"").localeCompare(a["质检时间"]||""));
+
+  const allDates = inRoster.map(r=>(r["质检时间"]||"").slice(0,10)).filter(Boolean).sort();
+  const newest = allDates.length ? allDates[allDates.length-1] : "-";
+  const oldest = allDates.length ? allDates[0] : "-";
 
   els.pageMistakes.innerHTML = `
     <div class="card">
       <h2>员工错误统计</h2>
       <div class="sub">可搜索/筛选 / 点击 ID 弹窗显示详细信息</div>
+
+      <div class="statsFilters" style="flex-wrap:wrap; align-items:center; justify-content:center;">
+        <span style="font-weight:900; font-size:12px;">质检时间：</span>
+        <input type="date" id="mistFrom" value="${esc(MIST_FROM)}" />
+        <span style="font-weight:900;">→</span>
+        <input type="date" id="mistTo" value="${esc(MIST_TO)}" />
+        <button class="btn" onclick="setMistRange('7d')">最近7天</button>
+        <button class="btn" onclick="setMistRange('month')">本月</button>
+        <button class="btn" onclick="setMistRange('all')">全部</button>
+      </div>
+
+      <div class="note">
+        显示 <b>${rows.length.toLocaleString()}</b> / 共 <b>${inRoster.length.toLocaleString()}</b> 条　·　
+        数据范围：<b>${esc(oldest)}</b> ~ <b>${esc(newest)}</b>
+      </div>
+
       <input type="text" id="mistakeSearch" placeholder="Search ID / 姓名 / 金额 / 岗位 / 盘口" style="margin-bottom:10px; padding:6px 10px; border-radius:6px; border:1px solid #ccc; width:300px" />
       <div class="tableWrap">
         <table>
@@ -2074,7 +2127,7 @@ function renderMistakesPage(){
               <th>错误类型</th>
               <th class="sortable" data-value="Deduct 扣分">Deduct 扣分 <span class="sort-arrow">⇅</span></th>
               <th>质检人</th>
-              <th>质检时间</th>
+              <th class="sortable">质检时间 <span class="sort-arrow">⇅</span></th>
               <th>小组长复审</th>
               <th>first check right or wrong 质检人对/错</th>
               <th>复检时间</th>
@@ -2099,7 +2152,7 @@ function renderMistakesPage(){
                 <td>${esc(r["错误类型"])}</td>
                 <td class="sortable" data-value="${r["Deduct 扣分"] || 0}">${esc(r["Deduct 扣分"])}</td>
                 <td>${esc(r["质检人"])}</td>
-                <td>${esc(r["质检时间"])}</td>
+                <td data-value="${esc((r["质检时间"]||"").replace(/-/g,""))}">${esc(r["质检时间"])}</td>
                 <td>${esc(r["小组长复审"])}</td>
                 <td>${esc(r["质检人对/错"])}</td>
                 <td>${esc(r["复检时间"])}</td>
@@ -2110,6 +2163,13 @@ function renderMistakesPage(){
       </div>
     </div>
   `;
+
+  // 日期选择
+  const fromEl = document.getElementById("mistFrom");
+  if(fromEl) fromEl.onchange = ()=>{ MIST_FROM = fromEl.value; renderMistakesPage(); };
+
+  const toEl = document.getElementById("mistTo");
+  if(toEl) toEl.onchange = ()=>{ MIST_TO = toEl.value; renderMistakesPage(); };
 
   // search filter
   const searchInput = document.getElementById("mistakeSearch");
